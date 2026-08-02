@@ -70,18 +70,31 @@ their descriptions do not load in every session; `doctor.sh` warns when a skill
 no flag maps to has no entry. Read the count out of `settings.json` — it moves
 every time a flagless primitive is added.
 
-**As a plugin, that lever does not exist.** `skillOverrides` is ignored for
-plugin skills — at `off` as well as `name-only`, under bare and namespaced keys
+**As a plugin, the harness ignores that lever** — `skillOverrides` does not reach
+plugin skills, at `off` as well as `name-only`, under bare and namespaced keys
 alike. The documentation states it directly: *"Plugin skills are not affected by
 `skillOverrides`. Manage those through `/plugin` instead."* What `/plugin`
 manages is plugins, and `claude plugin disable <name>` takes every skill in one
 with it.
 
+**But `off` is not inert here, and this is the sharp edge.** The `--flag` hook
+does its own check and honours `skillOverrides` in either form, so setting a
+skill to `off` under a plugin install **stops its flag firing while leaving the
+skill itself perfectly callable** by name or by the model's own judgement. You
+get half a disabled skill: the deterministic route is gone, the non-deterministic
+one is not. Measured on a real install, 2026-08-02.
+
+That is the safe half to lose if you are going to lose one — a flag that does
+nothing is visible, where an injected instruction for a skill the harness refuses
+to run is not. But do not reach for `off` under a plugin expecting it to do
+nothing, and do not reach for it expecting it to work either. `name-only` behaves
+as documented in both forms: the flag still fires, only the description is
+trimmed.
+
 **This suite is one plugin**, so installing it brings every skill and every flag,
-and the only lever is removing the whole thing. There is no in-suite substitute
-to reach for: `skillOverrides` was the mechanism any per-skill selection would
-have used. Decide whether you want the suite entire before installing it — and
-run `claude plugin details` to see the always-on cost, rather than counting bytes.
+and the only whole-hog lever is removing it. Decide whether you want the suite
+entire before installing it — and run `claude plugin details` to see the
+always-on cost, rather than counting bytes.
 
 **That lever is worth roughly what the overrides save.** Measured on 2026-08-01,
 the plugin form's always-on cost exceeded the same tree as a checkout by about a

@@ -257,7 +257,7 @@ manifest is the answer and the skill belongs in `skills/`.
 | `.claude-plugin/marketplace.json` | Makes the same directory its own marketplace, listing one plugin whose `source` is `"./"` — so an installer adds this repository as a marketplace and installs from it, with no second repository to keep in step. Handed a directory holding both manifests, `claude plugin validate` checks this one; name the file to check the other |
 | `skills/docs/assets/scaffold.sh` | Creates a docsify site shell — and only the shell, never content. Refuses to touch an existing directory, and prints the steps it deliberately leaves to the caller. Invoked by `--docs` in Scaffold mode |
 | `tests/hook-contract.sh` | The contract tests for the hook, whose breakage is total and silent |
-| `.github/workflows/verify.yml` | CI. Shell syntax, skill frontmatter, cross-links, absolute paths, the hook tests and the doctor. Runs on a push to any branch except `main`, on **every pull request**, and on manual dispatch — `main` is reached only through a PR, and with no branch protection on it that PR run is the only check standing between `dev` and `main` |
+| `.github/workflows/verify.yml` | CI. Shell syntax, skill frontmatter, cross-links, absolute paths, the hook tests and the doctor. Runs on a push to any branch except `main`, on **every pull request**, and on manual dispatch — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
 
 ## Agents
 
