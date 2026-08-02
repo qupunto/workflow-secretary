@@ -27,10 +27,7 @@ Delegation is a lookup, not a judgement —
 | `.claude/workflow.json` — a key naming a file that moved, or one nothing reads | `manifest-writer` |
 
 **Every row is a primitive or a record owner, and none is an orchestrator whose
-whole procedure would have to run.** That is deliberate: a one-line staleness fix
-dispatched into `--docs`' Update procedure or a `--stocktake` audit is a
-correction that costs more than the defect, which is how dispatched findings end
-up quietly not being dispatched at all.
+whole procedure would have to run.**
 
 **One exception, and it is not a dispatch.** A finding about a file belonging to
 **this suite** — including one this inspection is running — does not go to
@@ -39,11 +36,6 @@ up quietly not being dispatched at all.
 which holds the destination and the reasoning. This never covers the project's
 own skills: `record.tooling.sources` globs are relative, so `--tools` owns them
 as usual.
-
-**Why not just fix it.** An inspector that writes is a second writer on every
-file it touches, which breaks the one-writer-per-file invariant everywhere at
-once — and that invariant is the whole reason this workflow was restructured.
-An inspector that dispatches keeps every write coming from the sole owner.
 
 **The owner's second look is the point, not overhead** — hand over the evidence,
 not a verdict, and expect a share of your findings to come back not reproduced.
@@ -109,14 +101,8 @@ the next run to redo all of it.
 ## What to look for
 
 **The taxonomy is [`workflow/checks/record-drift.md`](../../workflow/checks/record-drift.md)**
-— six classes of drift, and the four things that look like findings and are not.
+— six classes of drift, and the things that look like findings and are not.
 Read it and apply it over the scope resolved above.
-
-It lives in a file rather than in this skill because `--full-check` and
-`--stocktake` run the same taxonomy over wider scopes, and both used to reach it
-by citing this skill's headings. A renamed heading broke that silently, which is
-why `doctor.sh` had to police cross-skill section citations at all. One method,
-one file, three runners.
 
 ## The boundary with `--docs`
 

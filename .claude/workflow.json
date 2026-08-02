@@ -18,7 +18,7 @@
     "reference": ["README.md"],
     "tooling": {
       "catalog": ".claude/TOOLING.md",
-      "sources": ["skills/*/SKILL.md"]
+      "sources": ["skills/*/SKILL.md", "workflow/writers/*.md", "workflow/checks/*.md"]
     }
   },
 

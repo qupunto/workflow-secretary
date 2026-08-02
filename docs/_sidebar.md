@@ -1,5 +1,5 @@
 - [Home](/)
-- [Overview](overview.md)
+- [Overview](/overview.md)
 
 - **Annex**
-- [Claude tooling](annex/claude-tooling.md)
+- [Claude tooling](/annex/claude-tooling.md)

@@ -12,7 +12,7 @@ and say in one line that you did.
 
 **This skill writes no record file.** The handoff — the part that makes this the
 handoff — belongs to `handoff-writer`, which step 3 invokes. Who owns what is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md).
+[`workflow/ownership.md`](../../workflow/ownership.md).
 
 ## The `--wrap` shorthand
 
@@ -22,7 +22,7 @@ ask "is this really done?", don't wait for approval of the last deliverable,
 just run the closing ritual.
 
 Where a flag counts, and the authorization it confers, live in
-`shorthand-flags.sh` and [`~/.claude/README.md`](../../README.md) — one copy,
+`shorthand-flags.sh` and [`README.md`](../../README.md) — one copy,
 not restated per skill.
 
 ## When it triggers
@@ -36,8 +36,7 @@ not restated per skill.
 - **Or: the session is about to end regardless of approval state** — the
   user says they're going to `/clear`, commit and stop for the day, or
   asks what a fresh session would still know. Work doesn't have to be
-  finished for the handoff to matter; an interrupted task needs
-  `record.handoff` to say so even more than a completed one does. In that case
+  finished for the handoff to matter. In that case
   do steps 1-3 and 5 — the commit matters more when the work is
   unfinished, not less — and skip the "safe to `/clear`" framing, saying plainly
   what's half-done and where it's recorded.
@@ -122,16 +121,13 @@ session that is not over.
    **This goes in the reply and never into a file.** A count is a mutable claim
    and [`record-contract.md`](../../workflow/record-contract.md#the-mutable-claim-rule)
    forbids writing one into a record — but the reply is not a record, it is read
-   once, by someone who is about to decide whether to stop. That is the one place
-   a count is worth having.
+   once, by someone who is about to decide whether to stop.
 
    Where a record is undeclared or absent, say so in its place rather than
    printing a zero. "No roadmap is declared" and "no milestones remain" are
    opposite facts and a bare `0` renders them identically.
 
-   **`record.todo` may be a provider rather than a file**, and counting unchecked
-   boxes in a file that was never supposed to exist reports a busy backlog as
-   absent — the same ambiguity, arrived at from the other side. Where the value
+   **`record.todo` may be a provider rather than a file.** Where the value
    carries a `provider` key, count there instead:
 
    ```bash
@@ -143,9 +139,7 @@ session that is not over.
    **Not the `--label` form**, and this step is the reason that rule exists.
    `--label` is served from a search index that lags writes, and this step runs
    *after* step 5's commit and whatever issues just closed with it — so it is
-   the one read in the suite guaranteed to be a read-after-write. It would
-   report the items that just left the backlog as still in it, which is a wrong
-   number in the direction that looks like ordinary progress. See
+   the one read in the suite guaranteed to be a read-after-write. See
    [`providers/github-issues.md`](../../workflow/providers/github-issues.md#after-writing-in-the-same-session-do-not-read-with---label).
 
    Say the backlog is provider-managed and give the number. Where `gh` cannot
@@ -198,8 +192,7 @@ If the tree is clean and nothing is unpushed, say so in one line and move on.
 
 Every session wraps before it finishes, and a wrap pushes. With two sessions
 sharing one checkout that is unavoidable collateral: they share a working tree,
-an index and a `HEAD`, so per-session *branches* do not help either — one
-session checking out its branch pulls the floor out from under the other.
+an index and a `HEAD`, so per-session *branches* do not help either.
 
 The isolation has to be at the worktree level:
 

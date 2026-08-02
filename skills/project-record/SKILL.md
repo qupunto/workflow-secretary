@@ -14,8 +14,7 @@ This skill owns the project's task and decision records, and one idea:
 | `--log` | we decided this; record the reasoning | `record.decisions` only |
 
 Both go through the same routing table, the same file rules, and the same index
-regeneration. Two flags rather than one because the skill does two jobs that feel
-different to whoever is typing, not because the logic differs.
+regeneration.
 
 **Project facts come from `.claude/workflow.json`**: `record.todo`,
 `record.decisions`, `record.decisionsIndex`, `record.openDecisions`, and
@@ -25,7 +24,7 @@ you used. `record.decisionsIndex` is the one with no fallback: without it, appen
 to the decision log and say the index was not regenerated.
 
 This skill is the **sole writer** of every one of them. Who owns everything else is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md); what each
+[`workflow/ownership.md`](../../workflow/ownership.md); what each
 record may and may not hold is
 [`record-contract.md`](../../workflow/record-contract.md), which is the authority
 if this file and that one ever disagree.
@@ -45,10 +44,7 @@ Is it settled?
 
 **The first branch is the one to get right.** "Not now, because the project does
 not need it" is a **decision** → `decisions`. "We cannot start because nobody has
-chosen between A and B" is an **open decision** → `openDecisions`. Logging the
-second as the first is how a blocking choice quietly becomes invisible: it reads
-as settled, so nobody revisits it, and the first person to write code past it
-makes the call by accident.
+chosen between A and B" is an **open decision** → `openDecisions`.
 
 **An entry never lives in both.** Settling one means deleting it from
 `openDecisions` and appending the outcome — including the options rejected — to
@@ -91,8 +87,7 @@ arrived as a single paragraph.
 
 **Ask before writing when the block is large or the routing is genuinely
 ambiguous** — list what you propose to file where, in one message, and let the
-user correct it. A batch of ten misrouted entries costs far more to unpick than
-one round trip, and the user has the meeting in their head right now.
+user correct it.
 
 **Everything here is still the flags' work underneath.** Intake decides the
 routing; the writing is `--todo` and `--log` exactly as above, under whatever
@@ -102,8 +97,9 @@ grant the caller arrived with. Intake confers nothing of its own.
 
 **Read the value first: it may not be a file.** Where `record.todo` is an object
 carrying a `provider` key, the backlog lives somewhere else and the procedure is
-that provider's — currently only
-[`providers/github-issues.md`](../../workflow/providers/github-issues.md).
+that provider's —
+[`providers/github-issues.md`](../../workflow/providers/github-issues.md) for
+GitHub Issues.
 Everything below about *what an entry says* still applies; only where it is
 written changes.
 
@@ -148,10 +144,7 @@ would bite the implementer. **Not the argument for or against.**
 If a decision blocks it, mark it `[blocked → <what's undecided>]` pointing at
 `record.openDecisions`.
 
-**Never write the reasoning here.** That is the whole point of the split. A
-backlog that carries its own arguments grows into a mixture of checklist and
-essay that can no longer be scanned for what to do next, and the only fix at
-that point is a full restructure.
+**Never write the reasoning here.** That is the whole point of the split.
 
 ## Writing to `record.decisions`
 
@@ -194,9 +187,7 @@ and `record.reference`.
   something is fine; a task that *is* a release is not.
 - **`record.changelog` is the neighbour worth keeping straight.** `--log` records
   *why a choice was made*, for whoever maintains the project; a changelog records
-  *what a user of the software notices*, keyed to a version. A refactor with no
-  user-visible effect earns an entry here and no changelog line; a dependency
-  bump users feel earns the reverse.
+  *what a user of the software notices*, keyed to a version.
 - **It does not judge whether the work is worth doing.** A known bug that will
   not be fixed now still gets logged — as a defect with reproduction steps
   rather than as a deferred idea. Those read very differently to whoever picks it
@@ -208,10 +199,7 @@ and `record.reference`.
 
 Orchestrators call this skill rather than writing the record themselves —
 `--start` when it settles an open decision or removes a shipped item, `--stocktake`
-when it dispositions a finding, `--check` when it dispatches one. That is not
-politeness: a record file with several writers is how one table ends up copied
-across several skills and one file ends up with several writers, which is the
-problem this workflow was restructured to remove.
+when it dispositions a finding, `--check` when it dispatches one.
 
 When called that way, the caller supplies the content and you own the placement,
 the format, and the index.

@@ -1294,6 +1294,78 @@ case $out in
   *) ok "a quoted one-word proper noun outside a trigger clause passes" ;;
 esac
 
+head_ "The audit index and CI's walks stay in agreement"
+
+# Two checks added after the index skipped pass 6 with nothing noticing, and
+# after the frozen-reports exemption once landed in the doctor but not in CI.
+# The fixture carries only what the checks read: an audits/ directory and a
+# verify.yml holding the exemption pair twice and the bare credential walk once.
+ax=$(mktemp -d)
+mkdir -p "$ax/audits" "$ax/.github/workflows"
+printf '# Index\n\n| `2026-01-01-pass1.md` | first | ok | tree |\n' > "$ax/audits/README.md"
+printf '# Report one\n' > "$ax/audits/2026-01-01-pass1.md"
+cat > "$ax/.github/workflows/verify.yml" <<'YML'
+      run: |
+        done < <({ git ls-files -z '*.md' ':(exclude)audits/**'
+                   git ls-files -z 'audits/README.md'
+                 })
+      run: |
+        done < <({ git ls-files -z '*.md' '*.sh' ':(exclude)audits/**'
+                   git ls-files -z 'audits/README.md'
+                 })
+      run: |
+        done < <(git ls-files -z)
+YML
+out=$(CLAUDE_DIR="$ax" CLAUDE_CONFIG_DIR="$ax" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"every audit report has an index row (1 checked)"*)
+    ok "an indexed report passes, and the pass line carries the count" ;;
+  *) bad "audit-index check reached no counted verdict on an indexed report" ;;
+esac
+case $out in
+  *"CI's two markdown walks carry md_files_'s exemption pair"*)
+    ok "a verify.yml carrying the pair twice passes" ;;
+  *) bad "walk-agreement check reached no verdict on an agreeing verify.yml" ;;
+esac
+case $out in
+  *"CI's credential scan still walks every tracked file"*)
+    ok "the bare credential walk is recognised" ;;
+  *) bad "credential-walk check reached no verdict on a bare walk" ;;
+esac
+
+# A report with no row must be named. This is the pass-6 shape exactly.
+printf '# Report two\n' > "$ax/audits/2026-01-02-pass2.md"
+out=$(CLAUDE_DIR="$ax" CLAUDE_CONFIG_DIR="$ax" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"no index row for 2026-01-02-pass2.md"*)
+    ok "an unindexed report is named as a failure" ;;
+  *) bad "a report with no index row went unreported — the pass-6 gap again" ;;
+esac
+rm -f "$ax/audits/2026-01-02-pass2.md"
+
+# One exemption dropped from one walk is the eleven-red-commits drift.
+sed '0,/:(exclude)audits/s/ '\'':(exclude)audits\/\*\*'\''//' \
+  "$ax/.github/workflows/verify.yml" > "$ax/.github/workflows/verify.yml.new" \
+  && mv "$ax/.github/workflows/verify.yml.new" "$ax/.github/workflows/verify.yml"
+out=$(CLAUDE_DIR="$ax" CLAUDE_CONFIG_DIR="$ax" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"markdown walks disagree with md_files_"*)
+    ok "a walk missing the exclusion is reported as disagreement" ;;
+  *) bad "verify.yml lost an exclusion and the doctor said nothing" ;;
+esac
+
+# The credential scan acquiring the exclusion is the failure in the OTHER
+# direction: a walk that must never narrow, narrowed.
+sed 's|done < <(git ls-files -z)|done < <(git ls-files -z ":(exclude)audits/**" "audits/README.md-no")|' \
+  "$ax/.github/workflows/verify.yml" > "$ax/.github/workflows/verify.yml.new" \
+  && mv "$ax/.github/workflows/verify.yml.new" "$ax/.github/workflows/verify.yml"
+out=$(CLAUDE_DIR="$ax" CLAUDE_CONFIG_DIR="$ax" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"credential scan no longer walks"*)
+    ok "a narrowed credential walk is reported" ;;
+  *) bad "the credential walk narrowed and the doctor said nothing" ;;
+esac
+
 head_ "reset-records.sh cannot write outside the project"
 
 # It ships, it truncates files, and it reads its list from a manifest — which is

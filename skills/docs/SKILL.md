@@ -5,8 +5,6 @@ description: "Author and maintain a project's long-form documentation site, ever
 
 # docs
 
-Documentation a developer can hand-verify against the source: every claim anchored to a
-real file path, every non-obvious decision explained, every rejected alternative recorded.
 Renders as a docsify site by default — plain markdown that also reads correctly on GitHub.
 
 ## Invocation
@@ -26,9 +24,7 @@ alone authorizes nothing.
 **Claude tooling** annex page (T11). The catalog is the source and stays that skill's; the page
 is yours — its wording, its placement, and its index and sidebar rows. Re-render its
 interaction diagram for this site's renderer under `references/style-guide.md`'s three
-rules rather than reshaping it by hand. Adapt what you are given and **do not invent edges the catalog does not claim**:
-you are rendering someone else's facts, and this is the one page whose subject is the tooling
-reading it.
+rules rather than reshaping it by hand. Adapt what you are given and **do not invent edges the catalog does not claim**.
 
 ## The two records this skill no longer writes
 
@@ -37,11 +33,9 @@ reading it.
 [`reference-writer`](../../workflow/writers/reference-writer.md). This skill owns **the site**,
 and those two files are records, not pages.
 
-**Dispatch findings about them straight to the owner.** `--check`,
-`--full-check`, `--start` and `--stocktake` do this already; the reason they used
-to arrive here is that a one-line staleness correction had to invoke this whole
-Update procedure to get written, which is exactly the shape
-[`ownership.md`](../../workflow/ownership.md#when-to-split) says to split.
+**Dispatch findings about them straight to the owner** — `--check`,
+`--full-check`, `--start` and `--stocktake` do this already; the split is
+[`ownership.md`](../../workflow/ownership.md#when-to-split)'s.
 
 What stays here is the judgement, not the write: **whether a subject belongs on
 the site at all**, which tier it lands in (`references/taxonomy.md`, G17), and
@@ -104,13 +98,11 @@ re-read.
 ### Audit scope
 
 Resolving it is this skill's job, not the method's — a method that picked its own scope
-could not be borrowed by a caller that wants a different one, which is why this moved out
-of `checks/docs-audit.md` on 2026-08-02.
+could not be borrowed by a caller that wants a different one.
 
 Sections 1–7 are shell. They run over the whole site in seconds and there is nothing to
 save by narrowing them — **always run them in full.** Section 8's second half is the
-expensive one: re-reading source files page by page. That is what the checkpoint is for,
-and skipping it wholesale is why a docs audit gets postponed until the drift is large.
+expensive one: re-reading source files page by page. That is what the checkpoint is for.
 
 Ask `sweep-tracker` to resolve the entry `docs`, with two scopes:
 
@@ -148,7 +140,7 @@ looks like:
   structure. Those invalidate every page's *form*, not just its facts.
 
 **When in doubt, widen.** A page wrongly skipped reports clean while asserting something
-false, and section 8 exists precisely because that failure is invisible from inside the docs.
+false.
 
 Stamp at the end through `sweep-tracker`: the baseline, and per scope what was covered.
 The rules constraining what may be claimed are
@@ -222,7 +214,7 @@ having**; the rest are mechanics.
 
 - **G9 — Verify before declaring done.** Every path exists, every link and `#anchor` resolves,
   every fence is tagged — and every asserted symbol and value is confirmed against source
-  (`audit.md` §8). Mechanics can be checked by script; accuracy needs re-reading the source.
+  (`workflow/checks/docs-audit.md` §8). Mechanics can be checked by script; accuracy needs re-reading the source.
   Don't eyeball either.
 - **G10 — Tables for anything enumerable.** Routes, endpoints, props, tokens, env vars,
   dependencies, key files.

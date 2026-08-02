@@ -11,7 +11,7 @@ between them.
 
 **This skill writes nothing** — not a record, not the history. The commits and
 the merge go through `git-writer`. Who owns what is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md).
+[`workflow/ownership.md`](../../workflow/ownership.md).
 
 **Project facts come from `.claude/workflow.json`**: `branch.integration`,
 `branch.publish`, `branch.mergeMethod` and `commands.ci`. Without a manifest,
@@ -24,12 +24,11 @@ are not the same report.
 **The token is spelled out and not `--pr`.** No flag may be a prefix of another,
 and `doctor.sh` fails on a violation. Where a flag counts, and the authorization
 it confers, is in `shorthand-flags.sh` and
-[`~/.claude/README.md`](../../README.md), which is also where the reason for this
+[`README.md`](../../README.md), which is also where the reason for this
 particular name lives.
 
 Invoking without confirmation is safe because everything up to §5 is local or
-reversible — a PR nobody merged can be closed, and nothing downstream has
-fetched it.
+reversible.
 
 ## 1. The precondition is a pushed branch, not a clean tree
 
@@ -122,9 +121,7 @@ rather than inferring it from the merge succeeding.**
 ## 6. Sweep the review threads nobody resolved
 
 **Do this after the merge, because that is the moment they stop being visible.**
-A review thread left unresolved on a merged PR is a comment somebody made and
-nobody answered; the PR closes, it leaves everyone's view, and the point it
-raised is gone. This is the one thing in a merge that has no other owner.
+This is the one thing in a merge that has no other owner.
 
 **Resolution state is GraphQL-only.** `gh api repos/O/N/pulls/N/comments` returns
 no resolved field at all — checked, it is simply not in the payload — so a
@@ -141,13 +138,8 @@ query($o:String!,$n:String!,$p:Int!){
  --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)'
 ```
 
-**Propose; do not file.** Measured over forty merged PRs in a large repository,
-unresolved threads were few — five in total — but **two of those five were
-chatter**: "Interesting that we didn't have a test for this", "My opinion, but
-should be challenged of course." The other three were real (a job condition
-referencing an output nothing defines, an over-broad token grant, a style rule
-broken). At that ratio an automatic sweep files roughly two junk items in five,
-and a backlog that costs more to prune than it saves is abandoned. The volume is
+**Propose; do not file.** A meaningful share of unresolved threads is chatter,
+and a backlog that costs more to prune than it saves is abandoned; the volume is
 low enough that asking is cheap.
 
 So: list what you found, one line each, with the file and line and a link, and
@@ -183,9 +175,7 @@ contained. Then check whether it made anything else due:
 ## What this skill does not do
 
 Who owns what is [`ownership.md`](../../workflow/ownership.md); what each record
-holds is [`record-contract.md`](../../workflow/record-contract.md). What this
-skill contributes is the **confirmation** for the merge, which the history's
-owner has no way to obtain for itself. So:
+holds is [`record-contract.md`](../../workflow/record-contract.md).
 
 - **It does not write any record file.** The body drafted in §2 is not a record
   and is never written to a file in the repository.

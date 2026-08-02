@@ -15,15 +15,13 @@ number and is the only thing that turns it into a tag or a changelog entry.
 
 It is **not** a task list and **not** a place for design arguments. The
 checklist is `record.todo` and the reasoning is `record.decisions`, both
-`--todo`/`--log`'s. Keeping those apart is the whole reason the records were
-split; a task or an argument landing here is the failure this separation exists
-to avoid.
+`--todo`/`--log`'s.
 
 **Project facts come from `.claude/workflow.json`**: `record.roadmap`,
 `record.todo`, `record.openDecisions`, `record.decisionsIndex`, `record.audits`,
 and `agents.roadmap`. Without a manifest, fall back to `ROADMAP.md` and say so.
 
-Who owns what is [`~/.claude/workflow/ownership.md`](../../workflow/ownership.md);
+Who owns what is [`workflow/ownership.md`](../../workflow/ownership.md);
 what each record holds is
 [`record-contract.md`](../../workflow/record-contract.md).
 
@@ -31,8 +29,7 @@ what each record holds is
 
 Same split as `--release` and for the same reason. The agent named in
 `agents.roadmap` does the reading — the roadmap, the backlog, the decision
-index, the audit log, the git history — and returns a proposal. That reading is
-thousands of tokens and belongs in a context that gets discarded.
+index, the audit log, the git history — and returns a proposal.
 
 But **completing a milestone requires asking the user, in conversation, and
 waiting for the answer.** A subagent has no channel for that; it can only return
@@ -74,14 +71,10 @@ So, when the final block of a milestone is checked off:
 4. On yes, **mark it completed in `record.roadmap` with its version**, then hand
    to `--release` and stop.
 
-**The mark is the durable form of the answer.** A spoken "yes" lives in one
-conversation and is gone at the next `/clear`; the mark is a state any skill can
-read, which is what makes `--release`'s precondition checkable instead of
-remembered.
+**The mark is the durable form of the answer** — a spoken "yes" does not survive
+a `/clear`.
 
-Versions, the changelog and tags themselves are not yours. That separation
-exists so planning — which happens constantly — can never accidentally publish
-anything.
+Versions, the changelog and tags themselves are not yours.
 
 ## Keeping the file honest
 
