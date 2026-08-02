@@ -62,8 +62,42 @@ done
 # Installed as a plugin with these conflated, every check below looked for the
 # installation inside ~/.claude, found no skills/ and no hooks/, and reported on
 # a directory that holds none of what it was inspecting.
+#
+# The fix separated the two directories and then left CLAUDE_DIR's FALLBACK
+# pointing the old way — at CONFIG_DIR — which is wrong wherever the two
+# differ, and they differ in every plugin install. $CLAUDE_PLUGIN_ROOT is set
+# for hook processes but is EMPTY in a model-run Bash command, and running the
+# doctor by hand is exactly that. So the resolver every skill prescribes would
+# launch the doctor FROM the plugin root, and the doctor would then inspect the
+# adopter's own ~/.claude, find no skills/ and no hooks/, and report three
+# failures and an empty skill enumeration on a perfectly good install. Measured
+# 2026-08-02 on a simulated adopter, against the tree published that day.
+#
+# So the doctor asks where IT lives. It ships with the installation it inspects
+# — that is why it stays at the root rather than moving into hooks/ — and its
+# own path needs no environment to be known.
+#
+# But only when that location is a PLUGIN root, never merely because it is where
+# the file sits. `CLAUDE_CONFIG_DIR` pointing the doctor at a whole synthetic
+# installation is how tests/hook-contract.sh drives it, and an unconditional
+# self-preference would silently ignore that and read the real tree instead —
+# every fixture would then be reported clean by a doctor that never looked at it,
+# which is this file's own most-feared failure.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+SELF_IS_PLUGIN=0
+if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/.claude-plugin/plugin.json" ] &&
+   [ "$(git -C "$SELF_DIR" rev-parse --show-toplevel 2>/dev/null)" != "$SELF_DIR" ]; then
+  SELF_IS_PLUGIN=1
+fi
+
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${CLAUDE_DIR:-$HOME/.claude}}"
-CLAUDE_DIR="${CLAUDE_PLUGIN_ROOT:-$CONFIG_DIR}"
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  CLAUDE_DIR="$CLAUDE_PLUGIN_ROOT"
+elif [ $SELF_IS_PLUGIN -eq 1 ]; then
+  CLAUDE_DIR="$SELF_DIR"
+else
+  CLAUDE_DIR="$CONFIG_DIR"
+fi
 fails=0
 warns=0
 
@@ -84,10 +118,16 @@ warns=0
 # Fall back to the manifest only where this is NOT a git checkout, because a
 # plugin install never is and a clone of the source repo always is.
 PLUGIN_MODE=0
-if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || [ $SELF_IS_PLUGIN -eq 1 ]; then
   PLUGIN_MODE=1
 elif [ -f "$CLAUDE_DIR/.claude-plugin/plugin.json" ] &&
-     ! git -C "$CLAUDE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+     [ "$(git -C "$CLAUDE_DIR" rev-parse --show-toplevel 2>/dev/null)" != "$CLAUDE_DIR" ]; then
+  # `--show-toplevel` compared against CLAUDE_DIR, not a bare `--git-dir` test:
+  # the latter succeeds from any directory NESTED inside a checkout, and the
+  # plugin cache is nested inside ~/.claude, which on the machine this is
+  # developed on is itself the configuration repo. So the old test answered
+  # "am I anywhere under some checkout" when the question is "am I the root of
+  # one". It read as a git install and switched plugin mode off.
   PLUGIN_MODE=1
 fi
 
