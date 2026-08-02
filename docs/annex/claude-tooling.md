@@ -65,7 +65,7 @@ reader.
 so. It used to need two: `--adopt`, `--docs` and `--stocktake` each still owned
 a record under a documented carve-out, and the diagram drew that rather than the
 intended state, because a map showing the destination gets read as showing the
-territory. Those splits landed on 2026-08-01 — into `manifest-writer`,
+territory. Those splits are done — into `manifest-writer`,
 `behaviour-writer`, `reference-writer` and `audit-writer` — so the distinction no
 longer separates anything, and the sub-row is gone rather than emptied.
 
@@ -137,7 +137,7 @@ In `skills/`, loaded in every project.
 
 In `workflow/writers/`, **not** in `skills/`. A caller reaches one by reading
 the file; there is nothing to invoke, and nothing loads unless a caller opens
-it. They left `skills/` on 2026-08-02 because a skill description is a
+it. They left `skills/` because a skill description is a
 per-session cost paid whether or not the skill is used, and each of these
 declared in its own description that only other skills invoked it. Ownership is
 unchanged — `workflow/ownership.md` remains the authority.
@@ -159,7 +159,8 @@ In `workflow/checks/`, not in the skills that wrote them. Each is one way of
 finding inconsistency in something the project has written down; the skill that
 runs one supplies the scope and decides what happens to a finding.
 
-Extracted on 2026-08-02. All three were already single-sourced, but were reached
+Extracted from the orchestrators that used to own them. All three were already
+single-sourced, but were reached
 by citing another skill's headings — a reference that breaks silently on a rename
 and leaves the borrower reporting success over checks it never ran.
 
@@ -250,6 +251,7 @@ manifest is the answer and the skill belongs in `skills/`.
 | Script | What it does |
 |---|---|
 | `doctor.sh` | Read-only health check of this config and the project in the working directory. Prints what it checks, so the list cannot go stale |
+| `reset-records.sh` | Blanks every record the manifest declares back to its canonical heading, so a fork or a fresh install starts with the structure and none of somebody else’s content. Dry-run unless given `--write`; skips a provider-backed backlog, and never touches the files that describe the tooling itself |
 | `hooks/shorthand-flags.sh` | The `UserPromptSubmit` hook that turns a `--flag` into a deterministic skill invocation rather than a judgement call |
 | `hooks/session-check.sh` | The `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a doctor failure, a sweep or a record gone stale, a filed bug report, or a handoff the harness would not otherwise load |
 | `hooks/hooks.json` | Declares those same two events when this is installed as a **plugin**, where `settings.json` belongs to the user and a plugin never owns it. Plugin hooks merge with the user's rather than replacing them, so an adopter's own hooks keep firing |

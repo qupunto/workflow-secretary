@@ -55,6 +55,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 | `hooks/hooks.json` | Wires those two events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The plugin manifest. `claude plugin validate` reads it |
 | `doctor.sh` | Read-only health check for this config and the current project. Stays at the root rather than moving into `hooks/`, because it is run by hand as often as by the hook |
+| `reset-records.sh` | Blanks every record the manifest declares back to its heading. Dry-run by default; `--write` to do it. What makes a fork yours rather than an inheritance — see below |
 | `bug-reports.md` | Inbox for defects in this config found from *other* projects. Gitignored, so it is not in the repo — `doctor.sh` surfaces open entries |
 | `skills/` | User-level skills, available in every project |
 | `.claude/skills/` | Where a project's own skills go, resolved before the global suite. This repo keeps none — see the annex for why both of the ones it had turned out to be global concerns with local paths baked in |
@@ -64,9 +65,10 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 ## What you can turn off, and what you cannot
 
 **As a checkout** — cloning into `~/.claude`, which is what the section below
-does and what this repo uses — `skillOverrides` in `settings.json` controls each
-skill individually. This repo sets its dispatch-only primitives to `name-only` so
-their descriptions do not load in every session; `doctor.sh` warns when a skill
+does, and the form this suite is developed in — `skillOverrides` in
+`settings.json` controls each skill individually. This repository sets its
+dispatch-only primitives to `name-only` so their descriptions do not load in
+every session; `doctor.sh` warns when a skill
 no flag maps to has no entry. Read the count out of `settings.json` — it moves
 every time a flagless primitive is added.
 
@@ -82,7 +84,7 @@ does its own check and honours `skillOverrides` in either form, so setting a
 skill to `off` under a plugin install **stops its flag firing while leaving the
 skill itself perfectly callable** by name or by the model's own judgement. You
 get half a disabled skill: the deterministic route is gone, the non-deterministic
-one is not. Measured on a real install, 2026-08-02.
+one is not. Measured on a real install rather than reasoned about.
 
 That is the safe half to lose if you are going to lose one — a flag that does
 nothing is visible, where an injected instruction for a skill the harness refuses
@@ -96,10 +98,10 @@ and the only whole-hog lever is removing it. Decide whether you want the suite
 entire before installing it — and run `claude plugin details` to see the
 always-on cost, rather than counting bytes.
 
-**That lever is worth roughly what the overrides save.** Measured on 2026-08-01,
-the plugin form's always-on cost exceeded the same tree as a checkout by about a
-third, and the excess was exactly the eight `name-only` descriptions the plugin
-form cannot suppress. The proportion will move as skills are added or trimmed;
+**That lever is worth roughly what the overrides save.** Measured rather than
+estimated: the plugin form's always-on cost exceeded the same tree as a checkout
+by about a third, and the excess was exactly the eight `name-only` descriptions
+the plugin form cannot suppress. The proportion will move as skills are added or trimmed;
 the structure will not, so run the command rather than trusting this paragraph's
 arithmetic.
 
@@ -129,6 +131,22 @@ pick work off someone else's project, and `--check` would verify those claims
 against the wrong repository. `--adopt`'s own rule applies, that the owning skill
 writes the first real line so that it is a true one.
 
+**If you fork this, or inherit records from anywhere, run `reset-records.sh`.**
+It blanks every record the manifest declares back to its heading, and it is the
+same script the publishing step runs, so the state you get is the state a fresh
+install gets. It is a dry run unless you pass `--write`:
+
+```bash
+./reset-records.sh              # list what would be blanked, change nothing
+./reset-records.sh --write      # do it
+```
+
+It never touches `README.md` or `.claude/TOOLING.md` even though the manifest
+calls them records — those describe the **tooling**, which is the part that
+should travel. And where `record.todo` names a GitHub Issues provider rather than
+a file, it skips it and says so: emptying somebody's issue tracker is not a thing
+a reset script gets to decide.
+
 ## The backlog does not have to be a file
 
 Every record above is a markdown file, with one exception. A team already living
@@ -151,7 +169,8 @@ backlog, and an issue without the label is somebody else's.
 **Nothing else takes a provider**, deliberately: the decision log and open
 decisions are prose read months later, and an issue thread is a conversation.
 And be aware of the maturity gap — **the file form is the battle-tested path**,
-used by this repo on itself since the beginning; the provider is newer and has
+used by the suite on its own repository since the beginning; the provider is
+newer and has
 far fewer miles on it. `--adopt` offers the choice when it finds open issues.
 
 ## Adopting the repo on a new machine
@@ -278,7 +297,7 @@ skipping one to save a read is the wrong way to be wrong.
 
 ### How often
 
-A cadence that has held on this repo. None of it is enforced — nothing here
+A cadence that has held in practice. None of it is enforced — nothing here
 nags, and the SessionStart hook only speaks when a checkpoint has fallen far
 behind.
 
@@ -417,10 +436,10 @@ flag adds it to that project's hook — a global block guarding a skill only one
 project has is a permanent warning in `doctor.sh` and a set of rules that project
 cannot edit.
 
-`--prune` was the one exception, and it was resolved on 2026-08-01 by promoting
-the skill rather than demoting the flag: `prune-skills` was generalised to read
-`record.tooling.sources` from whatever project it runs in, and moved to
-`skills/`. It is a global skill now, so the rule holds with no exceptions.
+The rule holds with no exceptions today, and the one it once had was resolved
+the right way round — by generalising the skill rather than dropping its flag.
+`prune-skills` reads `record.tooling.sources` from whatever project it runs in,
+so it is global like the rest.
 
 ## Finding a bug in this config from another project
 

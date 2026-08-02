@@ -110,9 +110,27 @@ is_plugin_root() { # dir
 SELF_IS_PLUGIN=0
 is_plugin_root "$SELF_DIR" && SELF_IS_PLUGIN=1
 
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${CLAUDE_DIR:-$HOME/.claude}}"
+# Precedence, highest first, and each level exists because the one below it is
+# a guess:
+#
+#   $CLAUDE_PLUGIN_ROOT  the harness knows; it is never wrong when set.
+#   $CLAUDE_DIR          the CALLER knows, and said so explicitly.
+#   SELF_IS_PLUGIN       this script's own location, when that is a plugin root.
+#   $CONFIG_DIR          the last resort.
+#
+# The $CLAUDE_DIR level is what lets a caller inspect an installation that is
+# not the one this script sits in. Without it, running the SHIPPED tests from
+# inside a plugin cache failed 21 of 162: every fixture says "inspect this
+# directory" via CLAUDE_CONFIG_DIR, and the cached doctor correctly preferred
+# itself, so the fixtures were never read. A stranger's most obvious diagnostic
+# reported a healthy install as broken — which is worse than no test at all,
+# because it is a confident wrong answer.
+CLAUDE_DIR_ENV="${CLAUDE_DIR:-}"
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${CLAUDE_DIR_ENV:-$HOME/.claude}}"
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
   CLAUDE_DIR="$CLAUDE_PLUGIN_ROOT"
+elif [ -n "$CLAUDE_DIR_ENV" ]; then
+  CLAUDE_DIR="$CLAUDE_DIR_ENV"
 elif [ $SELF_IS_PLUGIN -eq 1 ]; then
   CLAUDE_DIR="$SELF_DIR"
 else
@@ -134,11 +152,29 @@ warns=0
 # nothing, so the doctor would have gone on printing "all checks passed".
 #
 # So ask the harness first: CLAUDE_PLUGIN_ROOT is set by Claude Code only when
-# actually running from a plugin install, and is the sole authority when present.
-# Fall back to the manifest only where this is NOT a git checkout, because a
-# plugin install never is and a clone of the source repo always is.
+# actually running from a plugin install, and is the authority when it is
+# talking about the directory being inspected.
+#
+# **"Fall back to the manifest where this is NOT a git checkout" was the rule
+# here and it was wrong**, twice over, which is why the test below asks about
+# the cache path instead. A plugin fetched from a git-hosted marketplace over
+# SSH *is* a clone and *is* its own toplevel; and a checkout reached through a
+# symlink reports a logical path that matches no toplevel, so it read as a
+# plugin and dropped the very credentials check the paragraph above is about.
+# Both were measured, not argued.
+# Keyed on CLAUDE_DIR — the installation being INSPECTED — never on where this
+# script happens to sit. Those are the same place in every real use and differ
+# in exactly one: a caller pointing the doctor at another installation, which is
+# what the whole test suite does. Keying it on the script's location meant a
+# cached doctor applied plugin-shaped checks to a checkout-shaped fixture and
+# demanded a hooks.json the fixture had no business having.
+#
+# The CLAUDE_PLUGIN_ROOT clause is not redundant with is_plugin_root(): a
+# local-directory marketplace resolves the root to the source folder, which
+# carries no `plugins/cache/` segment. It is the documented outlier, and the
+# harness saying so is the authority when it is talking about the same directory.
 PLUGIN_MODE=0
-if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || [ $SELF_IS_PLUGIN -eq 1 ]; then
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ "$CLAUDE_DIR" = "$CLAUDE_PLUGIN_ROOT" ]; then
   PLUGIN_MODE=1
 elif is_plugin_root "$CLAUDE_DIR"; then
   # The same test, for the case where CLAUDE_DIR was pointed at an install by
