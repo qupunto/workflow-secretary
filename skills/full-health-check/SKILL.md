@@ -134,10 +134,12 @@ fix, and they do not write.
 
 ### 4. Triage the defect inbox
 
-`~/.claude/bug-reports.md` — defects in the global skills, contracts and scripts,
-found by sessions working in other projects, which were forbidden to fix them and
-filed instead. `doctor.sh` counts the open entries; nothing else reads them, and
-the session that wrote one is long cleared.
+`bug-reports.md` in the config directory — defects in this suite's own skills,
+contracts and scripts, found by sessions working in other projects, which were
+forbidden to fix them and filed instead, per
+[`ownership.md`](../../workflow/ownership.md#a-file-belonging-to-the-installation-is-never-edited-from-a-project-session).
+`doctor.sh` counts the open entries; nothing else reads them, and the session
+that wrote one is long cleared.
 
 **In scope only when this project *is* that configuration directory.** From
 anywhere else, filing is the whole action a session may take —

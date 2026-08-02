@@ -440,22 +440,36 @@ the right way round — by generalising the skill rather than dropping its flag.
 `prune-skills` reads `record.tooling.sources` from whatever project it runs in,
 so it is global like the rest.
 
-## Finding a bug in this config from another project
+## Finding a bug in this suite from another project
 
-A session working in some other repository **may not edit a skill, agent or
-workflow file here** — the change would land in a repository that session is not
-about, never appear in that project's diff, and lose its justification at the
-next `/clear`. So it files instead: one append to `~/.claude/bug-reports.md`,
-which is the single file any session in any project may write to.
+A session working in some other repository **may not edit this suite's own
+skills, agents, workflow contracts or scripts** — the change would land outside
+the repository that session is about, never appear in its diff, and lose its
+justification at the next `/clear`. Installed as a plugin it is worse: the write
+succeeds and is destroyed at the next plugin update, silently.
 
-Append-only, which is what makes many writers safe on it — an append is
-additive, so concurrent entries cannot destroy each other. Gitignored, so filing
-never dirties this tree and your private project names never travel with the
-repo. `doctor.sh` counts the open entries, since nothing else would ever surface
-them.
+This does **not** restrict your project's own skills and agents. Those are what
+`record.tooling.sources` globs and what `--tools` exists to maintain. The rule
+draws the line at the installation, not around skill files in general.
 
-Triage them from a session whose working directory is `~/.claude`, re-verifying
-each before acting.
+So a session files instead: one append to `bug-reports.md` in your config
+directory (`$CLAUDE_CONFIG_DIR`, else `~/.claude`), the single file any session
+in any project may write to. Append-only, which is what makes many writers safe
+on it — an append is additive, so concurrent entries cannot destroy each other.
+Gitignored, so filing never dirties a tree and your private project names never
+travel with the repo. `doctor.sh` counts the open entries, since nothing else
+would ever surface them. Because it is gitignored it ships with no template:
+
+```
+## [open] <one-line summary>
+Found: <project worked in> · <config commit, short SHA>
+File: <path within the suite> · Detail: <what is wrong, what you expected>
+```
+
+Triage them from a session whose working directory is a **checkout** of this
+suite, re-verifying each before acting. Running it as a plugin you have no such
+checkout, so the entry is your own record and the fix is an issue upstream at
+[`qupunto/workflow-secretary`](https://github.com/qupunto/workflow-secretary).
 
 Who may write which file is [`workflow/ownership.md`](workflow/ownership.md);
 what each record holds is

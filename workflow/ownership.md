@@ -247,21 +247,34 @@ For the same reason, **an owner invoked to fix one finding writes that finding
 and stops.** It does not run its whole procedure — a dispatched one-line handoff
 correction is not a reason to run a full closing ritual.
 
-## A global skill is never edited from another project's session
+## A file belonging to the installation is never edited from a project session
 
-**A finding about a skill, agent or workflow file under `~/.claude` — surfaced
-while working in some other project — is reported and stopped. Never fixed in
-place.** It belongs to a session whose working directory *is* `~/.claude`.
+**A finding about a skill, agent or workflow file belonging to THIS SUITE —
+surfaced while working in some other project — is filed and stopped. Never fixed
+in place.**
+
+The suite's own files and the project you are standing in are two different
+places, and where the suite sits depends on how it was installed:
+
+| install form | the suite is at | the config directory is |
+| --- | --- | --- |
+| checkout | `~/.claude` — the repo *is* the working tree | the same directory |
+| plugin | `${CLAUDE_PLUGIN_ROOT}`, under `plugins/cache/` | `~/.claude`, separately |
+
+In a checkout the two coincide, which is why one path used to describe both.
+Under a plugin they do not, so **`~/.claude` names the suite only in a checkout.**
+The config directory — `bug-reports.md`, `projects/`, `settings.json` — is
+`~/.claude` in both.
 
 This is not the ordinary one-writer rule. `--tools` genuinely owns those files;
 the question is *which session* may act, and nothing above answers it. The
 project's `record.tooling.sources` globs are relative, so a `--tools` sweep in
 another project correctly targets that project's own skills — but a defect
-noticed in the global skill you are *currently executing* falls outside those
+noticed in the suite file you are *currently executing* falls outside those
 globs, and the instinct to fix what is demonstrably broken has nothing standing
 against it.
 
-Three reasons the edit is worse than it looks:
+Why the edit is worse than it looks, in a checkout:
 
 - **It lands in a different repository than the session is about.** It never
   appears in that project's diff, so the review that would catch it never sees
@@ -269,24 +282,47 @@ Three reasons the edit is worse than it looks:
 - **`--tools` grants commit**, so it may not even wait as a dirty tree. A commit
   can appear in the config repo authored during a session about something else.
 - **The justification is discarded.** The reasoning lives in a context about to
-  be cleared, leaving a change in `~/.claude` that nobody can reconstruct.
+  be cleared, leaving a change nobody can reconstruct.
+
+**Under a plugin it is worse still, and silently.** The installation is an
+ordinary clone — nothing refuses the write. But `${CLAUDE_PLUGIN_ROOT}` is
+replaced on every plugin update, so the edit applies, works, and is destroyed
+later with no error and no trace. A checkout at least leaves a dirty tree
+somebody eventually notices.
 
 **But do not merely say it — file it.** A finding reported into a session that
 is about to be cleared is a finding that never existed, which is a worse outcome
-than the edit this rule prevents. Append an entry to `~/.claude/bug-reports.md`,
-which is the one file in this configuration **any session in any project may
+than the edit this rule prevents. Append an entry to `$CLAUDE_CONFIG_DIR`'s
+`bug-reports.md` — `~/.claude/bug-reports.md` unless that variable is set, in
+either install form — which is the one file **any session in any project may
 write to**, then stop.
 
 Not a link, because the file is **not in this repository** — it is gitignored,
-so it exists on a machine and never in a checkout. `doctor.sh` counts its open
-entries; that is how one gets seen.
+so it exists on a machine and never in a checkout or a published tree. That also
+means it ships with no template, so an entry is:
+
+```
+## [open] <one-line summary>
+Found: <the project the session was working in> · <config commit, `git -C … rev-parse --short HEAD`>
+File: <path within the suite> · Detail: <what is wrong, and what you expected>
+```
+
+`doctor.sh` counts entries whose heading is `## [open]`; that is how one gets
+seen. Closing one is editing its heading during triage.
 
 That file is append-only, and that is what makes many writers safe on it: an
 append is additive, so a wrong entry is merely wrong and nothing true is lost.
-It is also gitignored, so filing a report leaves no dirty tree in a repository
-the session is not about.
+It is also gitignored, so filing leaves no dirty tree in a repository the
+session is not about.
 
 Filing is the whole action. It is not a step on the way to fixing it.
+
+**Where a filed report goes next depends on the install form, and only a
+checkout can close one.** Triage runs from a session whose working directory is
+the suite's own repository. An adopter running the plugin has no such
+repository, so their terminal step is an issue upstream at
+`qupunto/workflow-secretary`; the local entry stays as their own record that it
+was reported.
 
 **A grant is authorization, not the act.** Every skill in the matrix that may
 commit does so by invoking `git-writer`, which inherits that grant and confers

@@ -31,12 +31,11 @@ Who owns what else is
 Not needed for internal changes that don't alter purpose, like rewording a
 section.
 
-**It does not fire on a global skill from another project's session.** A defect
-in a file under `~/.claude` — including the very skill being executed — is
-appended to `~/.claude/bug-reports.md` and left there. The edit belongs to a
-session in `~/.claude`; the inbox is what stops the finding dying with the
-session that noticed it. See
-[`ownership.md`](../../workflow/ownership.md#a-global-skill-is-never-edited-from-another-projects-session).
+**It does not fire on a file belonging to this suite** — including the very
+skill being executed. That is filed and left, per
+[`ownership.md`](../../workflow/ownership.md#a-file-belonging-to-the-installation-is-never-edited-from-a-project-session).
+The working project's own skills and agents are this skill's ordinary business
+and are not affected.
 
 ## Job 1 — the catalog
 

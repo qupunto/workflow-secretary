@@ -200,6 +200,18 @@ cannot verify itself. Check `worktree.symlinkDirectories` in
 priority: exclusive paths, then shared modules, then features, then the tests for
 them. Lanes in the same wave are concurrent; waves are sequential.
 
+**Assign each lane a model tier.** Lanes inherit the session's model unless the
+launch overrides it, which prices a doc-sync lane the same as the schema lane.
+Inherit by default; hand a cheaper tier only to a lane that is mechanical *and*
+fully specified — its brief names exactly what to change, and checking the
+result is cheap and local. Never downgrade the exclusive lane, a lane whose
+output others build on, or Phase 5's verification. The asymmetry is deliberate:
+a wrong downgrade produces plausible-but-wrong work, and the redo through
+integration costs more than the saving — when unsure, inherit. State tiers
+relative to the session ("session model", "a cheaper tier"), never as model
+names, which rot; and name every downgrade when stating the batch, so an
+economy stays a visible decision rather than a silent one.
+
 ## Phase 4 — Run the wave
 
 All lanes of a wave in **a single message so they run concurrently**. Route each
@@ -224,6 +236,9 @@ Each lane's brief carries, explicitly:
   real reference. Re-locate rather than concluding an item is stale.
 - **Its file ownership list**, and the instruction to stop rather than write
   outside it.
+- **Its model tier from Phase 3** — passed as the launch's model override where
+  the harness exposes one; where it does not, every lane inherits and the
+  assignment costs nothing.
 - **The decision entries that bear on it, by name** — looked up once here from
   the index, not six times by six lanes. Plus `record.behaviour` for what the
   rule currently *is*, and any `hazards.*` pointer that applies to its phase.
