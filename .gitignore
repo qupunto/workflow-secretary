@@ -101,6 +101,9 @@
 # list of what it copies — it is about producing that repository, so it is
 # meaningless inside it, and it names the Gate needles in the clear.
 !publish.sh
+# Blanks every declared record. This one DOES travel: an adopter runs it to start
+# agnostic, and publish.sh runs the copy rather than keeping a second list.
+!reset-records.sh
 !.claude/workflow.json
 !.claude/HANDOFF.md
 !.claude/HAZARDS.md

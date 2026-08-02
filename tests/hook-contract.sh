@@ -408,21 +408,57 @@ else
     rm -rf "$d"; mkdir -p "$d/.claude" "$d/docs"
     git init -q "$d" 2>/dev/null
     git -C "$d" config user.email t@test; git -C "$d" config user.name t
+    # These fixtures make ~80 commits each in a tight loop. Auto-gc can fire
+    # part-way through that and has no business running inside a fixture, and a
+    # signing hook belongs to whoever's machine this is, not to the test.
+    git -C "$d" config gc.auto 0
+    git -C "$d" config commit.gpgsign false
     printf '%s\n' "$2" > "$d/.claude/workflow.json"
     printf '%s\n' "$3" > "$d/docs/open-decisions.md"
     printf '%s\n' "$4" > "$d/TODO.md"
     [ -n "${5:-}" ] && printf '%s\n' "$5" > "$d/ROADMAP.md"
     git -C "$d" add -A >/dev/null 2>&1
-    git -C "$d" commit -q -m "records" >/dev/null 2>&1
+    git -C "$d" commit -q -m "records" >/dev/null 2>&1 \
+      || bad "recfix: the records commit failed in $d — every nudge assertion below is meaningless"
   }
+  # The nudges count COMMITS SINCE THE RECORD LAST CHANGED, so a single lost
+  # commit here shifts every threshold by one and the fixture then tests the
+  # wrong distance — silently, and in the direction that reads as "the nudge did
+  # not fire". That is exactly what the 2026-08-02 CI flake looked like: silent
+  # at the 79 check, silent again at the 80 check. Discarding git's output made
+  # a lost commit invisible, so the failure surfaced as a mystery two steps later.
   advance() { # dir, n — distance measured purely in commits
-    local i; for i in $(seq 1 "$2"); do
-      git -C "$1" commit -q --allow-empty -m c >/dev/null 2>&1
+    local i err
+    for i in $(seq 1 "$2"); do
+      err=$(git -C "$1" commit -q --allow-empty -m c 2>&1) || {
+        bad "advance: commit $i of $2 failed in $1 — $(printf '%s' "$err" | head -1)"
+        return 1
+      }
     done
   }
+  # Assert the distance the next assertion depends on. A fixture that has drifted
+  # now fails AS a fixture fault, naming the number it actually had, instead of
+  # being reported as the hook staying quiet.
+  at_distance() { # dir, file, expected
+    local last n
+    last=$(git -C "$1" log -1 --format=%H -- "$2" 2>/dev/null)
+    [ -n "$last" ] || { bad "at_distance: nothing in $1 ever touched $2"; return 1; }
+    n=$(git -C "$1" rev-list --count "$last"..HEAD 2>/dev/null)
+    [ "$n" = "$3" ] || { bad "at_distance: $2 is $n commits behind, expected $3"; return 1; }
+  }
   recrun() { # dir
-    (cd "$1" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+    local err_f out
+    err_f=$(mktemp)
+    out=$(cd "$1" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>"$err_f" \
       | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+    # Discarding stderr hid the other candidate explanation for the same flake:
+    # the hook dying mid-pipeline looks identical to the hook deciding to stay
+    # quiet. Empty output plus something on stderr is now reported, not swallowed.
+    if [ -z "$out" ] && [ -s "$err_f" ]; then
+      bad "recrun: the hook wrote to stderr and produced nothing — $(head -1 "$err_f")"
+    fi
+    rm -f "$err_f"
+    printf '%s' "$out"
   }
 
   BOTH='{"record":{"todo":"TODO.md","openDecisions":"docs/open-decisions.md"}}'
@@ -507,6 +543,7 @@ else
   recfix "$rmd" "$ALL_R" "$QUIET_OD" "$DONE_TD" "$PLAN"
 
   advance "$rmd" 79
+  at_distance "$rmd" ROADMAP.md 79
   out=$(recrun "$rmd")
   [ -z "$out" ] && ok "silent one commit short of the roadmap threshold" \
                 || bad "roadmap nudge fired early: $out"
@@ -516,6 +553,7 @@ else
   # that is the milestone working, and a nudge on correct behaviour is what
   # discredits the whole block.
   advance "$rmd" 1
+  at_distance "$rmd" ROADMAP.md 80
   out=$(recrun "$rmd")
   case "$out" in
     *"ROADMAP.md"*) ok "nudges on a roadmap untouched for 80 commits" ;;
@@ -805,7 +843,7 @@ OWNFIX
   doc() { # config-dir, [doctor args] — inspect a config from a project-less PWD,
           # so the $PWD-dependent checks skip rather than report another project's
           # state as this fixture's.
-    (cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$1" bash "$DOCTOR" "${@:2}" 2>&1)
+    (cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$1" CLAUDE_DIR="$1" bash "$DOCTOR" "${@:2}" 2>&1)
   }
   says() { # dir, needle, label — the doctor must name this fault
     printf '%s' "$(doc "$1")" | grep -q -- "$2" \
@@ -1007,7 +1045,7 @@ cat > "$provp/.claude/workflow.json" <<'JSON'
 { "manifest": "workflow/v1",
   "record": { "todo": { "provider": "github-issues", "repo": "o/n", "label": "backlog" } } }
 JSON
-out=$(cd "$provp" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(cd "$provp" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"declared in workflow.json but missing: github-issues"*|\
   *"declared in workflow.json but missing: o/n"*|\
@@ -1023,7 +1061,7 @@ esac
 cat > "$provp/.claude/workflow.json" <<'JSON'
 { "manifest": "workflow/v1", "record": { "todo": { "provider": "acme-tracker", "repo": "o/n" } } }
 JSON
-out=$(cd "$provp" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(cd "$provp" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"nothing implements"*) ok "a provider nothing implements is a FAILURE, not a silent fallback" ;;
   *) bad "an unimplemented provider passed — --todo would write nowhere and say nothing" ;;
@@ -1050,7 +1088,7 @@ head_ "Installation paths in runnable blocks"
 instp="$TMP/instpath"
 mkdir -p "$instp/skills/demo"
 printf '# Demo\n\n```bash\n~/.claude/doctor.sh\n```\n' > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"runs an installation path that only exists in a checkout"*)
     ok "a fenced block hard-coding an installation path FAILS" ;;
@@ -1061,7 +1099,7 @@ esac
 # call; only the runnable form is a fault, and a check that fired on both would
 # be ignored for its noise.
 printf '# Demo\n\nRun `~/.claude/doctor.sh` when in doubt.\n' > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"runs an installation path that only exists in a checkout"*)
     bad "the check fired on a prose mention, which it must not" ;;
@@ -1071,7 +1109,7 @@ esac
 # The one sanctioned exemption, per line so it cannot silently cover a block.
 printf '# Demo\n\n```bash\n~/.claude/doctor.sh   # doctor:checkout-only\n```\n' \
   > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"runs an installation path that only exists in a checkout"*)
     bad "the doctor:checkout-only marker did not suppress the check" ;;
@@ -1082,7 +1120,7 @@ esac
 # 2026-08-02 from a real git-hosted install, it is EMPTY in a model-run Bash
 # command, so a block keyed on it silently becomes the adopter's own config dir.
 printf '# Demo\n\n```bash\n"$CLAUDE_PLUGIN_ROOT"/doctor.sh\n```\n' > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"EMPTY in a"*) ok "a fenced block keyed on \$CLAUDE_PLUGIN_ROOT FAILS" ;;
   *) bad "a fenced \$CLAUDE_PLUGIN_ROOT passed — it is empty in a model-run Bash command" ;;
@@ -1091,7 +1129,7 @@ esac
 # The resolver that replaced it must itself pass, or the fix cannot be applied.
 printf '# Demo\n\n```bash\nS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"\n[ -x "$S/doctor.sh" ] || S=$(ls -d "$S"/plugins/cache/*/workflow-secretary/*/ 2>/dev/null | tail -1)\n"$S"/doctor.sh\n```\n' \
   > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"runs an installation path"*|*"EMPTY in a"*)
     bad "the sanctioned resolver trips the check it was written to satisfy" ;;
@@ -1101,7 +1139,7 @@ esac
 # A config-directory path is correct in BOTH forms and must never be flagged —
 # the bug inbox and the transcript directory genuinely live at ~/.claude.
 printf '# Demo\n\n```bash\ncat ~/.claude/bug-reports.md\n```\n' > "$instp/skills/demo/SKILL.md"
-out=$(CLAUDE_CONFIG_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$instp" CLAUDE_DIR="$instp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"runs an installation path that only exists in a checkout"*)
     bad "the check flagged a config-directory path, which is correct in both forms" ;;
@@ -1190,12 +1228,72 @@ esac
 # rather than absolute: pointing the doctor at a synthetic installation through
 # CLAUDE_CONFIG_DIR is how every fixture above drives it. A doctor that always
 # preferred its own location would report those fixtures on a tree it never read.
-out=$(CLAUDE_CONFIG_DIR="$TMP/doc-clean" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+out=$(CLAUDE_CONFIG_DIR="$TMP/doc-clean" CLAUDE_DIR="$TMP/doc-clean" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"all checks passed"*)
     ok "CLAUDE_CONFIG_DIR still redirects the installation for a checkout doctor" ;;
   *) bad "CLAUDE_CONFIG_DIR no longer reaches the installation: $(printf '%s' "$out" | grep -a FAIL | head -2)" ;;
 esac
+
+# A cached doctor pointed at ANOTHER installation must judge that one, not
+# itself. Before this, running the shipped tests from a plugin cache failed 21
+# of 162 on a healthy install — every fixture said "inspect this directory" and
+# the cached doctor preferred itself, so plugin-shaped checks ran against
+# checkout-shaped fixtures. A confident wrong answer from the obvious diagnostic
+# is worse than shipping no tests at all.
+out=$(cd "$bare" && CLAUDE_CONFIG_DIR="$TMP/doc-clean" CLAUDE_DIR="$TMP/doc-clean" \
+      bash "$pdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"plugin has no hooks/hooks.json"*|*"installed as a plugin"*)
+    bad "a cached doctor applied plugin checks to the checkout it was pointed at" ;;
+  *"all checks passed"*)
+    ok "an explicit CLAUDE_DIR overrides the doctor's own location" ;;
+  *) bad "explicit CLAUDE_DIR: no result line, so this proved nothing" ;;
+esac
+
+head_ "reset-records.sh cannot write outside the project"
+
+# It ships, it truncates files, and it reads its list from a manifest — which is
+# data. A `../` path was followed and blanked, and a symlinked record was written
+# through onto its target. Both landed outside the project, so outside its git,
+# so unrecoverable.
+RR="$_root/reset-records.sh"
+if [ ! -x "$RR" ]; then
+  bad "reset-records.sh missing or not executable at $RR"
+else
+  rr=$(mktemp -d); mkdir -p "$rr/proj/.claude" "$rr/outside"
+  printf 'PRECIOUS\n' > "$rr/outside/notes.md"
+  printf '{"record":{"todo":"../outside/notes.md"}}\n' > "$rr/proj/.claude/workflow.json"
+  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1 || :
+  [ "$(cat "$rr/outside/notes.md")" = "PRECIOUS" ] \
+    && ok "a manifest path escaping the project is refused" \
+    || bad "reset-records.sh blanked a file OUTSIDE the project"
+
+  printf 'ALSO PRECIOUS\n' > "$rr/outside/target.md"
+  ln -s "$rr/outside/target.md" "$rr/proj/TODO.md"
+  printf '{"record":{"todo":"TODO.md"}}\n' > "$rr/proj/.claude/workflow.json"
+  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1 || :
+  [ "$(cat "$rr/outside/target.md")" = "ALSO PRECIOUS" ] \
+    && ok "a symlinked record is refused rather than written through" \
+    || bad "reset-records.sh wrote through a symlink onto an external file"
+
+  # And it must still do its job, or the guards above are satisfied by a script
+  # that refuses everything.
+  mkdir -p "$rr/ok/.claude"
+  printf '{"record":{"todo":"TODO.md"}}\n' > "$rr/ok/.claude/workflow.json"
+  printf '# Backlog\n\nsomeone else content\n' > "$rr/ok/TODO.md"
+  bash "$RR" --write --dir "$rr/ok" >/dev/null 2>&1
+  [ "$(cat "$rr/ok/TODO.md")" = "# Backlog" ] \
+    && ok "a record inside the project is still blanked to its heading" \
+    || bad "reset-records.sh refused a legitimate record"
+
+  # Dry run is the default, and a default that writes is a footgun.
+  printf '# Backlog\n\nstill here\n' > "$rr/ok/TODO.md"
+  bash "$RR" --dir "$rr/ok" >/dev/null 2>&1
+  grep -q 'still here' "$rr/ok/TODO.md" \
+    && ok "without --write it changes nothing" \
+    || bad "reset-records.sh wrote without --write"
+fi
 
 head_ "Result"
 if [ $fail -gt 0 ]; then
