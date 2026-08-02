@@ -1,6 +1,6 @@
 ---
 name: track-complex-tasks
-description: "Use at the START of any request that will take more than a couple of steps — feature work, refactors, migrations, audits, multi-file changes. Builds the task list up front with TaskCreate and keeps it honest with TaskUpdate. SHORTHAND: `--track`. Trigger on \"implement\", \"refactor\", \"migrate\", \"fix all the\", \"do X, Y and Z\", or any numbered list of asks."
+description: "Use at the START of any request that will take more than a couple of steps — feature work, refactors, migrations, audits, multi-file changes. Builds the task list up front with TaskCreate and keeps it honest with TaskUpdate. SHORTHAND: `--track`. Judge by the SHAPE of a request — several dependent steps, or a numbered list — never by a verb in it."
 ---
 
 # Tracking complex tasks

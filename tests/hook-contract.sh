@@ -1251,6 +1251,33 @@ case $out in
   *) bad "explicit CLAUDE_DIR: no result line, so this proved nothing" ;;
 esac
 
+head_ "A description cannot invite invocation on an ordinary word"
+
+# `wrap-task` listed `"done"` and `release` listed `"ship it"` — both hold a push
+# grant, so "ok that's done" could commit and push. The fix for the class is to
+# NAME the tempting word and refuse it, so the check has to pass a description
+# that mentions the word in order to forbid it, or it forbids its own remedy.
+tp=$(mktemp -d); mkdir -p "$tp/skills/bare" "$tp/skills/errata" "$tp/skills/refused"
+printf -- '---\nname: bare\ndescription: "Close out. Also trigger on \\"done\\", \\"wrap this up\\"."\n---\n\nB.\n' \
+  > "$tp/skills/bare/SKILL.md"
+printf -- '---\nname: errata\ndescription: "Release. Also trigger on \\"cut a release\\", \\"ship it\\"."\n---\n\nB.\n' \
+  > "$tp/skills/errata/SKILL.md"
+printf -- '---\nname: refused\ndescription: "Close out. Also on \\"wrap this up\\". Never infer it from \\"done\\" or \\"ship it\\"."\n---\n\nB.\n' \
+  > "$tp/skills/refused/SKILL.md"
+out=$(CLAUDE_DIR="$tp" CLAUDE_CONFIG_DIR="$tp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"'bare' lists one-word trigger"*) ok "a bare one-word trigger FAILS" ;;
+  *) bad "a description triggering on \"done\" was not reported" ;;
+esac
+case $out in
+  *"'errata' lists one-word trigger"*) ok "an observed ordinary phrase FAILS even at two words" ;;
+  *) bad "a description triggering on \"ship it\" was not reported" ;;
+esac
+case $out in
+  *"'refused' lists"*) bad "the check forbids its own remedy — naming a word to refuse it must pass" ;;
+  *) ok "naming the word in order to refuse it passes" ;;
+esac
+
 head_ "reset-records.sh cannot write outside the project"
 
 # It ships, it truncates files, and it reads its list from a manifest — which is

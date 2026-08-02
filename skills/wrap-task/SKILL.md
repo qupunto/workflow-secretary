@@ -1,6 +1,6 @@
 ---
 name: wrap-task
-description: "Close out a unit of work, or a session about to end — task-list cleanup, a handoff refresh, a tight summary, committing and pushing what is outstanding, and a reminder to run /clear. SHORTHAND: `--wrap`. Also trigger on \"done\", \"wrap this up\", \"close this out\", an unambiguous approval of the last deliverable with nothing else pending, or \"before I clear\"."
+description: "Close out a unit of work or a session — task-list cleanup, handoff refresh, tight summary, committing and pushing what is outstanding, then /clear. SHORTHAND: `--wrap`. Also on an explicit close-out: \"wrap this up\", \"close this out\", \"before I clear\". COMMITS AND PUSHES — never infer it from \"done\", praise, or approval, which report a state rather than ask for one."
 ---
 
 # Wrapping up an approved task

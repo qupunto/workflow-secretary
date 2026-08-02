@@ -24,9 +24,9 @@ alone authorizes nothing.
 
 **`--tools` invokes this too**, handing over `record.tooling.catalog` for you to adapt into a
 **Claude tooling** annex page (T11). The catalog is the source and stays that skill's; the page
-is yours — its wording, its placement, and its index and sidebar rows. Its interaction diagram
-is `--draw`'s: invoke that skill to re-render it for this site's renderer rather than reshaping
-it by hand. Adapt what you are given and **do not invent edges the catalog does not claim**:
+is yours — its wording, its placement, and its index and sidebar rows. Re-render its
+interaction diagram for this site's renderer under `references/style-guide.md`'s three
+rules rather than reshaping it by hand. Adapt what you are given and **do not invent edges the catalog does not claim**:
 you are rendering someone else's facts, and this is the one page whose subject is the tooling
 reading it.
 

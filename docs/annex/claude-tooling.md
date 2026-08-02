@@ -48,7 +48,7 @@ reader.
    │  PRIMITIVES — a record, the history, a craft, or a rule│
    │                                                        │
    │    with a flag:  --track   --todo / --log              │
-   │                  --plan    --tools    --draw           │
+   │                  --plan    --tools                     │
    │                                                        │
    │    flagless:     sweep-tracker     handoff-writer      │
    │                  changelog-writer  git-writer          │
@@ -82,8 +82,7 @@ rather than merely happening to lack one. Arrows also run upward: the primitive
 owns, not who may call it.
 
 **Not every primitive writes**, which is why the arrow leaving that box is
-labelled rather than bare. `--draw` returns a block for its caller to place, and
-`workflow-contracts` only states how the suite is wired — the "rule" the box
+labelled rather than bare. `workflow-contracts` only states how the suite is wired — the "rule" the box
 label admits. An unlabelled arrow read as though the whole tier ended at the
 record files, which was true when every primitive but one was a writer and stopped
 being true once there were two. They are primitives on the same test as the rest:
@@ -101,9 +100,8 @@ one job, no session of their own, no authorization they did not inherit.
 | `--release` | `--full-check`, `changelog-writer`, `git-writer` | everything being in order before a tag — drift included, since that is one of its dimensions — then the entry and the tag. It reads `--plan`'s mark and never writes it |
 | `--wrap` | `handoff-writer`, `--plan`, `git-writer` | the handoff, the milestone question, the commits. It *names* `--pullrequest` where the pushed branch is ahead of `branch.publish`, and never invokes it — a session ending and work being ready to merge are two different facts |
 | `--pullrequest` | `git-writer`, `--todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because measured over forty merged PRs two unresolved threads in five were chatter. It drafts the body and holds the gate, and writes nothing itself |
-| `--tools` | `--draw`, `--docs`, `sweep-tracker`, `git-writer` | the diagram, handing the catalog over, stamping the sweep |
-| `--docs` | `--draw`, `sweep-tracker` | pictures for a page; narrowing its next audit |
-| `--draw` | nothing | the leaf — it reads, and returns a block for its caller to place |
+| `--tools` | `--docs`, `sweep-tracker`, `git-writer` | handing the catalog over, stamping the sweep; it draws the diagram itself |
+| `--docs` | `sweep-tracker` | narrowing its next audit |
 | `prune-skills` | `--tools`, `sweep-tracker` | the cuts, since it writes nothing itself; narrowing what it still has to read, and stamping what it covered |
 
 `--check` and `--full-check` appear as callers and never as callees of a write:
@@ -116,7 +114,6 @@ In `skills/`, loaded in every project.
 | Skill | Flag | What it does |
 |---|---|---|
 | `adopt-workflow` | `--adopt` | Brings a project under this workflow — detects its shape, maps files it already has, decides what its `.claude/workflow.json` should say and hands that to `manifest-writer`, proposes `permissions.ask` gating for the destructive commands it finds, and hands a project with no documentation to `--docs`. The detection and the asking are what stay here: a primitive has no channel to reach the user |
-| `diagram` | `--draw` | Draws the picture of a system in whatever form the display can actually render, and hands it back — it writes no file, so a diagram never becomes a second writer on someone's page |
 | `docs` | `--docs` | Writes and maintains this documentation site, every claim anchored to a real source path — and nothing else. It decides whether a subject belongs on the site and which tier it lands in; the two records it used to write are `behaviour-writer`'s and `reference-writer`'s |
 | `full-health-check` | `--full-check` | Asks whether a project is in order end to end — runs its mechanical checks, re-verifies its records, docs and tooling files at full scope ignoring every checkpoint, triages the defect inbox filed from other projects, orders the prune, has the catalog refreshed, then leaves fresh checkpoints. `--release` runs it before a tag |
 | `pr-flow` | `--pullrequest` | Moves work from the integration branch onto the publish branch through a pull request — drafts the body from the branch range rather than from memory, opens it, watches its CI, and merges behind a fresh confirmation. The only thing in the suite that moves work between the two branches |

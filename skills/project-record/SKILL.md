@@ -1,6 +1,6 @@
 ---
 name: project-record
-description: "The project's record of work and why. `--todo` parks what is not being built now: task to the backlog, reasoning to the decision log. `--log` records a decision already made. Also trigger on \"leave this for later\", \"we've decided\", \"park this\", \"here are my notes\", \"notes from the standup\", a pasted block of decisions, or when you judge something premature yourself."
+description: "The project's record of work and why. `--todo` parks what is not being built now: task to the backlog, reasoning to the decision log. `--log` records a decision already made. Also on \"park this\", \"leave this for later\", \"log that we decided X\", pasted standup notes, or when you judge something premature. Not on a decision mentioned in passing."
 ---
 
 # The project record
