@@ -19,7 +19,7 @@ Two jobs, both about the files that describe and drive the tooling:
 `.claude/skills/*/SKILL.md` and `.claude/agents/*.md`, and say so.
 
 Who owns what else is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md).
+[`workflow/ownership.md`](../../workflow/ownership.md).
 
 ## When it triggers
 
@@ -73,11 +73,9 @@ The catalog carries a diagram of how the tooling fits together, because the rows
 describe each skill alone and **the thing a newcomer cannot reconstruct from any
 single file is who invokes whom.**
 
-**Draw it yourself.** There was a `diagram` skill for this and it was cut: what
-it carried is behaviour Claude already has, so it cost every session a
-description to buy back nothing.
+**Draw it yourself.**
 
-Three rules survive it, because each is a way to be wrong that is easy to be:
+Three rules, because each is a way to be wrong that is easy to be:
 
 - **Check what will render it before choosing a form.** Mermaid in a display
   that does not support it ships raw markup to every reader; `docsify` needs a
@@ -100,11 +98,7 @@ in `record.tooling.sources`, ask `sweep-tracker` to resolve the entry `tooling`
 first. One scope, `claims`, covering the files whose contents were actually read.
 
 **A file swept clean once stays clean as the project moves, and that is not an
-assumption — it is what Job 2 enforces.** The rule below deletes mutable claims
-rather than correcting them, so what survives a sweep is conventions, decisions
-and pointers: content that a code change cannot falsify. That is the whole reason
-this sweep can be narrowed at all, and it stops being true the moment someone
-"fixes" a count instead of removing it.
+assumption — it is what Job 2 enforces.**
 
 So re-read a tooling file when **the file itself changed** since the baseline, or
 when it was left `not-covered`. Two things void that:
@@ -119,7 +113,7 @@ when it was left `not-covered`. Two things void that:
 
 **The procedure is [`workflow/checks/tooling-claims.md`](../../workflow/checks/tooling-claims.md).**
 This skill is what enforces it; `--full-check` runs the same method over every
-file in `record.tooling.sources`, and used to reach it by citing this heading.
+file in `record.tooling.sources`.
 
 In one line, because it overrides the instinct to be helpful: *delete the mutable
 claim rather than correcting it.* The rule itself is

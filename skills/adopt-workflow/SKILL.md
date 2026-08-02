@@ -5,10 +5,11 @@ description: "Bring a project under this workflow — map what already exists to
 
 # Adopting a project
 
-Every skill in this workflow reads `.claude/workflow.json`, and nothing else
-creates one — without it each skill degrades to conventional filenames and stays
-there. This skill is the way out, and the **only** one that runs before the
-project is under the contract at all.
+Every skill in this workflow reads `.claude/workflow.json`, and only this skill
+— through `manifest-writer`, which does the writing — ever creates one; without
+it each skill degrades to conventional filenames and stays there. This skill is
+the way out, and the **only** one that runs before the project is under the
+contract at all.
 
 **It writes the `permissions.ask` entries of step 5 and nothing else with content
 in it.** The manifest itself goes through
@@ -46,8 +47,6 @@ If the tree is dirty, say so and continue.
 Per [`project-shape.md`](../../workflow/project-shape.md). Report each signal
 with the evidence that established it, not just the conclusion — the user is the
 one who knows whether an inferred `service` is real or a stray dependency.
-
-This is also what tells you which records the project will actually need.
 
 ## 3. Find what already exists — search, do not assume
 
@@ -194,9 +193,7 @@ S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 "$S"/doctor.sh
 ```
 
-Run it and show the output. `manifest-writer` already proved the manifest in step
-8; this run is what covers the records step 9 created, and it is cheap and
-read-only, so run it rather than reasoning about which half is still unproven.
+Run it and show the output.
 
 **If it fails, fix and re-run.** Adoption is not finished on a failing doctor:
 every later skill trusts the manifest without re-verifying it. A failure in the
@@ -209,9 +206,7 @@ Step 3 already searched for what exists. If it found no documentation — no
 `docs/`, no site under another name, no renderer config — **invoke the `docs`
 skill** rather than noting the absence and moving on.
 
-Bound it to the scaffold and the overview page. Adoption ends with a shell and
-one true page that later work extends; it does not become a documentation
-project, and a tier list of empty headings is worse than nothing.
+Bound it to the scaffold and the overview page.
 
 **The grant it inherits is this skill's, not `--docs`'s.** `--adopt` authorizes
 committing what it creates and `--docs` alone authorizes nothing, so the
@@ -235,9 +230,7 @@ Say, briefly:
 - the one next step — usually `--check` to see what the record already gets
   wrong, or `--plan` if the project has no roadmap yet.
 
-**Then the cadence card, in full.** This is the only moment a project is
-guaranteed to be told; nothing later volunteers it, and an adopter who does not
-know when to run something runs nothing. Say `--flags` lists everything, then:
+**Then the cadence card, in full.** Say `--flags` lists everything, then:
 
 | When | Flag |
 |---|---|
@@ -251,7 +244,7 @@ know when to run something runs nothing. Say `--flags` lists everything, then:
 | After editing any skill or agent file | `--tools` |
 
 **Name the three that pay on day one — `--track`, `--todo`, `--wrap` — and say
-the rest pay back over weeks.** An adopter handed thirteen equal-looking flags
+the rest pay back over weeks.** An adopter handed a page of equal-looking flags
 uses none of them; handed three, they use three.
 
 Say plainly that nothing here nags: the SessionStart hook speaks only when a

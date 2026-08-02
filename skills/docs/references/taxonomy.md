@@ -129,7 +129,7 @@ second; both exist independently in a full-stack repo and neither should restate
 
 **Mobile** — not "frontend with extra pages": navigation graphs, offline sync, permission
 timing, background execution, and store release have no web analogue.
-**→ `references/tier-mobile.md`** (7 pages). Skip unless the project has a mobile app.
+**→ `references/tier-mobile.md`**. Skip unless the project has a mobile app.
 
 **Cross-client**
 

@@ -37,7 +37,7 @@ code*; read the matrix's "Sole writer of" column for what any given row actually
 writes, rather than inferring it from this row.
 
 **An orchestrator can be dispatched to, and a primitive can dispatch.** Neither
-is exotic: `--release` invokes `--full-check`, `--stocktake` invokes `--check`, `--adopt`
+is exotic: `--release` invokes `--full-check`, `--stocktake` invokes `--wrap`, `--adopt`
 invokes `--docs`, and the primitive `--tools` invokes `--docs` for the
 documentation page derived from its catalog. The tier says what a skill *owns*,
 not who is allowed to call it.

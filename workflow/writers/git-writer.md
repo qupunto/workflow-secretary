@@ -4,7 +4,7 @@
 
 **Sole writer of commits and tags.** Every skill in this workflow that needs
 either calls this one; who owns what is
-[`~/.claude/workflow/ownership.md`](../ownership.md).
+[`ownership.md`](../ownership.md).
 
 **Project facts come from `.claude/workflow.json`**: `branch.integration` is
 what ordinary work goes to, `branch.publish` is what `--release` tags, and

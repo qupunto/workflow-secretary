@@ -23,7 +23,7 @@ is a choice that **gets made anyway**, silently, by whoever writes the first lin
 of the code that depends on it.
 
 Who may write each record is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md). **This skill
+[`workflow/ownership.md`](../../workflow/ownership.md). **This skill
 writes source code and commits. It writes no record file directly** — it calls
 the primitive that owns each one.
 

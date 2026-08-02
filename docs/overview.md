@@ -27,6 +27,8 @@ before a single skill runs.
 ├── LICENSE
 │
 ├── doctor.sh              read-only health check — see "Verifying" below
+├── reset-records.sh       blanks the records to their headings — what makes a fork yours
+├── publish.sh             assembles and gates the public tree; deliberately never pushes
 │
 ├── hooks/                 both hook scripts, and the hooks.json a plugin needs
 │   ├── shorthand-flags.sh   UserPromptSubmit — `--flag` to invocation
@@ -41,10 +43,12 @@ before a single skill runs.
 ├── .claude/HANDOFF.md     record.handoff, mapped away from CLAUDE.md
 ├── .claude/HAZARDS.md     the standing hazards, split out of the handoff
 ├── .claude/TOOLING.md     record.tooling.catalog — source for the annex page
+├── .claude/sweeps.json    the sweep checkpoint cache — gitignored, machine-local
 ├── TODO.md                record.todo
 ├── ROADMAP.md             record.roadmap — milestones, and what authorises a tag
 ├── CHANGELOG.md           record.changelog
 │
+├── audits/                frozen agent audit reports — `audits/README.md` is the maintained index
 ├── tests/                 the hook contract tests, whose breakage is silent
 ├── .github/workflows/     CI
 │
@@ -88,9 +92,10 @@ it cannot be caught by using the skill, because its effect is that the skill is
 never used, so the body that would correct it never loads.
 
 Measured, the always-loaded floor is `CLAUDE.md` plus the sum of every skill
-description — a few thousand tokens in every session of every project, before
-anything happens. A skill body is paid only when invoked, which is why detail
-belongs there and not in a description.
+description — paid in every session of every project before anything happens;
+`doctor.sh`'s description-budget line prices the current sum. A skill body is
+paid only when invoked, which is why detail belongs there and not in a
+description.
 
 ## What can be switched off, and what cannot
 
@@ -98,16 +103,20 @@ The lever above has a hard limit, and which shape the suite is in decides whethe
 you have it at all.
 
 **As a checkout**, `skillOverrides` in `settings.json` controls each skill
-individually. This repository sets eight dispatch-only primitives to `name-only`,
-so their descriptions do not load in sessions that can never invoke them — those
-skills are reached only by another skill dispatching to them, so a description is
-pure cost. `doctor.sh` guards the arrangement: its dispatch-only check (the
+individually. This repository sets its dispatch-only primitives to `name-only` —
+today the single skill `workflow-contracts` — so their descriptions do not load
+in sessions that can never invoke them: a dispatched skill is reached only by
+another skill, so a description is pure cost. Read the current set out of
+`settings.json` rather than a count here; it shrank once already, when the
+record procedures left `skills/` for `workflow/writers/` and stopped being
+skills at all. `doctor.sh` guards the arrangement: its dispatch-only check (the
 `dispatch-only skills vs overrides` section) warns when a skill no flag maps to
 has no override entry, and
 its pass line names how many it compared, **so read that line rather than the
-summary**. It refuses `off` for these deliberately — `off` blocks *model*
+summary**. The policy is never `off` for these — `off` blocks *model*
 invocation, which is the only kind a dispatched skill ever gets, so it would not
-trim the skill but break it.
+trim the skill but break it. The warning text states that policy; the check
+itself only tests that an entry exists and never inspects its value.
 
 **As a plugin, none of that reaches the skills.** `skillOverrides` is ignored for
 plugin skills at `off` as well as `name-only`, under bare and namespaced keys
@@ -146,14 +155,17 @@ holds the adopter's own settings. `doctor.sh` had resolved both forms correctly
 since the conversion; the prose had not. The skill links them relatively, as the
 rest of the suite does.
 
-**What is and is not built.** The plugin *form* is built —
-`.claude-plugin/plugin.json` and `hooks/hooks.json` both exist and
-`claude plugin validate` passes. What does not exist is anywhere to install it
-*from*: no public repository and no marketplace entry, which is `0.2.0`'s
-remaining work. So the checkout is the route for an adopter today. It is not the
-only way to *run* one, though — `claude plugin marketplace add` accepts a local
-path, so a `git archive HEAD` copy can be installed and measured without
-publishing anything, and that is how the cost figures above were taken.
+**What is and is not built.** Both forms are built and both are installable.
+`.claude-plugin/plugin.json` and `hooks/hooks.json` exist, `claude plugin
+validate` passes, and since 2026-08-02 the published repository —
+`qupunto/workflow-secretary` — is public and is its own marketplace:
+`.claude-plugin/marketplace.json` names the repository root as its plugin
+source, so the marketplace-add and plugin-install commands name the same place
+and there is no second repository to keep in step. The checkout remains the
+route for developing, forking or auditing the suite. `claude plugin marketplace
+add` also accepts a local path, so a `git archive HEAD` copy can be installed
+and measured without publishing anything — which is how the cost figures above
+were taken.
 
 ## The hooks
 

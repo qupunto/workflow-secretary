@@ -94,7 +94,7 @@ below**, deliberately not drawn here: the two would fight for the same arrows.
 label. It is a primitive on the same test as the rest: one job, no session of
 its own, no authorization it did not inherit.
 
-**The eight procedures are not skills.** They live at `workflow/writers/*.md`
+**These procedures are not skills.** They live at `workflow/writers/*.md`
 and a caller reaches one by reading the file, not by invoking anything — they
 moved out of `skills/` on 2026-08-02 because a skill's description loads into
 every session whether the skill is used or not, and each of theirs said it was
@@ -116,7 +116,7 @@ because the tier says what a skill owns, not who may call it.
 | `--start` | `--track`, `--todo` / `--log`, `--plan`, `--tools`, `--docs`, `behaviour-writer`, `reference-writer`, `handoff-writer`, `git-writer`, `sweep-tracker` | building the task list before the batch; recording what the batch produced, committing it, and stamping the suite run so the next audit need not repeat it. `--docs` only where a change also earns a page. Its Phase 6 handoffs run **serialized**, never concurrently — every record writer re-verifies against the other records, so each one's read set is all of them |
 | `--check` | the owner of each finding, and `sweep-tracker` | it writes nothing itself — dispatch is the whole design. Every row in its table is now a primitive, so a one-line staleness fix no longer has to run a whole orchestrator procedure to get written |
 | `--full-check` | the same owners at full scope, plus `prune-skills`, `--tools`, `sweep-tracker`, `doctor.sh` and the project's own test command | ignoring every checkpoint. It resolves the suite carry-forward at the start and deliberately never stamps it at the end, because its later steps always run against a tree it has already edited |
-| `--stocktake` | `--track`, `--check`, `--todo` / `--log`, `--plan`, `--tools`, `--wrap`, `audit-writer`, `handoff-writer`, `git-writer`, `sweep-tracker`, and the project's own code-analysis skill where one exists | the task list up front, the record dimension, the dispositions, its own audit entry, and a dispatched close-out |
+| `--stocktake` | `--todo` / `--log`, `--plan`, `--tools`, `--wrap`, `audit-writer`, `handoff-writer`, `git-writer`, `sweep-tracker`, and the project's own code-analysis skill where one exists | the dispositions, its own audit entry, and a dispatched close-out. It runs the record dimension itself from `workflow/checks/record-drift.md` — the hook drops `--check` when either stocktake flag is typed |
 | `--release` | `--full-check`, `changelog-writer`, `git-writer` | everything being in order before a tag — drift included, since that is one of its dimensions — then the entry and the tag. It reads `--plan`'s mark and never writes it |
 | `--wrap` | `handoff-writer`, `--plan`, `git-writer` | the handoff, the milestone question, the commits. It *names* `--pullrequest` where the pushed branch is ahead of `branch.publish`, and never invokes it — a session ending and work being ready to merge are two different facts |
 | `--pullrequest` | `git-writer`, `--todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because measured over forty merged PRs two unresolved threads in five were chatter. It drafts the body and holds the gate, and writes nothing itself |
@@ -131,7 +131,7 @@ an inspector that writes is a second writer on every file it touches.
 
 ## Global skills
 
-In `skills/`, loaded in every project. The eight record procedures used to
+In `skills/`, loaded in every project. The record procedures used to
 be here; they are the table after this one.
 
 | Skill | Flag | What it does |
@@ -192,7 +192,7 @@ class and now has nothing to police: "no cross-skill section citations to check"
 
 | Method | What it finds | Run by |
 |---|---|---|
-| [`record-drift.md`](../workflow/checks/record-drift.md) | six classes of drift in a record, and the four things that look like drift and are not | `--check`, `--full-check`, `--stocktake` |
+| [`record-drift.md`](../workflow/checks/record-drift.md) | six classes of drift in a record, and the things that look like drift and are not | `--check`, `--full-check`, `--stocktake` |
 | [`docs-audit.md`](../workflow/checks/docs-audit.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page accuracy against source | `--docs`, `--full-check` |
 | [`tooling-claims.md`](../workflow/checks/tooling-claims.md) | mutable claims inside the tooling files, deleted rather than corrected | `--tools`, `--full-check` |
 
@@ -200,10 +200,10 @@ class and now has nothing to police: "no cross-skill section citations to check"
 and owner.** `workflow/checks/README.md` holds that line and why it matters —
 material that drifts to the wrong side of it stops being borrowable.
 
-**It also made the runners honest about their size.** `--check` was 12,169 B
-against `--full-check`'s 13,655 B, which reads as absurd for the *incremental*
-sweep; nearly half of it was the taxonomy the other two borrowed. It is 7,047 B
-now, and is what its name says.
+**It also made the runners honest about their size.** Before the extraction
+`--check` was nearly the size of `--full-check`, which reads as absurd for the
+*incremental* sweep; nearly half of it was the taxonomy the other two borrowed.
+The extraction roughly halved it, and it is now what its name says.
 
 
 ---
@@ -255,11 +255,11 @@ would route a lane to an agent does that work inline and says so.
 | `hooks/hooks.json` | Declares the same two events for a **plugin** install, where `settings.json` is the user's and a plugin never owns it. Plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The manifest that makes this directory installable. `claude plugin validate` reads it |
 | `reset-records.sh` | Blanks every record the manifest declares back to its canonical heading — a fresh start with the structure kept and the content gone. Dry-run unless given `--write`. Skips a `record.todo` that names a provider rather than a file, and never touches `record.reference` or `record.tooling.catalog`, which describe the tooling rather than the project. **This one travels**, and `publish.sh` runs the copy of it rather than keeping a second list |
-| `publish.sh` | Assembles the public tree from `HEAD` and gates it — copies only what it admits, empties the eight records on the copy, then asserts no ancestry, no private identifier, a whitelist of tracked paths, the credential rules, and the doctor and tests from inside the result. Never pushes. Does not travel with what it copies |
+| `publish.sh` | Assembles the public tree from `HEAD` and gates it — copies only what it admits, empties the records on the copy, then asserts no ancestry, no private identifier, a whitelist of tracked paths, the credential rules, and the doctor and tests from inside the result. Never pushes. Does not travel with what it copies |
 | `.claude-plugin/marketplace.json` | Makes the same directory its own marketplace, listing one plugin whose `source` is `"./"` — so there is no second repository to keep in step. Handed a directory holding both, `claude plugin validate` checks this one and not the other; name the file to check the other |
 | `skills/docs/assets/scaffold.sh` | Creates a docsify site shell and only the shell, never content. Refuses to touch an existing directory, and prints the steps it deliberately leaves to its caller. Invoked by `--docs` in Scaffold mode |
 | `tests/hook-contract.sh` | The contract tests for the hook, whose breakage is total and silent |
-| `.github/workflows/verify.yml` | CI. Runs the two above plus shell syntax, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, and on every pull request — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
+| `.github/workflows/verify.yml` | CI. Runs `doctor.sh` (twice, from both scopes) and the hook contract tests, plus shell syntax, Shellcheck, JSON validity, credential scans, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, and on every pull request — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
 
 ## Files that are not tools
 

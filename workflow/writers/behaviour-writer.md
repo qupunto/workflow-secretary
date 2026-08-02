@@ -4,7 +4,7 @@
 
 **Sole writer of `record.behaviour`.** Everything else in this workflow that
 needs it changed calls this skill; who owns what is
-[`~/.claude/workflow/ownership.md`](../ownership.md), and what this
+[`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md), which is the
 authority when this file and that one disagree.

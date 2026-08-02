@@ -5,15 +5,8 @@ description: "Find prose in a project's skill and agent files that does not chan
 
 # Pruning the skill files
 
-Skill files grow in one direction. Every edit adds the reasoning that motivated
-it, in the house style, which rewards concrete detail — and nothing in the
-workflow ever removes any of it. `--tools` deletes claims that have gone *false*;
-it is silent on prose that is verbose and true.
-
-The cost is not disk. A skill file is loaded in full the moment it is invoked, so
-every retained paragraph is paid again on every invocation, forever. An agent
-file is worse: it is loaded on every dispatch to that agent, in a context the
-session never sees and cannot correct.
+`--tools` deletes claims that have gone *false*; it is silent on prose that is
+verbose and true. That prose is this skill's job.
 
 ## The `--prune` shorthand
 
@@ -23,7 +16,7 @@ grant is what `--tools` inherits when the cuts are dispatched to it, so the cuts
 land in a commit rather than only in the working tree.
 
 Where a flag counts, and the authorization it confers, live in
-`shorthand-flags.sh` and [`~/.claude/README.md`](../../README.md) — one copy,
+`shorthand-flags.sh` and [`README.md`](../../README.md) — one copy,
 not restated per skill.
 
 ## Scope
@@ -34,20 +27,14 @@ never disagree about what a tooling file is. Without a manifest, fall back to
 `.claude/skills/*/SKILL.md` and `.claude/agents/*.md` and say in one line that
 you did.
 
-Both scopes count where a project has both. A repository whose sources include
-globally-installed skills prunes those too; one that only has project-local
-skills and agents prunes only those.
+Both scopes count where a project has both.
 
 ## It writes nothing. It dispatches to `--tools`.
 
 `--tools` is the sole writer of these files. This skill reads, classifies,
 measures and reports; the owner re-verifies and makes the cut, exactly as
-`--check` dispatches rather than fixing.
-
-That is not ceremony here. A proposed cut is a *hypothesis about what is
-load-bearing*, and this is the one job where being wrong is silent: nothing fails
-when a rule stops being stated, it just stops being followed. The owner's second
-look is the check on that.
+`--check` dispatches rather than fixing — a proposed cut is a hypothesis, and a
+wrong one fails silently.
 
 Ownership, and why the second look is load-bearing, are
 [`ownership.md`](../../workflow/ownership.md#the-inspector-writes-nothing).
@@ -80,11 +67,9 @@ cut. A skill file is the wrong home for it either way.
 
 Four hazards, each of which fails silently:
 
-- **A heading another skill cites by name.** Skills hand each other sections —
-  `--stocktake` dispatches its record dimension using `--check`'s brief. Delete or
-  rename that heading and the dispatch resolves to nothing while still reading
-  as live. The suite's `doctor.sh` checks these; run it before proposing and
-  after cutting.
+- **A heading another skill cites by name.** Delete or rename that heading and
+  the citation resolves to nothing while still reading as live. The suite's
+  `doctor.sh` checks these; run it before proposing and after cutting.
 - **The last statement of a rule.** Before cutting a restatement, confirm the
   rule is actually stated elsewhere and say where. Two copies is duplication;
   zero is a behaviour change disguised as tidying.

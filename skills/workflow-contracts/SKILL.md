@@ -66,10 +66,8 @@ Read-only, and it prints what it checks. Run it rather than believing any count
 or list written in a markdown file, this one included.
 
 **Two lines rather than one, because `$CLAUDE_PLUGIN_ROOT` cannot be used here
-and that is measured, not assumed.** Installed from a git-hosted marketplace on
-2026-08-02, the variable was **empty** in a model-run Bash command — it reaches
-hook processes, not the Bash tool. So a command keyed on it silently becomes the
-adopter's own config directory, where a plugin-only adopter has no `doctor.sh`.
+and that is measured, not assumed** — it reaches hook processes, not the Bash
+tool.
 
 The fallback is the versioned cache path, which is the only place a
 git-installed plugin's files exist. The order matters: **a checkout wins**, so a

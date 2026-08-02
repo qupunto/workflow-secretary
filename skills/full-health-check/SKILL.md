@@ -5,11 +5,6 @@ description: "Verify a project is in order end to end — run its mechanical che
 
 # The full health check
 
-The counterpart to the incremental sweeps. `--check`, `--docs` and `--tools`
-each narrow themselves to what has moved since they last ran, which is what makes
-them affordable to run often — and which means every one of them is trusting a
-`covered` list some earlier run wrote.
-
 **This is the run that trusts nothing.** It re-reads every functional file from
 scratch, and the checkpoints it leaves behind are what the next weeks of cheap
 sweeps rest on. Run it when a checkpoint might be wrong, when a large refactor has
@@ -47,8 +42,7 @@ checked and why; never read a local file in its place.
 
 **Append-only logs are out of scope, and this is not an omission.**
 `record.decisions`, `record.audits` and `record.changelog` are records of what was
-true when written. An old entry describing a decision later reversed is **correct
-as written** — the later entry is what makes the record accurate. There is nothing
+true when written. There is nothing
 to re-verify, and "fixing" one destroys the only history there is.
 
 The one thing worth checking about a log is that it is *generated* correctly where
@@ -58,9 +52,7 @@ it has an index: run `commands.indexCheck` and dispatch a stale index to `--todo
 nets and the backlog rebuild are `--full-stocktake`'s, and correctness, security
 and the data model belong to a project's own code-analysis skill, which that flag
 invokes. Running both against one request pays twice for the same answers. If the
-question is "where is this project", that is the flag to use. This one asks
-whether **what we have written down about the project is still true** — and
-whether the machinery that would tell you otherwise still runs.
+question is "where is this project", that is the flag to use.
 
 ## Procedure
 
@@ -124,9 +116,7 @@ and its brief:
 - **Tooling** — [`workflow/checks/tooling-claims.md`](../../workflow/checks/tooling-claims.md),
   over every file in `record.tooling.sources`.
 
-Hand each reader the file, not a skill. These three were reached by citing
-another skill's headings until 2026-08-02, which broke silently on a rename and
-left the borrower reporting success over checks it never ran.
+Hand each reader the file, not a skill.
 
 **Delegate reading, keep deciding.** A subagent's context is discarded when it
 returns, so only its verdict costs you anything. Readers **report**; they do not
@@ -194,8 +184,7 @@ finding.** Say so and leave it for a deliberate change.
 
 ### 7. Prune, then refresh the catalog
 
-**Invoke `prune-skills` after the dispatch, not before.** The ordering is written
-down because it is the part that would otherwise be got wrong:
+**Invoke `prune-skills` after the dispatch, not before:**
 
 - **After the fixes**, because a fix written in step 6 adds its own justification
   in the house style — exactly the prose the prune exists to catch. Run it first
@@ -209,11 +198,8 @@ second look.
 
 Then hand `record.tooling.catalog` to `--tools`, which owns it: add, edit or
 remove a row for anything this run created, renamed, retired or changed the
-purpose of. Refreshing it *here* is what keeps it honest. A catalog is an
-inventory, and an inventory is exactly the mutable claim this workflow forbids
-everywhere else; it is allowed in that one file only because something
-re-derives it on a schedule. Left to fire only when a skill happens to change, it
-drifts silently.
+purpose of. Refreshing it *here* is what keeps it honest — the catalog's
+inventory is permitted only because something re-derives it on a schedule.
 
 ### 8. Re-verify mechanically
 
@@ -232,9 +218,7 @@ therefore unverified by it.
 be clean.** The steps above edit files and this skill does not commit, so any run
 that changed anything reaches this point dirty; `sweep-tracker` would record the
 baseline as `<sha>+dirty`, which can never satisfy a carry-forward. The rule is
-unconditional so nobody has to judge tree state mid-run, and the only thing a
-conditional stamp could buy is a warm cache after a run that changed nothing. The
-asymmetry with step 2 — resolve there, no stamp here — is deliberate.
+unconditional so nobody has to judge tree state mid-run.
 
 ### 9. Stamp the checkpoints — this is the payoff
 
@@ -251,9 +235,8 @@ or refused is `not-covered`, which is what makes the next nudge honest.
 
 **Only what was read.** An area whose reader died, ran out of context, or returned
 a report vague about which files it opened is `not-covered`, and the honest cost of
-that is that those files get swept again next time. A full check that stamps
-coverage it did not earn is worse than no check at all, because every incremental
-sweep after it inherits the lie and nothing downstream can detect it. The rules are
+that is that those files get swept again next time — a stamp not earned is a lie
+every later sweep inherits. The rules are
 [`sweep-checkpoint.md`](../../workflow/sweep-checkpoint.md).
 
 ### 10. Report

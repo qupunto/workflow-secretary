@@ -16,7 +16,7 @@ entirely otherwise.
 Note `mobile/release.md` separately from `T8 deploy.md`: app stores impose review latency,
 signing identity, and version-pinning problems that server deploys simply do not have.
 
-**When mobile is the only surface**, drop the `mobile/` prefix entirely (the promotion rule
-below) and fold `mobile/overview.md` into T1's `overview.md` — for a mobile-only repo they are
+**When mobile is the only surface**, drop the `mobile/` prefix entirely (`taxonomy.md`'s
+promotion rule) and fold `mobile/overview.md` into T1's `overview.md` — for a mobile-only repo they are
 the same page, and keeping both forces the reader to look in two places for the toolchain. The
 same folding applies to any single-surface project: a web-only repo has no `client/` prefix.

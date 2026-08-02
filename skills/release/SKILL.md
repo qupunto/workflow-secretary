@@ -5,14 +5,10 @@ description: "Cut a release once `--plan` has marked a milestone completed — c
 
 # Cutting a release
 
-A tag another checkout has fetched cannot be recalled, so this skill is
-deliberately unhurried at exactly one point — the push — and brisk everywhere
-else.
-
 **This skill writes nothing.** It is the only one that may *decide* to tag, but
 the tag itself is written by `git-writer`, the changelog by `changelog-writer`,
 and the milestone mark by `--plan`. Who owns what is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md).
+[`workflow/ownership.md`](../../workflow/ownership.md).
 
 **Project facts come from `.claude/workflow.json`**: `record.roadmap`,
 `record.changelog`, `record.audits`, `branch.publish`, and `agents.release` —
@@ -24,7 +20,7 @@ the agent that prepares the material. Without a manifest, fall back to
 Invoking without confirmation is safe: everything up to the push is local and
 reversible, and the push has its own gate below. Where a flag counts, and the
 authorization it confers, is in `shorthand-flags.sh` and
-[`~/.claude/README.md`](../../README.md).
+[`README.md`](../../README.md).
 
 ## 1. The precondition is a mark, not a word
 
@@ -63,8 +59,7 @@ tagged is the one that would license skipping the files it changed. Releases are
 rare enough to afford the full run, and it subsumes `--check` — invoking both
 pays twice for the same answers.
 
-Invoking it costs nothing in authorization: `--full-check` grants nothing and
-writes nothing itself, so this is a narrowing rather than an escalation. It does
+It does
 spend the session's one consented test run where the project gates its suite
 behind `commands.testConsentEnv`; that is the right place to spend it.
 
@@ -146,9 +141,7 @@ here.
 ## What this skill does not do
 
 Who owns what is [`ownership.md`](../../workflow/ownership.md); what each record
-holds is [`record-contract.md`](../../workflow/record-contract.md). What this
-skill contributes is the **confirmation** — the one thing none of the writers it
-invokes can obtain for itself. So:
+holds is [`record-contract.md`](../../workflow/record-contract.md).
 
 - **It does not mark a milestone completed.** That mark is this skill's
   precondition, not its output.

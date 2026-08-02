@@ -1096,6 +1096,74 @@ while IFS=$'\t' read -r kind f ln body; do
 done < <(home_in_fences_)
 [ $n -eq 0 ] && pass "no runnable block hard-codes an installation path"
 
+# --------------------------------------------------------------- audit reports
+
+head_ "Audit reports"
+
+# The reports under audits/ are frozen and excluded from every markdown check
+# above; audits/README.md is the maintained index and is not. Two things about
+# that arrangement have already failed silently, and each gets a check.
+#
+# 1. The index skipped a report: the file landed, the table row did not, and the
+#    README's own warning about stale counts sat one section above the gap. It
+#    said "four" once after there were more, and skipped pass 6 entirely on
+#    2026-08-02 — nothing compared rows against the directory until this did.
+if [ -f "$CLAUDE_DIR/audits/README.md" ]; then
+  a_missing=0 a_total=0
+  for a_f in "$CLAUDE_DIR"/audits/*.md; do
+    [ -e "$a_f" ] || continue
+    a_b=$(basename "$a_f")
+    [ "$a_b" = "README.md" ] && continue
+    a_total=$((a_total + 1))
+    if ! grep -qF "| \`$a_b\` |" "$CLAUDE_DIR/audits/README.md"; then
+      fail "audits/README.md has no index row for $a_b — the index of the audit
+        reports is in scope precisely because it is maintained, and a report
+        without a row is invisible to everyone who trusts the table"
+      a_missing=$((a_missing + 1))
+    fi
+  done
+  if [ "$a_total" -eq 0 ]; then
+    pass "audits/ holds no reports beyond the index"
+  elif [ "$a_missing" -eq 0 ]; then
+    pass "every audit report has an index row ($a_total checked)"
+  fi
+else
+  pass "no audits/README.md — no index to check"
+fi
+
+# 2. The frozen-reports exemption exists in two places — md_files_ above, and
+#    CI's two markdown-walking steps — and it once landed in one and not the
+#    other, leaving CI red for eleven commits on a report that is frozen by
+#    design. A workflow step cannot call a function here, so the walk cannot be
+#    sourced once; this asserts the hand-copies agree instead. The needles are
+#    md_files_'s own pathspecs: change them there and this fails until
+#    verify.yml follows, which is the point. The credential scan is asserted
+#    the OTHER way — it must keep walking every tracked file, because a
+#    credential in a frozen report is still a credential.
+verify_yml="$CLAUDE_DIR/.github/workflows/verify.yml"
+if [ -f "$verify_yml" ]; then
+  v_ex=$(grep -cF ":(exclude)audits/**" "$verify_yml" || true)
+  v_re=$(grep -cF "git ls-files -z 'audits/README.md'" "$verify_yml" || true)
+  v_bare=$(grep -cF "< <(git ls-files -z)" "$verify_yml" || true)
+  if [ "$v_ex" -eq 2 ] && [ "$v_re" -eq 2 ]; then
+    pass "CI's two markdown walks carry md_files_'s exemption pair"
+  else
+    fail "verify.yml's markdown walks disagree with md_files_: expected the
+        audits exclusion and the README re-add twice each, found $v_ex and $v_re.
+        The walks are hand-copied and must stay identical — the last drift left
+        CI red for eleven commits (HAZARDS.md, 'Reading CI')"
+  fi
+  if [ "$v_bare" -ge 1 ]; then
+    pass "CI's credential scan still walks every tracked file"
+  else
+    fail "verify.yml's credential scan no longer walks bare 'git ls-files -z' —
+        excluding audits/ there would exempt frozen files from the one check
+        that must never exempt anything"
+  fi
+else
+  pass "no .github/workflows/verify.yml — no CI walk to compare"
+fi
+
 # -------------------------------------------------------------------- manifest
 
 head_ "Project workflow manifest"

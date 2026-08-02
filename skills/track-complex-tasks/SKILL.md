@@ -15,7 +15,7 @@ small. It authorizes nothing else — this skill writes no file and touches no
 record, so there is nothing for a grant to confer.
 
 Where a flag counts, and the authorization it confers, live in
-`shorthand-flags.sh` and [`~/.claude/README.md`](../../README.md) — one copy,
+`shorthand-flags.sh` and [`README.md`](../../README.md) — one copy,
 not restated per skill.
 
 ## The threshold
@@ -65,9 +65,8 @@ Two different forces decide the order. Apply them in this order.
 ### 1. Ramification beats priority
 
 A change that alters something **other tasks build on** goes first, whatever
-its own priority. If a table's shape changes after you wrote the queries
-against it, you rewrite the queries — that work was not slow, it was wasted.
-Reordering costs you a little; redoing costs you the whole task.
+its own priority. Reordering costs you a little; redoing costs you the whole
+task.
 
 Hoist to the front anything that changes:
 
@@ -119,10 +118,7 @@ failure, fix those, then re-run the tail.
 
 ### Do not over-batch
 
-Batching trades **feedback granularity** for fewer expensive runs. Twelve
-schema edits behind one migration means a failure tells you only that one of
-twelve broke it, and you have thrown away the bisect that would have found
-it in seconds.
+Batching trades **feedback granularity** for fewer expensive runs.
 
 Keep a batch small enough that a failed tail is still diagnosable. When
 changes are independent and the tail is cheap, prefer the earlier signal
@@ -181,10 +177,9 @@ Two different artifacts, and mixing them loses work:
   `record.decisions`.
 
 If something surfaces that should outlive the session it belongs there, not
-just here — a task list that ends with the session is not a place to park
-anything. And when the whole unit of work is approved and done, `--wrap` closes
+just here. And when the whole unit of work is approved and done, `--wrap` closes
 the list out.
 
 Who may write which record file is
-[`~/.claude/workflow/ownership.md`](../../workflow/ownership.md); what each one
+[`workflow/ownership.md`](../../workflow/ownership.md); what each one
 holds is [`record-contract.md`](../../workflow/record-contract.md).

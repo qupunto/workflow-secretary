@@ -4,7 +4,7 @@
 
 **Sole writer of `.claude/workflow.json`.** Everything else in this workflow that
 needs a key set, corrected or removed calls this skill; who owns what is
-[`~/.claude/workflow/ownership.md`](../ownership.md), and which keys
+[`ownership.md`](../ownership.md), and which keys
 may exist at all is [`manifest.md`](../manifest.md), which is the
 authority this skill validates against.
 

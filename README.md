@@ -38,9 +38,9 @@ any of it.
 
 **This repo *is* `~/.claude`.** It does not install into that directory; the
 directory is the working tree. `.gitignore` is inverted for that reason: it
-ignores `*` and then re-includes only what is genuinely configuration — under a
-megabyte, and `git ls-files | xargs cat | wc -c` is the figure rather than any
-number written here — because `~/.claude` is otherwise ~275 MB of machine-local
+ignores `*` and then re-includes only what is genuinely configuration —
+`git ls-files | xargs cat | wc -c` is the figure rather than any number written
+here — because `~/.claude` is otherwise hundreds of megabytes of machine-local
 state
 — transcripts, auto-memory, caches, session bookkeeping — that must not travel,
 and in one case (`.credentials.json`) must never leave the machine at all.
@@ -59,7 +59,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 | `bug-reports.md` | Inbox for defects in this config found from *other* projects. Gitignored, so it is not in the repo — `doctor.sh` surfaces open entries |
 | `skills/` | User-level skills, available in every project |
 | `.claude/skills/` | Where a project's own skills go, resolved before the global suite. This repo keeps none — see the annex for why both of the ones it had turned out to be global concerns with local paths baked in |
-| `workflow/` | The authority files every skill links to instead of carrying its own copy — who may write what, what each record holds, which manifest keys exist, and how a sweep narrows itself |
+| `workflow/` | The authority files every skill links to instead of carrying its own copy — who may write what, what each record holds, which manifest keys exist, and how a sweep narrows itself — plus the record-writer procedures under `workflow/writers/` and the shared check methods under `workflow/checks/` |
 | `workflow/providers/` | Where a record lives somewhere that is not a file. Only `record.todo` takes one, and `github-issues.md` is the only one that exists — see below |
 
 ## What you can turn off, and what you cannot
@@ -68,9 +68,10 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 does, and the form this suite is developed in — `skillOverrides` in
 `settings.json` controls each skill individually. This repository sets its
 dispatch-only primitives to `name-only` so their descriptions do not load in
-every session; `doctor.sh` warns when a skill
-no flag maps to has no entry. Read the count out of `settings.json` — it moves
-every time a flagless primitive is added.
+every session — `workflow-contracts` is the only such skill since the record
+procedures moved to `workflow/writers/` and stopped being skills; `doctor.sh`
+warns when a skill no flag maps to has no entry. Read the current set out of
+`settings.json` rather than a count here.
 
 **As a plugin, the harness ignores that lever** — `skillOverrides` does not reach
 plugin skills, at `off` as well as `name-only`, under bare and namespaced keys
@@ -99,11 +100,12 @@ entire before installing it — and run `claude plugin details` to see the
 always-on cost, rather than counting bytes.
 
 **That lever is worth roughly what the overrides save.** Measured rather than
-estimated: the plugin form's always-on cost exceeded the same tree as a checkout
-by about a third, and the excess was exactly the eight `name-only` descriptions
-the plugin form cannot suppress. The proportion will move as skills are added or trimmed;
-the structure will not, so run the command rather than trusting this paragraph's
-arithmetic.
+estimated, on 2026-08-01 when the record procedures were still skills: the
+plugin form's always-on cost exceeded the same tree as a checkout by about a
+third, and the excess was exactly their `name-only` descriptions the plugin form
+cannot suppress. Those procedures have since left `skills/`, so the proportion
+has moved; the structure has not — run the command rather than trusting this
+paragraph's arithmetic.
 
 Neither the overrides nor the `doctor.sh` check that guards them is dead code —
 both are correct for the checkout shape, which stays supported. And
@@ -120,7 +122,8 @@ keep its own record straight has no business keeping yours.
 But what those records *say* is about that repository. So a published copy ships
 them **present and empty**, carrying only their canonical heading — `TODO.md`,
 `ROADMAP.md`, `CHANGELOG.md`, `docs/decisions.md`, `docs/open-decisions.md`,
-`docs/audits.md`, `.claude/HANDOFF.md`. Empty rather
+`docs/audits.md`, `.claude/HANDOFF.md`, and its overflow sibling
+`.claude/HAZARDS.md`. Empty rather
 than absent, because `doctor.sh` fails on a declared record whose file is missing,
 and a fresh clone has to pass its own health check.
 
@@ -187,8 +190,8 @@ without 3 is worse than running neither.
 cd ~/.claude
 
 # 1. PROTECT FIRST. Between `git init` and the checkout there is no .gitignore
-#    in the working tree, so git sees all ~275 MB as untracked — including
-#    .credentials.json. This exclude is local-only and takes effect
+#    in the working tree, so git sees the entire directory as untracked —
+#    including .credentials.json. This exclude is local-only and takes effect
 #    immediately.
 git init
 printf '%s\n' '*' '!.gitignore' > .git/info/exclude
@@ -398,7 +401,10 @@ the docs site and the tooling files that no stocktake reads.
 **Some primitives have no flag**, deliberately, and are invoked by other skills
 rather than by you. Nobody wants to "record a baseline", "write the handoff" or
 "make a commit"; they want a sweep, a wrap, a landed batch, a release — and
-these are steps inside those.
+these are steps inside those. They are **procedure files under
+`workflow/writers/`, not skills** — a caller reads the file and follows it.
+`workflow/writers/README.md` is the index and the ownership matrix names each
+one's record; four are worth knowing by name:
 
 - **`sweep-tracker`** owns `.claude/sweeps.json`, the gitignored cache recording
   which commit each sweep last verified and what it actually covered. Its shape
