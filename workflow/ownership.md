@@ -17,7 +17,7 @@ to each other on different axes. That negotiation is the symptom, not the fix.
 
 | Tier | Writes | Fires on |
 |---|---|---|
-| **Primitive** — owns one record, the history, or one craft | its own file and nothing else — and a craft primitive writes nothing at all | a flag, or any skill that dispatches to it |
+| **Primitive** — owns one record, or the history | its own file and nothing else | a flag, or any skill that dispatches to it |
 | **Orchestrator** — owns the session | usually **nothing** — and never another owner's record, never the history | a flag, or any skill that dispatches to it |
 
 **"Owns the session" is the definition. Writing code is not**, and the tier used
@@ -54,13 +54,16 @@ It reads oddly beside the file-shaped ones, and it is the same rule: commits and
 tags are a durable statement about the project that several skills need written
 and none of them should each be writing their own way.
 
-**A craft primitive owns a way of doing something rather than a file**, and
-`diagram` is the one. It reads, works out a shape, and returns a block for its
-caller to place — because a diagram lives *inside* a file that already has an
-owner, so a skill that wrote one directly would become a second writer on every
-page it touched. Returning instead of writing is what keeps the invariant whole,
-and it is why this tier variant exists rather than the skill being folded into
-whichever caller happened to need it first.
+**There is no craft-primitive tier, and the one skill that had it was cut.**
+`diagram` returned a block for its caller to place rather than writing a file,
+so that a diagram living *inside* someone else's page never made a second writer
+on it. The invariant was real; the skill was not the thing enforcing it. Choosing
+a diagram's form and laying out its boxes is behaviour Claude already has, so the
+description was charged to every session of every project and bought nothing —
+and the rule it protected is simpler stated directly: **a skill that produces
+content for a file it does not own hands that content to the owner.** That
+applies to any skill, which is where it belongs, rather than to a tier with one
+member.
 
 **Which skill is in which tier is the matrix below**, and deliberately not a
 second list here. A membership list beside the definition is an inventory: it
@@ -114,7 +117,6 @@ while it stays easy to state.
 | catalog | `--tools` | `tooling-catalog-sync` | primitive | `record.tooling.catalog`, and stale claims inside `record.tooling.sources` | commit, **not** push |
 | build | `--start` | `start-work` | orchestrator | source code | commit, **not** push |
 | document | `--docs` | `docs` | orchestrator | the docs site | — |
-| draw | `--draw` | `diagram` | primitive *(craft)* | **nothing** — it returns a block its caller places | — |
 | stamp | — | [`writers/sweep-tracker.md`](writers/sweep-tracker.md) | primitive | `sweeps` — the checkpoint cache | — |
 | hand over | — | [`writers/handoff-writer.md`](writers/handoff-writer.md) | primitive | `record.handoff` | — |
 | note | — | [`writers/changelog-writer.md`](writers/changelog-writer.md) | primitive | `record.changelog` | — |

@@ -648,6 +648,66 @@ else
   warn "$n of $seen descriptions are over budget; ${total}B loads in every session"
 fi
 
+head_ "Trigger phrases a session would hit by accident"
+
+# A description is how the MODEL decides to invoke a skill, so a trigger listed
+# there is a claim about ordinary language. `wrap-task` listed `"done"` and
+# `release` listed `"ship it"` — both hold a push grant, so "ok that's done"
+# could commit and push work nobody asked to publish. `project-stocktake`
+# listed `"where are we"`, the most expensive skill in the suite answering a
+# question a sentence would.
+#
+# The signature is structural rather than semantic, which is what makes it
+# checkable: a ONE-WORD quoted trigger. Every phrase that survived review is
+# three or more words ("wrap this up", "cut a release") because that length is
+# what makes a phrase an instruction rather than a remark.
+#
+# A single word is allowed only where the description also NEGATES it — the
+# fix for this class is to name the tempting word and refuse it, so a check
+# that forbade the word outright would forbid its own remedy.
+SUSPECT=0; checked=0
+for d in "$CLAUDE_DIR"/skills/*/; do
+  [ -f "$d/SKILL.md" ] || continue
+  name=$(basename "$d")
+  desc=$(awk 'NR==1&&/^---$/{f=1;next} f&&/^---$/{exit} f' "$d/SKILL.md" |
+         awk '/^description:/{p=1;print;next} p&&/^[a-zA-Z_-]+:/{p=0} p')
+  [ -n "$desc" ] || continue
+  checked=$((checked + 1))
+  # Quoted phrases, escaped or bare, reduced to those of a single word.
+  singles=$(printf '%s' "$desc" | grep -oE '\\?"[A-Za-z][A-Za-z'"'"'-]*\\?"' |
+            tr -d '\\"' | sort -u | tr '\n' ' ')
+  # Plus the multi-word phrases already observed to misfire. This is NOT a
+  # theory of ordinary language and must not grow into one — it is the list of
+  # phrases that actually shipped as triggers and had to be removed. The
+  # one-word rule above is the general test; this is its errata.
+  # Backslashes stripped first: a description written as `\"ship it\"` does not
+  # contain the literal `"ship it"` — the closing quote sits behind an escape —
+  # so matching the raw line silently found nothing and reported clean.
+  descn=$(printf '%s' "$desc" | tr -d '\\')
+  for phrase in "ship it" "looks good" "where are we" "that works" "sounds good"; do
+    printf '%s' "$descn" | grep -qiF "\"$phrase\"" && singles="$singles$phrase, "
+  done
+  [ -n "${singles// /}" ] || continue
+  if printf '%s' "$desc" | grep -qiE 'never infer|not to be inferred|not on |not for |do not infer'; then
+    continue
+  fi
+  fail "'$name' lists one-word trigger(s) [ ${singles}] with nothing refusing them.
+        A description decides invocation from ordinary language, so a bare word
+        fires on conversation about the work rather than a request for it. Use a
+        phrase long enough to be an instruction, or name the word and refuse it."
+  SUSPECT=$((SUSPECT + 1))
+done
+if [ $checked -eq 0 ]; then
+  # Not a warning. A skill with no frontmatter description cannot be invoked
+  # from ordinary language at all, so there is nothing here to misfire — and
+  # the budget check above already reports the case where no skill was found.
+  # Warning here made a clean fixture fail under --strict, which is a check
+  # inventing work rather than finding it.
+  pass "no skill declares a description, so none can trigger on a stray word"
+elif [ $SUSPECT -eq 0 ]; then
+  pass "no description invites invocation on a single ordinary word ($checked checked)"
+fi
+
 # --------------------------------------------------------- dangling references
 
 head_ "Cross-references"

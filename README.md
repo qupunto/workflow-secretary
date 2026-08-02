@@ -358,7 +358,6 @@ Current flags:
 | `--log` | `project-record` | primitive |
 | `--plan` | `roadmap` | primitive |
 | `--tools` | `tooling-catalog-sync` | primitive |
-| `--draw` | `diagram` | primitive (craft) — writes nothing; returns a block |
 | `--check` | `record-inspector` | orchestrator — writes nothing; dispatches |
 | `--full-check` | `full-health-check` | orchestrator — writes no record; dispatches. `--release` runs it before a tag |
 | `--docs` | `docs` | orchestrator |

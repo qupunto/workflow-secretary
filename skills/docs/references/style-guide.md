@@ -160,17 +160,18 @@ src/
 Comments point at the page that covers each directory in depth (`— see types.md`). Use a
 bare `│` line to group related entries.
 
-### Diagrams — invoke `--draw`
+### Diagrams
 
-`architecture.md` exists to show shape, so it needs a picture. **The `diagram` skill owns that
-craft** — which form this site's renderer can actually display, how much of a graph to show
-before it stops being readable, and when a table is the better answer. Invoke it and place what
-it returns; it writes nothing itself, so the page stays yours.
+`architecture.md` exists to show shape, so it needs a picture. Draw it here — there was a
+`diagram` skill for this and it was cut, because choosing a form and laying out boxes is
+behaviour Claude already has and a skill description is paid for in every session.
 
-One of its rules is worth knowing here, because getting it wrong ships a broken page rather
-than a missing one: ASCII in a plain fence is the default, and **docsify needs a plugin the
-default `index.html` does not load**, so a Mermaid fence chosen without checking shows raw
-markup to every reader.
+Three rules survive it. The first ships a broken page rather than a missing one when you get
+it wrong: **check what will render it.** ASCII in a plain fence is the default, and **docsify
+needs a plugin the default `index.html` does not load**, so a Mermaid fence chosen without
+checking shows raw markup to every reader. The second: every box and arrow is a claim, so draw
+from what you read and leave out a direction you cannot establish. The third: stop before the
+graph stops being readable — a table is often the better answer.
 
 ```
 user action ──► SQLite row ──► outbox row ──► drain() ──► API

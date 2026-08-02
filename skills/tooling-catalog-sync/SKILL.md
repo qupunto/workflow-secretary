@@ -74,18 +74,24 @@ The catalog carries a diagram of how the tooling fits together, because the rows
 describe each skill alone and **the thing a newcomer cannot reconstruct from any
 single file is who invokes whom.**
 
-**Invoke `--draw` for it rather than drawing it here.** That skill owns the
-craft — which form the display can actually render, how much of the graph to
-show before it stops being readable, when a table is the better answer. It
-returns a block; you place it in this file, which is yours.
+**Draw it yourself.** There was a `diagram` skill for this and it was cut: what
+it carried is behaviour Claude already has, so it cost every session a
+description to buy back nothing.
 
-What it needs from you is the material: the skills and agents that exist and the
-invocations you found in their files. It renders your facts and will not add
-edges you did not claim, so an arrow missing from what you hand over is an arrow
-missing from the picture.
+Three rules survive it, because each is a way to be wrong that is easy to be:
 
-The diagram travels with the catalog when it goes to `--docs`, which may call
-`--draw` again to re-render it for the site's own renderer.
+- **Check what will render it before choosing a form.** Mermaid in a display
+  that does not support it ships raw markup to every reader; `docsify` needs a
+  plugin a default `index.html` does not load. Where you cannot determine the
+  renderer, use ASCII — it is never wrong.
+- **Every box and arrow is a claim.** Draw from the files you actually read,
+  never from inference, and where a relationship's direction cannot be
+  established, leave it out and say so.
+- **Stop before it stops being readable.** A graph nobody can follow is worse
+  than the table above it, and the table is already there.
+
+The diagram travels with the catalog when it goes to `--docs`, which re-renders
+it for the site's own renderer under the same three rules.
 
 ## Scope, when this runs as a sweep
 

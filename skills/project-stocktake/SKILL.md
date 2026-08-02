@@ -1,6 +1,6 @@
 ---
 name: project-stocktake
-description: "Take stock of where a project actually is — whether its record matches reality, its conventions and public surface hold together, and it has the safety nets a release needs — then rebuild the backlog around the answer. SHORTHAND: `--stocktake`, or `--full-stocktake` to re-examine everything. Also trigger on \"where are we\", \"take stock\", \"are we ready to ship\"."
+description: "Take stock of where a project actually is — whether its record matches reality, its conventions and public surface hold, and it has the safety nets a release needs — then rebuild the backlog around it. SHORTHAND: `--stocktake`, `--full-stocktake` for everything. Also on \"take stock\", \"are we ready to ship\". Expensive and rewrites the backlog: not for \"where are we\"."
 ---
 
 # Taking stock of the project

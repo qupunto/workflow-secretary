@@ -62,7 +62,7 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 # below does not matter. `--stocktake` and `--full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--full-stocktake --pullrequest --full-check --release --stocktake --adopt --prune --flags --start --track --docs --draw --check --tools --todo --wrap --plan --help --log)
+FLAGS=(--full-stocktake --pullrequest --full-check --release --stocktake --adopt --prune --flags --start --track --docs --check --tools --todo --wrap --plan --help --log)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -230,7 +230,6 @@ skill_for() {
     --stocktake | --full-stocktake) echo project-stocktake ;;
     --adopt) echo adopt-workflow ;;
     --docs) echo docs ;;
-    --draw) echo diagram ;;
     --tools) echo tooling-catalog-sync ;;
     --check) echo record-inspector ;;
     --full-check) echo full-health-check ;;
@@ -358,28 +357,6 @@ produces TWO entries — the task in the project's backlog record, and the
 reasoning in its decision record. Never write the reasoning into the backlog.
 If the real blocker is an unmade choice rather than bad timing it belongs in the
 open-decisions record instead, and never in both.
-EOF
-    ;;
-  --draw)
-    cat <<'EOF'
-The user included the `--draw` flag. That is an explicit, unconditional
-instruction to invoke the `diagram` skill now. Bare, it means draw what was just
-being discussed; with an argument, that is the subject. The rest of the message
-is subject or scope, not a question to answer first.
-
-Authorization: none. This skill writes NO file — it returns a block, and
-whoever owns the file it belongs in places it there.
-
-Irreversible, in force before the skill loads:
-- CHECK WHAT WILL RENDER IT BEFORE CHOOSING A FORM. Mermaid in a display that
-  does not support it ships raw markup to every reader. docsify needs a plugin a
-  default index.html does not load. Where you cannot determine the renderer, use
-  ASCII — it is never wrong.
-- Every box and arrow is a claim. READ THE SOURCE; never draw from inference,
-  and where a relationship's direction cannot be established, leave it out and
-  say so.
-- Rendering material a CALLER handed you means rendering ITS facts. Do not add
-  edges it does not claim, however obvious the missing arrow looks.
 EOF
     ;;
   --plan)

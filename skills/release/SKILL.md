@@ -1,6 +1,6 @@
 ---
 name: release
-description: "Cut a release once `--plan` has marked a roadmap milestone completed — confirm the version, have the changelog entry written, tag, and push. SHORTHAND: `--release`. It always asks before pushing. Also trigger on \"cut a release\", \"tag this\", \"ship it\"."
+description: "Cut a release once `--plan` has marked a milestone completed — confirm the version, have the changelog written, tag, push. SHORTHAND: `--release`. Always asks before pushing. Also on \"cut a release\", \"tag this version\". TAGS AND PUSHES — not to be inferred from \"ship it\", which is approval, not a request to publish."
 ---
 
 # Cutting a release
