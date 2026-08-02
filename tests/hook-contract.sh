@@ -1108,6 +1108,54 @@ case $out in
   *) ok "a config-directory path in a fenced block is not flagged" ;;
 esac
 
+head_ "The doctor inspects the installation it shipped with"
+
+# The defect this guards was live in the tree published on 2026-08-02, for about
+# an hour. CLAUDE_DIR fell back to CONFIG_DIR whenever $CLAUDE_PLUGIN_ROOT was
+# absent — and it is absent in every model-run or hand-run Bash command, which is
+# how the doctor is normally invoked. So an adopter who installed the plugin and
+# ran the command every skill prescribes got three failures and an empty skill
+# enumeration, on a correct install, from the check the README tells them not to
+# skip.
+#
+# The fixture must sit OUTSIDE any git checkout: "am I a plugin" is answered
+# partly by not being the root of one, and building this under $TMP inside the
+# repo would make the answer depend on where the suite happens to run.
+pdir=$(mktemp -d)/plug
+mkdir -p "$pdir/.claude-plugin" "$pdir/skills/demo" "$pdir/hooks" "$pdir/workflow"
+printf '{"name":"x","version":"0.0.1","description":"d"}\n' > "$pdir/.claude-plugin/plugin.json"
+printf -- '---\nname: demo\ndescription: d\n---\n\nBody.\n' > "$pdir/skills/demo/SKILL.md"
+cp "$HOOK" "$pdir/hooks/shorthand-flags.sh" 2>/dev/null || : > "$pdir/hooks/shorthand-flags.sh"
+cp "$CHECK" "$pdir/hooks/session-check.sh" 2>/dev/null || : > "$pdir/hooks/session-check.sh"
+printf '.credentials.json\n' > "$pdir/.gitignore"
+cp "$DOCTOR" "$pdir/doctor.sh"; chmod +x "$pdir/doctor.sh"
+
+bare=$(mktemp -d)   # the adopter's own config dir: no skills, no hooks, no repo
+printf '{"permissions":{"defaultMode":"auto"}}\n' > "$bare/settings.json"
+
+out=$(cd "$bare" && CLAUDE_CONFIG_DIR="$bare" bash "$pdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"not a git checkout"*|*"shorthand-flags.sh missing"*)
+    bad "the doctor read the config dir as the installation with CLAUDE_PLUGIN_ROOT unset" ;;
+  *) ok "a plugin-root doctor inspects itself, not the adopter's config dir" ;;
+esac
+case $out in
+  *"no skills could be enumerated"*)
+    bad "the doctor enumerated no skills while sitting in a tree that has one" ;;
+  *) ok "and finds the skills that shipped with it" ;;
+esac
+
+# The other half of the same rule, and the reason self-preference is conditional
+# rather than absolute: pointing the doctor at a synthetic installation through
+# CLAUDE_CONFIG_DIR is how every fixture above drives it. A doctor that always
+# preferred its own location would report those fixtures on a tree it never read.
+out=$(CLAUDE_CONFIG_DIR="$TMP/doc-clean" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"all checks passed"*)
+    ok "CLAUDE_CONFIG_DIR still redirects the installation for a checkout doctor" ;;
+  *) bad "CLAUDE_CONFIG_DIR no longer reaches the installation: $(printf '%s' "$out" | grep -a FAIL | head -2)" ;;
+esac
+
 head_ "Result"
 if [ $fail -gt 0 ]; then
   printf '  \033[31m%d failed\033[0m, %d passed\n\n' "$fail" "$pass"; exit 1
