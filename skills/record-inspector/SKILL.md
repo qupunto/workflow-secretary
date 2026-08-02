@@ -32,13 +32,13 @@ dispatched into `--docs`' Update procedure or a `--stocktake` audit is a
 correction that costs more than the defect, which is how dispatched findings end
 up quietly not being dispatched at all.
 
-**One exception, and it is not a dispatch.** A finding about a **global** skill,
-agent or workflow file under `~/.claude` — including one this inspection is
-running — does not go to `--tools`. Append it to `~/.claude/bug-reports.md` and
-stop: that edit belongs to a session whose working directory is `~/.claude`, per
-[`ownership.md`](../../workflow/ownership.md). The `record.tooling.sources` globs
-are relative, so they cover this project's own tooling files and never the
-global ones.
+**One exception, and it is not a dispatch.** A finding about a file belonging to
+**this suite** — including one this inspection is running — does not go to
+`--tools`. File it and stop, per
+[`ownership.md`](../../workflow/ownership.md#a-file-belonging-to-the-installation-is-never-edited-from-a-project-session),
+which holds the destination and the reasoning. This never covers the project's
+own skills: `record.tooling.sources` globs are relative, so `--tools` owns them
+as usual.
 
 **Why not just fix it.** An inspector that writes is a second writer on every
 file it touches, which breaks the one-writer-per-file invariant everywhere at

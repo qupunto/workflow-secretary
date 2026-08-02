@@ -67,23 +67,31 @@ DIR_ABS="$(cd "$DIR" && pwd -P)"
 # is a question for a person, not something to guess at while truncating a file.
 # Refusal is loud AND fatal: publish.sh depends on this script, and a partial
 # reset that exits 0 would publish a tree carrying somebody's content.
+#
+# **`refused` is set by the CALLER, never in here, and that is the whole point.**
+# This function is invoked as `abs=$(contained ...)`, which is a COMMAND
+# SUBSTITUTION — a subshell. A `refused=1` assigned inside it dies with that
+# subshell, so the fatal-exit block at the end of this file was unreachable and
+# the script returned 0 while refusing, which is exactly the failure the
+# paragraph above claims to prevent. It shipped that way, and the tests could
+# not see it because they discarded the exit code with `|| :`.
 refused=0
-contained() { # relative-path -> prints the absolute path, or refuses
+contained() { # relative-path, label -> prints the absolute path, or returns 1
   local rel=$1 target tdir abs
   target="$DIR/$rel"
   if [ -L "$target" ]; then
     printf '  REFUSE %-14s %s is a symlink — resolve it yourself\n' "$2" "$rel" >&2
-    refused=1; return 1
+    return 1
   fi
   tdir="$(cd "$(dirname "$target")" 2>/dev/null && pwd -P)" || {
     printf '  REFUSE %-14s %s has no reachable directory\n' "$2" "$rel" >&2
-    refused=1; return 1
+    return 1
   }
   abs="$tdir/$(basename "$target")"
   case "$abs/" in
     "$DIR_ABS"/*) printf '%s' "$abs" ;;
     *) printf '  REFUSE %-14s %s resolves outside the project (%s)\n' "$2" "$rel" "$abs" >&2
-       refused=1; return 1 ;;
+       return 1 ;;
   esac
 }
 
@@ -101,7 +109,7 @@ while IFS='|' read -r key heading; do
   if [ ! -f "$DIR/$rel" ]; then
     printf '  skip   %-14s %s does not exist\n' "$key" "$rel"; skipped=$((skipped + 1)); continue
   fi
-  abs=$(contained "$rel" "$key") || { skipped=$((skipped + 1)); continue; }
+  abs=$(contained "$rel" "$key") || { refused=1; skipped=$((skipped + 1)); continue; }
   before=$(wc -c < "$abs" | tr -d ' ')
   if [ "$WRITE" -eq 1 ]; then
     printf '%s\n' "$heading" > "$abs"
@@ -118,15 +126,22 @@ EOF
 # standing warnings about whichever repository wrote them — which is exactly the
 # content an adopter must not inherit. Handled by name, and only where the
 # handoff's own directory says this project uses that split.
-haz="$DIR/.claude/HAZARDS.md"
-if [ -f "$haz" ]; then
-  if [ "$WRITE" -eq 1 ]; then
-    printf '# Standing hazards\n' > "$haz"
-    printf '  blank  %-14s .claude/HAZARDS.md\n' "hazards"
+# Through contained() like every other record, because it is one in every way
+# that matters here: it is a file this script truncates. Written directly, it
+# was the one path that could still be followed through a symlink onto an
+# external target — in the same change that claimed to close that class.
+if [ -f "$DIR/.claude/HAZARDS.md" ]; then
+  if abs=$(contained ".claude/HAZARDS.md" "hazards"); then
+    if [ "$WRITE" -eq 1 ]; then
+      printf '# Standing hazards\n' > "$abs"
+      printf '  blank  %-14s .claude/HAZARDS.md\n' "hazards"
+    else
+      printf '  would  %-14s .claude/HAZARDS.md\n' "hazards"
+    fi
+    changed=$((changed + 1))
   else
-    printf '  would  %-14s .claude/HAZARDS.md\n' "hazards"
+    refused=1; skipped=$((skipped + 1))
   fi
-  changed=$((changed + 1))
 fi
 
 echo

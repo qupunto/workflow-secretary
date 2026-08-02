@@ -494,7 +494,7 @@ different role's agent:
 | A roadmap block or milestone to add, reorder or reprioritise | `--plan` |
 | A version or a tag, or drift between the documents and `git tag` | `--release` — it decides; `changelog-writer` and `--plan` write |
 | A stale claim in **this project's** skill or agent file | `--tools`, which owns them — dispatch, do not fix it here |
-| A defect in a **global** skill, agent or workflow file under `~/.claude` — including one this audit is running | **Append it to `~/.claude/bug-reports.md` and stop.** Not `--tools`, not a fix in place. That inbox is append-only and gitignored precisely so a session in another repo can file without editing or dirtying this one, per [`ownership.md`](../../workflow/ownership.md) |
+| A defect in a file belonging to **this suite** — including one this audit is running | **File it and stop.** Not `--tools`, not a fix in place — destination and reasoning in [`ownership.md`](../../workflow/ownership.md#a-file-belonging-to-the-installation-is-never-edited-from-a-project-session) |
 | Anything the user decided not to do now | `--todo` (already done in Phase 3) |
 
 **Prove a defect with a failing test before fixing it wherever possible.**

@@ -1257,25 +1257,41 @@ head_ "A description cannot invite invocation on an ordinary word"
 # grant, so "ok that's done" could commit and push. The fix for the class is to
 # NAME the tempting word and refuse it, so the check has to pass a description
 # that mentions the word in order to forbid it, or it forbids its own remedy.
-tp=$(mktemp -d); mkdir -p "$tp/skills/bare" "$tp/skills/errata" "$tp/skills/refused"
+tp=$(mktemp -d)
+mkdir -p "$tp/skills"/{bare,errata,refused,curly,elsewhere,proper}
 printf -- '---\nname: bare\ndescription: "Close out. Also trigger on \\"done\\", \\"wrap this up\\"."\n---\n\nB.\n' \
   > "$tp/skills/bare/SKILL.md"
 printf -- '---\nname: errata\ndescription: "Release. Also trigger on \\"cut a release\\", \\"ship it\\"."\n---\n\nB.\n' \
   > "$tp/skills/errata/SKILL.md"
-printf -- '---\nname: refused\ndescription: "Close out. Also on \\"wrap this up\\". Never infer it from \\"done\\" or \\"ship it\\"."\n---\n\nB.\n' \
+printf -- '---\nname: refused\ndescription: "Close out. Also on \\"wrap this up\\". Never infer it from \\"done\\"."\n---\n\nB.\n' \
   > "$tp/skills/refused/SKILL.md"
+# Curly quotes are what a description picks up from being drafted anywhere but
+# an editor, and the first normaliser here mangled its own input trying to
+# handle them — every fixture went quiet at once.
+printf -- '---\nname: curly\ndescription: "Close out. Also trigger on \xe2\x80\x9cdone\xe2\x80\x9d."\n---\n\nB.\n' \
+  > "$tp/skills/curly/SKILL.md"
+# A negation about something ELSE must not license a bare trigger. Reading only
+# the trigger clause is what makes this work without an escape hatch.
+printf -- '---\nname: elsewhere\ndescription: "Close out. Also trigger on \\"done\\". Not for release notes."\n---\n\nB.\n' \
+  > "$tp/skills/elsewhere/SKILL.md"
+# And the false positive that would have got the whole check disabled: a quoted
+# one-word proper noun in a sentence that is not a trigger clause at all.
+printf -- '---\nname: proper\ndescription: "Move work to the publish branch, which is \\"main\\" by default."\n---\n\nB.\n' \
+  > "$tp/skills/proper/SKILL.md"
 out=$(CLAUDE_DIR="$tp" CLAUDE_CONFIG_DIR="$tp" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+for want in bare errata curly elsewhere; do
+  case $out in
+    *"'$want' offers one-word trigger"*) ok "trigger fixture '$want' is reported" ;;
+    *) bad "trigger fixture '$want' was NOT reported" ;;
+  esac
+done
 case $out in
-  *"'bare' lists one-word trigger"*) ok "a bare one-word trigger FAILS" ;;
-  *) bad "a description triggering on \"done\" was not reported" ;;
+  *"'refused' offers"*) bad "the check forbids its own remedy — naming a word to refuse it must pass" ;;
+  *) ok "naming the word in a sentence that refuses it passes" ;;
 esac
 case $out in
-  *"'errata' lists one-word trigger"*) ok "an observed ordinary phrase FAILS even at two words" ;;
-  *) bad "a description triggering on \"ship it\" was not reported" ;;
-esac
-case $out in
-  *"'refused' lists"*) bad "the check forbids its own remedy — naming a word to refuse it must pass" ;;
-  *) ok "naming the word in order to refuse it passes" ;;
+  *"'proper' offers"*) bad "a quoted proper noun outside any trigger clause was wrongly failed" ;;
+  *) ok "a quoted one-word proper noun outside a trigger clause passes" ;;
 esac
 
 head_ "reset-records.sh cannot write outside the project"
@@ -1291,18 +1307,40 @@ else
   rr=$(mktemp -d); mkdir -p "$rr/proj/.claude" "$rr/outside"
   printf 'PRECIOUS\n' > "$rr/outside/notes.md"
   printf '{"record":{"todo":"../outside/notes.md"}}\n' > "$rr/proj/.claude/workflow.json"
-  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1 || :
+  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1; rc=$?
   [ "$(cat "$rr/outside/notes.md")" = "PRECIOUS" ] \
     && ok "a manifest path escaping the project is refused" \
     || bad "reset-records.sh blanked a file OUTSIDE the project"
+  # The EXIT CODE is a separate claim from the file surviving, and it was the
+  # false half: `refused=1` was assigned inside a command substitution, so it
+  # died in that subshell and the fatal block never ran. Discarding rc with
+  # `|| :` is what let a script that refuses-and-returns-0 ship, and publish.sh
+  # depends on this exit code.
+  [ "$rc" -ne 0 ] \
+    && ok "and refusing is fatal, not merely loud" \
+    || bad "reset-records.sh refused a record and still exited 0"
 
   printf 'ALSO PRECIOUS\n' > "$rr/outside/target.md"
   ln -s "$rr/outside/target.md" "$rr/proj/TODO.md"
   printf '{"record":{"todo":"TODO.md"}}\n' > "$rr/proj/.claude/workflow.json"
-  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1 || :
+  bash "$RR" --write --dir "$rr/proj" >/dev/null 2>&1; rc=$?
   [ "$(cat "$rr/outside/target.md")" = "ALSO PRECIOUS" ] \
     && ok "a symlinked record is refused rather than written through" \
     || bad "reset-records.sh wrote through a symlink onto an external file"
+  [ "$rc" -ne 0 ] || bad "a symlinked record was refused but the exit code was 0"
+
+  # HAZARDS.md is blanked by NAME rather than through the manifest, and that
+  # path bypassed the containment guard entirely — the one file that could still
+  # be written through a symlink, in the change that claimed to close the class.
+  hz=$(mktemp -d); mkdir -p "$hz/proj/.claude" "$hz/outside"
+  printf '{"record":{}}\n' > "$hz/proj/.claude/workflow.json"
+  printf 'PRECIOUS HAZARDS\n' > "$hz/outside/haz.md"
+  ln -s "$hz/outside/haz.md" "$hz/proj/.claude/HAZARDS.md"
+  bash "$RR" --write --dir "$hz/proj" >/dev/null 2>&1; rc=$?
+  [ "$(cat "$hz/outside/haz.md")" = "PRECIOUS HAZARDS" ] \
+    && ok "a symlinked HAZARDS.md is refused like any other record" \
+    || bad "reset-records.sh wrote through .claude/HAZARDS.md onto an external file"
+  [ "$rc" -ne 0 ] || bad "a symlinked HAZARDS.md was refused but the exit code was 0"
 
   # And it must still do its job, or the guards above are satisfied by a script
   # that refuses everything.

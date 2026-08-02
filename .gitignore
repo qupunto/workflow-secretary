@@ -104,6 +104,17 @@
 # Blanks every declared record. This one DOES travel: an adopter runs it to start
 # agnostic, and publish.sh runs the copy rather than keeping a second list.
 !reset-records.sh
+# Agent audit reports. Tracked so they are BACKED UP — they are the most
+# expensive artifact this repo produces and they existed on one machine only
+# until 2026-08-02, one disk failure from gone.
+#
+# They do NOT travel to the published repo: `publish.sh` deletes them from the
+# assembly, and its whitelist would fail the run if it ever missed one. Keeping
+# them out of the public tree is that script's job, not this file's — being
+# untracked was never what protected the publication surface.
+!audits/
+!audits/**
+
 !.claude/workflow.json
 !.claude/HANDOFF.md
 !.claude/HAZARDS.md

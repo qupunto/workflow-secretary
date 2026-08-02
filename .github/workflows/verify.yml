@@ -189,11 +189,24 @@ jobs:
         #
         # Anchors are not checked here. doctor.sh verifies the fragment half
         # against the target's headings, and this job runs doctor.sh below.
+        #
+        # `audits/` is excluded and it is the only directory-wide exemption, for
+        # the argument doctor.sh's `md_files_` sets out at length: those reports
+        # are kept VERBATIM, so policing them offers only editing a frozen record
+        # to quiet a checker, or a permanent red that trains everyone to skim.
+        # `audits/README.md` stays in scope — it is the maintained index, not a
+        # frozen report. Keep this walk identical to `md_files_`: the doctor's
+        # comment says the two agree deliberately, and when the exclusion landed
+        # there and not here, this step went red for eleven commits on a report
+        # quoting a `types.md` link that was already an example when it was
+        # written.
         run: |
           rc=0
           while IFS=$'\t' read -r f link; do
             [ -e "$(dirname "$f")/$link" ] || { echo "FAIL $f -> $link"; rc=1; }
-          done < <(git ls-files -z '*.md' | xargs -0 -r awk '
+          done < <({ git ls-files -z '*.md' ':(exclude)audits/**'
+                     git ls-files -z 'audits/README.md'
+                   } | xargs -0 -r awk '
             FNR == 1 { fence = 0 }
             /^[[:space:]]*```/ { fence = !fence; next }
             fence { next }
@@ -221,8 +234,14 @@ jobs:
         # for the macOS half of this repo's audience, whose home paths this check
         # was silently blind to.
         #
-        # Inline code spans are stripped first, and tracked files only — both the
-        # same exemptions the cross-link step above makes, for the same reason.
+        # Inline code spans are stripped first, and tracked files only — all
+        # three the same exemptions the cross-link step above makes, for the same
+        # reasons, `audits/` included: doctor.sh's own home-path check exempts
+        # those frozen reports already, and a report saying which directory it
+        # ran against is an observation nobody follows. Today they survive on
+        # backticks alone — `…-pass5.md` carries two — so the first one written
+        # in prose turns this step red, which is how the cross-link step above
+        # broke.
         # Widening the class immediately caught TODO.md's own entry ABOUT this
         # bug, which is prose quoting the pattern, not a path anyone will follow.
         # Without the exemption the rule could not be written down in the repo
@@ -234,7 +253,9 @@ jobs:
               | grep -nE '(/home|/Users)/[A-Za-z0-9._-]+/\.claude|file:///') || continue
             printf '%s\n' "$hits" | sed "s|^|FAIL $f:|"
             rc=1
-          done < <(git ls-files -z '*.md' '*.sh')
+          done < <({ git ls-files -z '*.md' '*.sh' ':(exclude)audits/**'
+                     git ls-files -z 'audits/README.md'
+                   })
           if [ $rc -ne 0 ]; then
             echo "absolute home path — use ~/.claude or a relative link"
             exit 1

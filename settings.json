@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "auto",
     "ask": [
       "Bash(git push --force*)",
       "Bash(git push -f*)",
@@ -29,7 +28,8 @@
       "Edit(~/.claude/workflow/**)",
       "Edit(.claude/skills/**)",
       "Edit(.claude/agents/**)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "skillOverrides": {
     "workflow-contracts": "name-only"
@@ -56,5 +56,6 @@
       }
     ]
   },
-  "theme": "dark"
+  "theme": "dark",
+  "model": "claude-fable-5[1m]"
 }

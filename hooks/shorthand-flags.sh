@@ -478,15 +478,26 @@ Irreversible, in force before the skill loads:
   ~/.claude/workflow/record-contract.md. READ IT before editing any such file.
 - Say in the commit what you removed and why. It is the only audit trail an
   erasure gets.
-- NEVER edit a GLOBAL skill, agent or workflow file under ~/.claude from a
-  session working in another project — not even the skill currently running,
-  and not even when the defect is obvious. It belongs to a session whose working
-  directory IS ~/.claude.
-- Instead, APPEND the finding to ~/.claude/bug-reports.md, using the template at
-  the top of that file, then stop. It is the one file here any session in any
-  project may write to. Never report only into the conversation — that loses the
-  finding at the next /clear. Filing it IS the action, not a step on the way to
-  fixing it.
+- NEVER edit a file belonging to THIS SUITE — its own skills, agents, workflow
+  contracts and scripts — from a session working in another project. Not even
+  the skill currently running, and not even when the defect is obvious. Under a
+  plugin install the suite is at ${CLAUDE_PLUGIN_ROOT}; in a checkout it is the
+  ~/.claude repository. Editing it under a plugin is not refused — it is
+  destroyed at the next plugin update, silently.
+- This does NOT restrict the working project's own skills and agents. Those are
+  what record.tooling.sources globs, and editing them is this flag's whole job.
+  Nor does it cover a personal ~/.claude/skills/ that is not this suite.
+- Instead, APPEND the finding to bug-reports.md in the config directory
+  ($CLAUDE_CONFIG_DIR, else ~/.claude) — the one file any session in any project
+  may write to — then stop. It is gitignored and so ships with no template:
+
+      ## [open] <one-line summary>
+      Found: <project worked in> · <config commit, short SHA>
+      File: <path within the suite> · Detail: <what is wrong, what you expected>
+
+  Never report only into the conversation — that loses the finding at the next
+  /clear. Filing IS the action, not a step on the way to fixing it. Triage
+  needs a checkout; from a plugin install, raise it upstream as well.
 EOF
     ;;
   --log)
