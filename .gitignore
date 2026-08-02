@@ -97,20 +97,15 @@
 !TODO.md
 !ROADMAP.md
 !CHANGELOG.md
+# Assembles and gates the public tree. Tracked here and deliberately NOT on the
+# list of what it copies — it is about producing that repository, so it is
+# meaningless inside it, and it names the Gate needles in the clear.
+!publish.sh
 !.claude/workflow.json
 !.claude/HANDOFF.md
 !.claude/HAZARDS.md
 !.claude/agents/
 !.claude/agents/**
-
-# A one-off working document about producing the public repo, not a record: it
-# has one job and is deleted once done. Tracked because it holds reasoning that
-# would otherwise exist only in a cleared session, and kept out of the public
-# tree by not being on that tree's curated list rather than by any rule here.
-#
-# A permit here is NOT forward-looking, unlike the two above it: a one-off is
-# named because it already exists, so delete the line when you delete the file.
-!PUBLIC-REPO-PLAN.md
 
 # Never, under any circumstances. Last word wins, so everything below survives
 # any re-inclusion added above it later — which is the whole reason this block
