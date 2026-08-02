@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>workflow-secretary — Docs</title>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.$docsify = {
+        name: 'workflow-secretary docs',
+        repo: '',
+        loadSidebar: true,
+        // keeps links resolving against the current file rather than the site
+        // root; required the moment any page moves into a subdirectory
+        relativePath: true,
+        subMaxLevel: 2,
+        homepage: 'index.md',
+        search: {
+          placeholder: 'Search...',
+          noData: 'No results.',
+          depth: 3,
+        },
+      }
+    </script>
+    <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  </body>
+</html>

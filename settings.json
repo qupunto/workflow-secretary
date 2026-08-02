@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin +*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(git checkout --*)",
+      "Bash(git restore*)",
+      "Bash(git rebase*)",
+      "Bash(git commit --amend*)",
+      "Bash(git filter-branch*)",
+      "Bash(git filter-repo*)",
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+      "Bash(gh repo delete*)",
+      "Edit(~/.claude/.gitignore)",
+      "Edit(~/.claude/settings.json)",
+      "Edit(~/.claude/doctor.sh)",
+      "Edit(~/.claude/hooks/session-check.sh)",
+      "Edit(~/.claude/hooks/shorthand-flags.sh)",
+      "Edit(~/.claude/hooks/hooks.json)",
+      "Edit(~/.claude/.claude-plugin/**)",
+      "Edit(.claude/*.sh)",
+      "Edit(~/.claude/skills/**)",
+      "Edit(~/.claude/agents/**)",
+      "Edit(~/.claude/workflow/**)",
+      "Edit(.claude/skills/**)",
+      "Edit(.claude/agents/**)"
+    ]
+  },
+  "skillOverrides": {
+    "workflow-contracts": "name-only"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/shorthand-flags.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-check.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "theme": "dark"
+}

@@ -1,0 +1,282 @@
+name: Verify
+
+# This repo is configuration, not an application, so there is little to "test"
+# in the usual sense. What it does have is one file whose breakage is total and
+# silent: a syntax error or a bad case label in shorthand-flags.sh takes out
+# EVERY flag at once, the hook exits non-zero, Claude Code carries on, and each
+# flag quietly degrades to being matched from a skill description. Nothing
+# surfaces. That is what this workflow is for.
+#
+# It runs on push to any branch EXCEPT main, and on every pull request.
+# Everything here also runs locally — tests/hook-contract.sh and doctor.sh are
+# the same scripts, not CI-only copies.
+#
+# Not on push to main, deliberately. Work happens on dev and reaches main only
+# through a pull request, so a push-to-main run would either never fire or fire
+# on a merge whose exact tree CI already passed on the PR. `branches-ignore`
+# rather than `branches: [dev]` so a new working branch is covered the day it is
+# created rather than the day someone remembers to add it here — a check that
+# silently does not run is the failure this whole file exists to prevent.
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell syntax
+        # Cheapest possible check, and the one that maps to the worst failure.
+        #
+        # Enumerated from git rather than from a glob list, and that is the whole
+        # point. A hand-maintained list of directories has now missed twice: both
+        # hooks moved out of the root on 2026-08-01 and the glob did not follow
+        # them, so for the length of that change the two files this workflow
+        # exists to protect were the only shell nothing checked; and
+        # skills/docs/assets/scaffold.sh was never in any of the patterns at all.
+        # A glob is a silent form of coverage — it reports success by matching
+        # nothing. `git ls-files` cannot miss a tracked script, so adding one in
+        # a new directory needs no edit here.
+        run: |
+          while read -r f; do
+            bash -n "$f" && echo "ok   $f" || { echo "FAIL $f"; exit 1; }
+          done < <(git ls-files '*.sh')
+
+      - name: Shellcheck
+        # Preinstalled on ubuntu runners. Advisory: style opinions here are not
+        # worth failing a config repo over, but the output is worth reading.
+        continue-on-error: true
+        run: shellcheck -S warning *.sh hooks/*.sh tests/*.sh .claude/*.sh || true
+
+      - name: settings.json is valid JSON
+        # An unparseable settings.json silently disables every hook in it.
+        #
+        # The loop skips what is absent, matching the Shell syntax step above.
+        # Naming .claude/settings.json unconditionally broke this build the day
+        # the file was deleted: the step failed, and because a failed step halts
+        # the job, every check BELOW it was skipped — including both doctors. A
+        # check that hard-codes an optional path does not just fail itself, it
+        # takes the rest of the pipeline down with it.
+        run: |
+          for f in settings.json .claude/settings.json; do
+            [ -e "$f" ] || continue
+            jq -e . "$f" > /dev/null && echo "ok   $f"
+          done
+
+      - name: Hook contract
+        run: bash tests/hook-contract.sh
+
+      - name: Credentials never travel
+        # The repo's whole premise is that one file never leaves the machine, and
+        # until 2026-08-01 the only thing enforcing it was a sentence in
+        # README.md. doctor.sh now asserts this too, but this step is deliberately
+        # separate and deliberately first: it must hold even if doctor.sh is the
+        # thing that broke.
+        run: |
+          if ! git check-ignore --no-index -q .credentials.json; then
+            echo "FAIL: .credentials.json is not ignored — something re-included it"
+            exit 1
+          fi
+          if git ls-files --error-unmatch .credentials.json >/dev/null 2>&1; then
+            echo "FAIL: .credentials.json is TRACKED"
+            exit 1
+          fi
+          echo "ok   .credentials.json is ignored and untracked"
+
+          # One filename was all that block protected. The re-inclusions in
+          # .gitignore admit seven directory trees wholesale, so a sensitive
+          # KIND under any of them was committable — the next leaked file will
+          # not be called .credentials.json. .gitignore now blocks by shape;
+          # this asserts those patterns still bite, inside a re-included tree
+          # rather than at the root, because the root is not where the hole was.
+          #
+          # --no-index because none of these exist: the question is what the
+          # RULES say about a path, not what is on disk.
+          for p in skills/x/.env agents/x.pem workflow/id_rsa tests/x.key \
+                   docs/x.p12 .github/x.token .claude/agents/x/.npmrc \
+                   docs/my-secrets.json skills/x/svc-credentials.json; do
+            if ! git check-ignore --no-index -q "$p"; then
+              echo "FAIL: $p would be committable — a re-inclusion was added below the final block of .gitignore"
+              exit 1
+            fi
+          done
+          echo "ok   sensitive kinds stay ignored inside every re-included tree"
+
+      - name: Doctor (no project in scope)
+        # doctor.sh inspects a config directory and the project in $PWD. Point it
+        # at the checkout, and run it from a directory with no project of its own
+        # so the project-specific checks are correctly skipped rather than
+        # spuriously failing.
+        #
+        # --strict because the warn class carries real drift — "flag maps to a
+        # skill that resolves nowhere", "grants disagree between the hook and
+        # ownership.md" — and only `fails` set exit 1, so that drift landed GREEN.
+        run: |
+          mkdir -p /tmp/noproject
+          cd /tmp/noproject
+          CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/doctor.sh" --strict
+
+      - name: Doctor (from the checkout)
+        # The step above runs from an empty directory, so every $PWD-dependent
+        # check silently becomes a no-op — skill shadowing, and the whole manifest
+        # section: that workflow.json parses, that its keys are ones manifest.md
+        # documents, and that every record path and skill glob it declares still
+        # resolves. This repo IS a project under its own workflow, so the checks
+        # being skipped were exactly the ones about it. Both scopes matter and
+        # only one was covered; no count here, because it moves whenever a check
+        # is added.
+        run: CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/doctor.sh" --strict
+
+      - name: Skill frontmatter
+        # A skill with no name or description is invisible: it never matches a
+        # request and never announces that it did not.
+        #
+        # Both roots, not just the global one. A project-scoped skill tree was
+        # checked by nothing until a review noticed, which is the same class as
+        # any other path this job silently skips. This checkout keeps no such
+        # tree today; the glob stays because the `-e` guard makes an absent one
+        # free, and because the day one is added is the day nobody remembers to
+        # widen this loop.
+        run: |
+          rc=0
+          for f in skills/*/SKILL.md .claude/skills/*/SKILL.md; do
+            [ -e "$f" ] || continue
+            head -1 "$f" | grep -qx -- '---' || { echo "FAIL $f: no frontmatter"; rc=1; continue; }
+            grep -qE '^name:' "$f"        || { echo "FAIL $f: no name:"; rc=1; }
+            grep -qE '^description:' "$f" || { echo "FAIL $f: no description:"; rc=1; }
+            echo "ok   $f"
+          done
+          exit $rc
+
+      - name: Cross-links between our own files resolve
+        # Narrow on purpose. The valuable class is the hand-written cross-links
+        # added when the workflow went global — skills pointing at
+        # ../../workflow/*.md, docs pointing at each other. Those were written in
+        # one sitting and a broken one is invisible until followed.
+        #
+        # A general markdown link checker is NOT wanted here, and a first attempt
+        # at one produced ~60 findings of which almost none were real:
+        #
+        #   - skills/docs/references/** is teaching material about how to write a
+        #     docs site, so it is full of deliberate placeholders. That skill's
+        #     own handoff already documents template placeholders and
+        #     page-relative shorthand as known false-positive classes; do not
+        #     re-derive them here, badly.
+        #   - a link beginning `/` is site-root-relative inside a rendered docs
+        #     site, not a filesystem path. Treating it as one is the documented
+        #     mistake that reports 14 false positives on a real site.
+        #
+        # A check nobody trusts is a check nobody runs, so this only looks at
+        # tracked files and skips placeholders.
+        #
+        # The exemptions are per LINK, not per directory. Excluding
+        # skills/docs/references/ wholesale was the earlier shape, and it meant
+        # every relative link in that tree — including the live pointers into
+        # workflow/ — was verified by nothing, which is the class this step
+        # exists to catch. What is actually exempt:
+        #
+        #   - anything inside a fenced code block, which is sample markdown
+        #     rather than a pointer;
+        #   - anything inside inline backticks, which is how a document that
+        #     explains link syntax has to quote it. Without this, prose ABOUT a
+        #     broken link fails the build — so the rule could not be written
+        #     down in the repo that enforces it.
+        #
+        # Anchors are not checked here. doctor.sh verifies the fragment half
+        # against the target's headings, and this job runs doctor.sh below.
+        run: |
+          rc=0
+          while IFS=$'\t' read -r f link; do
+            [ -e "$(dirname "$f")/$link" ] || { echo "FAIL $f -> $link"; rc=1; }
+          done < <(git ls-files -z '*.md' | xargs -0 -r awk '
+            FNR == 1 { fence = 0 }
+            /^[[:space:]]*```/ { fence = !fence; next }
+            fence { next }
+            {
+              line = $0
+              gsub(/`[^`]*`/, "", line)
+              while (match(line, /\]\([^)]*\)/)) {
+                l = substr(line, RSTART + 2, RLENGTH - 3)
+                line = substr(line, RSTART + RLENGTH)
+                sub(/#.*/, "", l)
+                if (l == "" || l ~ /^http/ || l ~ /^\// || l ~ /[<$]/) continue
+                printf "%s\t%s\n", FILENAME, l
+              }
+            }')
+          [ $rc -eq 0 ] && echo "ok   every cross-link in a tracked file resolves"
+          exit $rc
+
+      - name: No absolute home paths
+        # A path naming one machine's home directory is wrong on the other. This
+        # has happened once already, in a document written FOR the other machine.
+        #
+        # The character class covers what a username can actually be, not just
+        # lowercase letters: `/home/[a-z]+/` passed `/home/dev2/.claude` green,
+        # and a digit in a username is entirely ordinary. Also matches /Users/
+        # for the macOS half of this repo's audience, whose home paths this check
+        # was silently blind to.
+        #
+        # Inline code spans are stripped first, and tracked files only — both the
+        # same exemptions the cross-link step above makes, for the same reason.
+        # Widening the class immediately caught TODO.md's own entry ABOUT this
+        # bug, which is prose quoting the pattern, not a path anyone will follow.
+        # Without the exemption the rule could not be written down in the repo
+        # that enforces it.
+        run: |
+          rc=0
+          while IFS= read -r -d '' f; do
+            hits=$(sed 's/`[^`]*`//g' "$f" \
+              | grep -nE '(/home|/Users)/[A-Za-z0-9._-]+/\.claude|file:///') || continue
+            printf '%s\n' "$hits" | sed "s|^|FAIL $f:|"
+            rc=1
+          done < <(git ls-files -z '*.md' '*.sh')
+          if [ $rc -ne 0 ]; then
+            echo "absolute home path — use ~/.claude or a relative link"
+            exit 1
+          fi
+          echo "ok   no absolute home paths"
+
+      - name: No credential-shaped content
+        # .gitignore blocks sensitive kinds by FILENAME. Nothing read what is
+        # inside a file that is legitimately tracked, so a token pasted into a
+        # skill file, a worked example or a doc was admitted by every rule in
+        # this repo. GitHub's own secret scanning covers exactly this and is
+        # unavailable on a private repo on the Free plan, which is why it is
+        # written out here instead.
+        #
+        # Deliberately LAST in the job. It carries the highest false-positive
+        # risk of anything here, and a failed step halts every step below it —
+        # so when this one trips wrongly it costs only itself, not the doctor
+        # runs. That failure mode has already happened once in this file.
+        #
+        # Every needle is a REGEX whose own source text does not match it: `gh`
+        # followed by a bracket expression is not `gh` followed by a letter and
+        # 36 alphanumerics. That is the only reason these patterns can live in a
+        # tracked file that the scan itself reads. Do NOT add a literal example
+        # token — it would match, and the only fix would be weakening the check.
+        # Same trap as counting the private-hostname matches in this history.
+        run: |
+          rc=0
+          while IFS= read -r -d '' f; do
+            hits=$(grep -IHnE \
+              -e 'gh[pousr]_[A-Za-z0-9]{36}' \
+              -e 'github_pat_[A-Za-z0-9_]{60,}' \
+              -e 'sk-ant-[A-Za-z0-9_-]{40,}' \
+              -e 'AKIA[0-9A-Z]{16}' \
+              -e 'xox[abprs]-[A-Za-z0-9-]{20,}' \
+              -e 'AIza[0-9A-Za-z_-]{35}' \
+              -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+              "$f") || continue
+            printf '%s\n' "$hits" | sed 's|^|FAIL |'
+            rc=1
+          done < <(git ls-files -z)
+          if [ $rc -ne 0 ]; then
+            echo "credential-shaped string in a tracked file — revoke it, then remove it"
+            exit 1
+          fi
+          echo "ok   no credential-shaped content in any tracked file"

@@ -1,0 +1,32 @@
+{
+  "manifest": "workflow/v1",
+
+  "branch": {
+    "integration": "dev",
+    "publish": "main"
+  },
+  "commitTrailer": "Claude-Session",
+
+  "record": {
+    "todo": "TODO.md",
+    "roadmap": "ROADMAP.md",
+    "changelog": "CHANGELOG.md",
+    "handoff": ".claude/HANDOFF.md",
+    "decisions": "docs/decisions.md",
+    "openDecisions": "docs/open-decisions.md",
+    "audits": "docs/audits.md",
+    "reference": ["README.md"],
+    "tooling": {
+      "catalog": ".claude/TOOLING.md",
+      "sources": ["skills/*/SKILL.md"]
+    }
+  },
+
+  "commands": {
+    "typecheck": "while read -r f; do bash -n \"$f\" || exit 1; done < <(git ls-files '*.sh')",
+    "test": "bash tests/hook-contract.sh",
+    "ci": { "tool": "gh", "workflow": "Verify" }
+  },
+
+  "sweeps": ".claude/sweeps.json"
+}

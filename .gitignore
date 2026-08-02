@@ -1,0 +1,150 @@
+# ~/.claude — portable configuration only.
+#
+# This directory is ~100 MB, almost all of it machine-local state: transcripts
+# and auto-memory under projects/, file-history/, plugins/, caches, daemon and
+# session bookkeeping. None of that should travel between machines, and some of
+# it must never leave this one.
+#
+# So the rule is inverted: ignore everything, then re-include the ~550 KB that is
+# genuinely configuration.
+
+*
+
+!.gitignore
+!settings.json
+!CLAUDE.md
+
+# Hook scripts. Only `doctor.sh` lives at the root now; the two hooks moved to
+# `hooks/` on 2026-08-01 for the plugin layout, and `!*.sh` cannot reach them
+# there — see the `!hooks/` block below for why that is not a redundant line.
+!*.sh
+
+# The plugin layout. `hooks/` holds the two hook scripts and the `hooks.json`
+# that declares them; `.claude-plugin/` holds the manifest that makes this
+# directory installable.
+#
+# BOTH directory lines are load-bearing and neither is implied by `!*.sh` or by
+# the other. Git does not descend into an excluded directory, so a negation on a
+# path INSIDE one is never consulted — the same trap the `.github/` and `tests/`
+# block above documents. Without `!hooks/`, moving the hooks there would have
+# silently untracked both of them and every `--flag` on a fresh clone with it.
+!hooks/
+!hooks/**
+!.claude-plugin/
+!.claude-plugin/**
+
+# User-level skills and agents — available in every project.
+!skills/
+!skills/**
+!agents/
+!agents/**
+
+# This repo is two things at once: a live config directory and a project with
+# its own documentation. The inverted rule above serves the first and would
+# block the second, so re-include them explicitly rather than loosening `*`,
+# which would start pulling in machine state again.
+!README.md
+!docs/
+!docs/**
+
+# Without a LICENSE a repo is all rights reserved, which would make the skills
+# unusable by anyone who finds them.
+!LICENSE
+
+# CI, and the tests it runs. Verify with `git status --porcelain` after adding
+# any new KIND of path here, not just a new file. `!*.sh` above cannot save a
+# script inside an excluded directory: git does not descend into one, so the
+# negation is never consulted.
+!.github/
+!.github/**
+!tests/
+!tests/**
+
+# This repo keeps no project-scoped skills. `$PWD/.claude/skills` is where they
+# live in any project that has them, and the workflow still supports that
+# everywhere — a project ships its own skill and the flag hook resolves it there
+# first. This checkout deliberately has none: every skill here is global, so
+# there is no subtree to re-include.
+#
+# Narrow on purpose. `.claude/` will accumulate machine-local state — a
+# settings.local.json, session bookkeeping — so re-include files by name rather
+# than the directory. The first line only lets git DESCEND; without it none of
+# the rest is ever consulted.
+!.claude/
+!.claude/TOOLING.md
+
+# The shared workflow contract every global skill reads. Deliberately outside
+# skills/, since a directory there with no SKILL.md is ignored today but relying
+# on that is a bet on discovery internals.
+!workflow/
+!workflow/**
+
+# This repo running its own workflow on itself. Every path below is a record
+# file this configuration's skills expect, or the manifest that maps them.
+# Whitelisting is not adoption — these lines only permit the files;
+# `.claude/workflow.json` is what declares which of them are records.
+#
+# Deliberately NOT here: `.claude/sweeps.json` and `bug-reports.md`. Both are
+# derived or machine-local, and both are safer absent — a missing checkpoint
+# costs one full sweep and can never cost correctness.
+#
+# ROADMAP.md and CHANGELOG.md were forward-looking permits until 2026-08-01, when
+# the manifest began declaring `record.roadmap` and `record.changelog` and both
+# files were created. The permits were already right, which is the argument for
+# writing one before the file exists: `git add` declines a new KIND of file
+# silently, so the cost of an unused permit is nothing and the cost of a missing
+# one is a record nobody notices is untracked.
+!TODO.md
+!ROADMAP.md
+!CHANGELOG.md
+!.claude/workflow.json
+!.claude/HANDOFF.md
+!.claude/HAZARDS.md
+!.claude/agents/
+!.claude/agents/**
+
+# A one-off working document about producing the public repo, not a record: it
+# has one job and is deleted once done. Tracked because it holds reasoning that
+# would otherwise exist only in a cleared session, and kept out of the public
+# tree by not being on that tree's curated list rather than by any rule here.
+#
+# A permit here is NOT forward-looking, unlike the two above it: a one-off is
+# named because it already exists, so delete the line when you delete the file.
+!PUBLIC-REPO-PLAN.md
+
+# Never, under any circumstances. Last word wins, so everything below survives
+# any re-inclusion added above it later — which is the whole reason this block
+# is at the bottom. Add new re-inclusions ABOVE it, never below.
+.credentials.json
+
+# The block above protects one filename. The re-inclusions higher up admit whole
+# directory trees WHOLESALE — skills/**, .claude/agents/**, docs/**, workflow/**,
+# tests/** and .github/** among them — so before these lines existed a
+# new sensitive KIND under any of them was committable and nothing said so.
+# `git add` is silent when it declines a path and equally silent when it accepts
+# one, so the only signal was noticing.
+#
+# By shape rather than by name, because the next one will not be called
+# .credentials.json. Every pattern here is unanchored, so it applies at any depth
+# inside those trees. Verified against the tracked set when added: none of these
+# matches anything this repo legitimately keeps, and the "Credentials never
+# travel" step in CI asserts a representative sample stays ignored, so a
+# re-inclusion added below this block by mistake fails the build.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.token
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+.netrc
+.npmrc
+.pypirc
+*credentials*.json
+*secrets*.json
