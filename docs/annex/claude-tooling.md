@@ -45,7 +45,7 @@ reader.
                                │  invokes, passing its grant down
                                ▼
    ┌────────────────────────────────────────────────────────┐
-   │  PRIMITIVES — a record, the history, a craft, or a rule│
+   │  PRIMITIVES — a record, the history, or a rule         │
    │                                                        │
    │    with a flag:  --track   --todo / --log              │
    │                  --plan    --tools                     │

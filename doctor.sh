@@ -673,28 +673,48 @@ for d in "$CLAUDE_DIR"/skills/*/; do
          awk '/^description:/{p=1;print;next} p&&/^[a-zA-Z_-]+:/{p=0} p')
   [ -n "$desc" ] || continue
   checked=$((checked + 1))
-  # Quoted phrases, escaped or bare, reduced to those of a single word.
-  singles=$(printf '%s' "$desc" | grep -oE '\\?"[A-Za-z][A-Za-z'"'"'-]*\\?"' |
-            tr -d '\\"' | sort -u | tr '\n' ' ')
-  # Plus the multi-word phrases already observed to misfire. This is NOT a
-  # theory of ordinary language and must not grow into one — it is the list of
-  # phrases that actually shipped as triggers and had to be removed. The
-  # one-word rule above is the general test; this is its errata.
-  # Backslashes stripped first: a description written as `\"ship it\"` does not
-  # contain the literal `"ship it"` — the closing quote sits behind an escape —
-  # so matching the raw line silently found nothing and reported clean.
-  descn=$(printf '%s' "$desc" | tr -d '\\')
+
+  # Normalise before reading: YAML escaping puts a backslash before the quote,
+  # so `\"ship it\"` does not contain the literal `"ship it"` and the first
+  # version of this check matched nothing and reported clean. Curly quotes are
+  # what a description picks up from being drafted anywhere but an editor.
+  # The curly quotes are written LITERALLY. Byte escapes were tried first and
+  # were silently catastrophic: `tr '\xe2\x80\x98...'` inside single quotes
+  # receives the characters backslash, x, e, 2 — so it replaced every `e`, `2`
+  # and `8` in the description, mangling it into text no pattern could match,
+  # and the check went quiet on every fixture including the ones it had caught
+  # a minute earlier. A normaliser that destroys its input reports clean.
+  descn=$(printf '%s' "$desc" | sed 's/\\"/"/g; s/[“”]/"/g')
+
+  # Only the TRIGGER CLAUSE is read — the run beginning at "trigger on", "also
+  # on" or "invoke on" and ending at that sentence. Scanning the whole
+  # description was wrong twice over. It fired on `"main"` in a sentence about
+  # branch names, which is a false positive, and a false positive is how a check
+  # gets weakened rather than obeyed. And the escape for it — any negation
+  # anywhere in the description — let `Also trigger on "done". Not for release
+  # notes.` pass, because the negation was about something else entirely.
+  #
+  # Reading only the clause needs no escape at all: the sentence that names a
+  # word in order to REFUSE it ("never infer it from \"done\"") is not a trigger
+  # clause, so it is never scanned. The remedy stops being a special case.
+  clauses=$(printf '%s' "$descn" | grep -oiE '(also trigger on|trigger on|also on|invoke on)[^.]*' || true)
+  [ -n "$clauses" ] || continue
+
+  singles=$(printf '%s' "$clauses" | grep -oE '"[A-Za-z][A-Za-z'"'"'-]*"' |
+            tr -d '"' | sort -u | tr '\n' ' ')
+  # Plus multi-word phrases already observed to misfire. NOT a theory of
+  # ordinary language and it must not grow into one — it is the list of phrases
+  # that actually shipped as triggers and had to be removed.
   for phrase in "ship it" "looks good" "where are we" "that works" "sounds good"; do
-    printf '%s' "$descn" | grep -qiF "\"$phrase\"" && singles="$singles$phrase, "
+    printf '%s' "$clauses" | grep -qiF "\"$phrase\"" && singles="$singles$phrase, "
   done
   [ -n "${singles// /}" ] || continue
-  if printf '%s' "$desc" | grep -qiE 'never infer|not to be inferred|not on |not for |do not infer'; then
-    continue
-  fi
-  fail "'$name' lists one-word trigger(s) [ ${singles}] with nothing refusing them.
+
+  fail "'$name' offers one-word trigger(s) [ ${singles}] in its trigger clause.
         A description decides invocation from ordinary language, so a bare word
         fires on conversation about the work rather than a request for it. Use a
-        phrase long enough to be an instruction, or name the word and refuse it."
+        phrase long enough to be an instruction, or move the word into a sentence
+        that refuses it."
   SUSPECT=$((SUSPECT + 1))
 done
 if [ $checked -eq 0 ]; then
@@ -705,7 +725,7 @@ if [ $checked -eq 0 ]; then
   # inventing work rather than finding it.
   pass "no skill declares a description, so none can trigger on a stray word"
 elif [ $SUSPECT -eq 0 ]; then
-  pass "no description invites invocation on a single ordinary word ($checked checked)"
+  pass "no trigger clause invites invocation on a single ordinary word ($checked checked)"
 fi
 
 # --------------------------------------------------------- dangling references
@@ -871,12 +891,34 @@ fi
 # ~100 MB of transcripts, caches and plugin trees out of the walk. A plugin
 # install has no git index and no machine state, so there it is the whole tree.
 
+# `audits/` is excluded, and it is the only exclusion.
+#
+# Those files are agent audit reports kept VERBATIM: their own index says the
+# line citations in them are stale and that they are a record of what was found
+# and argued, not a description of the current tree. Policing them offers two
+# outcomes and both are bad — edit a frozen record so a checker goes quiet, or
+# carry permanent failures that train everyone to skim this output. A report
+# citing `types.md` from an example that no longer exists is correct as written.
+#
+# The distinction is FROZEN vs MAINTAINED, not "ours vs theirs". Anything else
+# tracked here is maintained and stays in scope; if a second frozen archive ever
+# appears, it goes on this line with the same argument or it does not go at all.
+# `audits/README.md` is deliberately NOT excluded. The distinction is FROZEN vs
+# MAINTAINED, and that file is the index: it is edited whenever a pass lands, it
+# makes claims about how many reports exist and what each covered, and it is
+# exactly the kind of file that goes stale. Excluding the whole directory took
+# the index out with the reports, which is how it came to say "four" for three
+# passes after there were more — a stale claim inside the index of the audits
+# that exist to catch stale claims.
 md_files_() {
   if git -C "$CLAUDE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    git -C "$CLAUDE_DIR" ls-files -z '*.md' |
-      while IFS= read -r -d '' p; do printf '%s\0' "$CLAUDE_DIR/$p"; done
+    {
+      git -C "$CLAUDE_DIR" ls-files -z '*.md' ':(exclude)audits/**'
+      git -C "$CLAUDE_DIR" ls-files -z 'audits/README.md'
+    } | while IFS= read -r -d '' p; do printf '%s\0' "$CLAUDE_DIR/$p"; done
   else
-    find "$CLAUDE_DIR" -name '*.md' -not -path '*/.git/*' -print0
+    find "$CLAUDE_DIR" -name '*.md' -not -path '*/.git/*' \
+      \( -not -path '*/audits/*' -o -path '*/audits/README.md' \) -print0
   fi
 }
 

@@ -121,7 +121,7 @@ because the tier says what a skill owns, not who may call it.
 | `--wrap` | `handoff-writer`, `--plan`, `git-writer` | the handoff, the milestone question, the commits. It *names* `--pullrequest` where the pushed branch is ahead of `branch.publish`, and never invokes it — a session ending and work being ready to merge are two different facts |
 | `--pullrequest` | `git-writer`, `--todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because measured over forty merged PRs two unresolved threads in five were chatter. It drafts the body and holds the gate, and writes nothing itself |
 | `--tools` | `--docs`, `--todo`, `sweep-tracker`, `git-writer` | handing the catalog over, stamping the sweep. It draws the diagram below itself. A tooling *task* it uncovers goes to `--todo` rather than being written here |
-| `--docs` | `--todo`, `--track`, `sweep-tracker` | parking a page set larger than one session; parking a page set larger than one session, since this skill stores no state of its own; narrowing its next audit |
+| `--docs` | `--todo`, `--track`, `sweep-tracker` | parking a page set larger than one session, since this skill stores no state of its own; narrowing its next audit |
 | `prune-skills` | `--tools`, `sweep-tracker` | dispatching the cuts, since it writes nothing itself; resolving what it still has to read, and recording what it covered |
 
 `--check` and `--full-check` appear as callers and never as callees of a write:
