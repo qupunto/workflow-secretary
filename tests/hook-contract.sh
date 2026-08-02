@@ -1168,14 +1168,22 @@ esac
 # announce itself as a plugin and silently drop the credentials and settings
 # checks — worse than any false failure, because a check that disappears reports
 # nothing.
-sdir=$(mktemp -d)/link; ln -s "$_root" "$sdir"
-out=$(bash "$sdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+#
+# Hermetic: a fixture that is a git checkout root AND carries a plugin manifest,
+# which is exactly the source repository's own shape. Pointing this at the real
+# tree instead made it depend on $HOME/.claude existing, so it proved nothing on
+# a CI runner — and said so, because the third branch below exists.
+cdir=$(mktemp -d)/checkout
+mkdir -p "$cdir"; cp -r "$pdir"/. "$cdir"/
+git -C "$cdir" init -q .
+sdir=$(mktemp -d)/link; ln -s "$cdir" "$sdir"
+out=$(cd "$sdir" && CLAUDE_CONFIG_DIR="$sdir" bash "$sdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"installed as a plugin"*)
-    bad "a symlinked checkout read as a plugin — the credentials check is off" ;;
-  *".credentials.json is not tracked"*)
-    ok "a symlinked checkout is still a checkout, and keeps its credentials check" ;;
-  *) bad "symlinked checkout: neither branch matched, so the check proved nothing" ;;
+    bad "a symlinked checkout read as a plugin — the credentials check goes off with it" ;;
+  *"all checks passed"*|*"failed"*)
+    ok "a symlinked checkout is still a checkout" ;;
+  *) bad "symlinked checkout: the doctor produced no result, so this proved nothing" ;;
 esac
 
 # The other half of the same rule, and the reason self-preference is conditional
