@@ -1121,7 +1121,10 @@ head_ "The doctor inspects the installation it shipped with"
 # The fixture must sit OUTSIDE any git checkout: "am I a plugin" is answered
 # partly by not being the root of one, and building this under $TMP inside the
 # repo would make the answer depend on where the suite happens to run.
-pdir=$(mktemp -d)/plug
+# Under the real cache layout, `plugins/cache/<marketplace>/<plugin>/<version>/`,
+# because that is what identifies an install now — not the absence of a `.git`,
+# which varies by how the marketplace was fetched.
+pdir=$(mktemp -d)/plugins/cache/mk/demo-plugin/0.0.1
 mkdir -p "$pdir/.claude-plugin" "$pdir/skills/demo" "$pdir/hooks" "$pdir/workflow"
 printf '{"name":"x","version":"0.0.1","description":"d"}\n' > "$pdir/.claude-plugin/plugin.json"
 printf -- '---\nname: demo\ndescription: d\n---\n\nBody.\n' > "$pdir/skills/demo/SKILL.md"
@@ -1143,6 +1146,36 @@ case $out in
   *"no skills could be enumerated"*)
     bad "the doctor enumerated no skills while sitting in a tree that has one" ;;
   *) ok "and finds the skills that shipped with it" ;;
+esac
+
+# A plugin fetched from a git-hosted marketplace over SSH IS a clone and IS its
+# own git toplevel. The first version of this rule asked "am I not a toplevel",
+# which is not a property of being a plugin, so that shape regressed straight
+# back to the defect above. Build the fixture under a path with the real cache
+# layout in it, because that is what the rule keys on now.
+gdir=$(mktemp -d)/plugins/cache/mk/demo-plugin/0.0.1
+mkdir -p "$gdir"; cp -r "$pdir"/. "$gdir"/
+git -C "$gdir" init -q .
+out=$(cd "$bare" && CLAUDE_CONFIG_DIR="$bare" bash "$gdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"not a git checkout"*|*"shorthand-flags.sh missing"*)
+    bad "a plugin that carries its own .git regressed to reading the config dir" ;;
+  *) ok "a plugin cache that is itself a clone is still a plugin" ;;
+esac
+
+# And the direction that loses checks rather than adding noise: a checkout
+# reached through a symlink reports a LOGICAL path. That made a real checkout
+# announce itself as a plugin and silently drop the credentials and settings
+# checks — worse than any false failure, because a check that disappears reports
+# nothing.
+sdir=$(mktemp -d)/link; ln -s "$_root" "$sdir"
+out=$(bash "$sdir/doctor.sh" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case $out in
+  *"installed as a plugin"*)
+    bad "a symlinked checkout read as a plugin — the credentials check is off" ;;
+  *".credentials.json is not tracked"*)
+    ok "a symlinked checkout is still a checkout, and keeps its credentials check" ;;
+  *) bad "symlinked checkout: neither branch matched, so the check proved nothing" ;;
 esac
 
 # The other half of the same rule, and the reason self-preference is conditional

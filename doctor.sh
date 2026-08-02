@@ -83,12 +83,32 @@ done
 # self-preference would silently ignore that and read the real tree instead —
 # every fixture would then be reported clean by a doctor that never looked at it,
 # which is this file's own most-feared failure.
-SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+# `pwd -P`, not `pwd`: a checkout reached through a symlink reports the LOGICAL
+# path, which matches nothing it should match. That alone made a real checkout
+# announce "installed as a plugin" and silently drop the credentials and
+# settings.json checks — the precise failure the paragraph above exists to
+# prevent, reintroduced by the fix for it.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd -P)"
+
+# An installed plugin is identified by WHERE IT LIVES, not by whether it happens
+# to carry a `.git`. The first version of this test asked "am I not the toplevel
+# of a checkout", which is not a property of being a plugin at all: a plugin
+# fetched from a git-hosted marketplace over SSH IS a clone and IS its own
+# toplevel, so it answered no and the doctor went back to inspecting the
+# adopter's config directory. Measured on a real cached install.
+#
+# The cache layout — `plugins/cache/<marketplace>/<plugin>/<version>/` — is
+# documented and has been measured on every install shape observed, and
+# `$CLAUDE_PLUGIN_ROOT` overrides this whenever the harness supplies it. If the
+# platform ever moves the cache, this returns 0 and the doctor falls back to the
+# config directory: loud failures on a plugin install rather than a silent wrong
+# answer, which is the correct direction to fail in.
+is_plugin_root() { # dir
+  [ -n "$1" ] && [ -f "$1/.claude-plugin/plugin.json" ] &&
+  case "$1" in */plugins/cache/*) true ;; *) false ;; esac
+}
 SELF_IS_PLUGIN=0
-if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/.claude-plugin/plugin.json" ] &&
-   [ "$(git -C "$SELF_DIR" rev-parse --show-toplevel 2>/dev/null)" != "$SELF_DIR" ]; then
-  SELF_IS_PLUGIN=1
-fi
+is_plugin_root "$SELF_DIR" && SELF_IS_PLUGIN=1
 
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${CLAUDE_DIR:-$HOME/.claude}}"
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
@@ -120,14 +140,11 @@ warns=0
 PLUGIN_MODE=0
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || [ $SELF_IS_PLUGIN -eq 1 ]; then
   PLUGIN_MODE=1
-elif [ -f "$CLAUDE_DIR/.claude-plugin/plugin.json" ] &&
-     [ "$(git -C "$CLAUDE_DIR" rev-parse --show-toplevel 2>/dev/null)" != "$CLAUDE_DIR" ]; then
-  # `--show-toplevel` compared against CLAUDE_DIR, not a bare `--git-dir` test:
-  # the latter succeeds from any directory NESTED inside a checkout, and the
-  # plugin cache is nested inside ~/.claude, which on the machine this is
-  # developed on is itself the configuration repo. So the old test answered
-  # "am I anywhere under some checkout" when the question is "am I the root of
-  # one". It read as a git install and switched plugin mode off.
+elif is_plugin_root "$CLAUDE_DIR"; then
+  # The same test, for the case where CLAUDE_DIR was pointed at an install by
+  # path rather than being where this script sits. Deliberately the SAME
+  # function: two different answers to "is this a plugin" is how the credentials
+  # check gets switched off in one place and left on in another.
   PLUGIN_MODE=1
 fi
 

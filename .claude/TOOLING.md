@@ -24,10 +24,14 @@ where it and `ownership.md` disagree, `ownership.md` is right. This answers
 Nor does it say which skills a session actually loads in full. A skill can be set
 to `name-only` — still invocable, but with its description kept out of the
 session's context — and which ones are is `skillOverrides` in `settings.json`.
-**That lever is the checkout form's only.** `skillOverrides` does not reach
-plugin skills, and `settings.json` is the user's rather than the plugin's, so an
-install loads every description in this file regardless. Every skill below exists
-and can be called whether or not it is listed there.
+**The harness half of that lever is the checkout form's only.** `skillOverrides`
+does not reach plugin skills, and `settings.json` is the user's rather than the
+plugin's, so an install loads every description in this file regardless. Every
+skill below exists and can be called whether or not it is listed there.
+
+**But `shorthand-flags.sh` checks the overrides itself**, so under a plugin
+install `off` still stops that skill's *flag* firing while the skill stays
+callable. Half a disabled skill; `README.md` carries the detail.
 
 ---
 
@@ -256,7 +260,7 @@ would route a lane to an agent does that work inline and says so.
 | `.claude-plugin/marketplace.json` | Makes the same directory its own marketplace, listing one plugin whose `source` is `"./"` — so there is no second repository to keep in step. Handed a directory holding both, `claude plugin validate` checks this one and not the other; name the file to check the other |
 | `skills/docs/assets/scaffold.sh` | Creates a docsify site shell and only the shell, never content. Refuses to touch an existing directory, and prints the steps it deliberately leaves to its caller. Invoked by `--docs` in Scaffold mode |
 | `tests/hook-contract.sh` | The contract tests for the hook, whose breakage is total and silent |
-| `.github/workflows/verify.yml` | CI. Runs the two above plus shell syntax, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, and on every pull request — `main` is reached only through a PR, and with no branch protection that PR run is the only check between `dev` and `main` |
+| `.github/workflows/verify.yml` | CI. Runs the two above plus shell syntax, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, and on every pull request — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
 
 ## Files that are not tools
 
