@@ -77,7 +77,7 @@ unresolvable dispatches to nothing, silently."
 fi
 
 # ------------------------------------------------------------- sweep age
-# A sweep checkpoint that is far behind HEAD means the next --check or --docs
+# A sweep checkpoint that is far behind HEAD means the next --ws-check or --ws-docs
 # will re-read a lot. Worth one line so the user can choose to run it; not worth
 # a line while it is fresh. 40 commits is a nudge threshold, not a rule.
 # The manifest may relocate the checkpoint (`sweeps`, workflow/manifest.md), and
@@ -138,6 +138,32 @@ fi
 #     is exactly what would train the reader to skip this whole block.
 #   - a file no commit has ever touched has no age to be behind.
 manifest="$PWD/.claude/workflow.json"
+
+# A worktree of a lane-split project carries `.claude/lane` (gitignored), and
+# `lanes.named.<lane>.records.X` in the manifest then overrides `record.X` for
+# the three splittable records — workflow/manifest.md states the rule once.
+# Read the selector here so every record read below resolves the same way:
+# nudging a lane worktree about the unsplit files would miss the lane's own
+# pending decisions, and the handoff injection must serve the lane's card.
+#
+# `|| true` on both, for the reason every guard in this file exists: a failure
+# inside an assignment reaches the ERR trap and exits 0, discarding whatever
+# $out already held. An empty selector, an undeclared lane or a missing
+# manifest all resolve to the unsplit records — doctor.sh is where a bad
+# selector fails LOUDLY; this hook only ever degrades.
+lane=""
+[ -f "$PWD/.claude/lane" ] &&
+  lane=$(tr -d '[:space:]' < "$PWD/.claude/lane" 2>/dev/null || true)
+
+# Resolve record key $1: the selected lane's override, else record.$1. Strings
+# only — a provider object under record.todo has no file for this hook to age.
+record_path() {
+  jq -r --arg lane "$lane" --arg k "$1" \
+    '(.lanes.named[$lane].records[$k] // .record[$k])
+       | if type == "string" then . else empty end' \
+    "$manifest" 2>/dev/null || true
+}
+
 if [ -f "$manifest" ] && command -v jq >/dev/null 2>&1 &&
    git -C "$PWD" rev-parse --git-dir >/dev/null 2>&1; then
 
@@ -155,19 +181,22 @@ if [ -f "$manifest" ] && command -v jq >/dev/null 2>&1 &&
   # file has entries at all, which is the rare state, so it can afford to be
   # the more sensitive of the two.
   #
-  # `|| true` is load-bearing, not defensive noise. jq exits non-zero on a
+  # record_path carries the load-bearing `|| true`: jq exits non-zero on a
   # manifest that is not valid JSON, that failure propagates out of the
   # assignment, and the ERR trap at the top then exits 0 — discarding whatever
   # $out already held. A malformed workflow.json would silently swallow a
   # doctor FAILURE, which is the one thing this hook exists to print.
-  od=$(jq -r '.record.openDecisions // empty' "$manifest" 2>/dev/null || true)
+  # Entries are `## ` headings — record-contract.md's format, decided after
+  # audit pass 9 found this repo's own record using bold paragraphs, which
+  # made this nudge structurally unable to fire on it (F2).
+  od=$(record_path openDecisions)
   if [ -n "$od" ] && [ -f "$PWD/$od" ]; then
     n=$(grep -c '^## ' "$PWD/$od" 2>/dev/null || true)
     if [ "${n:-0}" -gt 0 ] && b=$(behind "$od") && [ "${b:-0}" -ge 25 ]; then
       out="${out}${out:+
 
 }$n open decision(s) in $od, unchanged for $b commits of work.
---start settles them before it picks a batch; until then the next commit that
+--ws-start settles them before it picks a batch; until then the next commit that
 depends on one makes the call by accident."
     fi
   fi
@@ -176,21 +205,20 @@ depends on one makes the call by accident."
   # drifted from reality, which is recoverable, and a long focused push through
   # one milestone legitimately does not touch it. At 40 this would fire on
   # correct behaviour, so it sits at twice the sweep threshold.
-  # A provider-backed backlog has no file, and `jq -r` on an object returns its
-  # JSON — which fails the -f test below and skips the nudge for the right
-  # reason by accident. Select the string form explicitly so the skip is a
-  # decision rather than a coincidence: an issue backlog has no baseline in this
-  # repository's history, so "unchanged for N commits" is not a question that
-  # can be asked of it here. workflow/providers/github-issues.md says the same
-  # about why a checkpoint cannot narrow an issue sweep.
-  td=$(jq -r '.record.todo | if type == "string" then . else empty end' "$manifest" 2>/dev/null || true)
+  # A provider-backed backlog has no file — record_path selects the string
+  # form explicitly so the skip is a decision rather than a coincidence: an
+  # issue backlog has no baseline in this repository's history, so "unchanged
+  # for N commits" is not a question that can be asked of it here.
+  # workflow/providers/github-issues.md says the same about why a checkpoint
+  # cannot narrow an issue sweep.
+  td=$(record_path todo)
   if [ -n "$td" ] && [ -f "$PWD/$td" ]; then
     n=$(grep -c '^[[:space:]]*- \[ \]' "$PWD/$td" 2>/dev/null || true)
     if [ "${n:-0}" -gt 0 ] && b=$(behind "$td") && [ "${b:-0}" -ge 80 ]; then
       out="${out}${out:+
 
 }$n open item(s) in $td, unchanged for $b commits of work.
---stocktake re-checks the backlog against what the code now does, and rebuilds
+--ws-stocktake re-checks the backlog against what the code now does, and rebuilds
 it around the answer."
     fi
   fi
@@ -208,7 +236,7 @@ it around the answer."
   # record.decisions and record.audits are deliberately absent. The decision log
   # is append-only, so its age carries no signal — a project with nothing to
   # decide correctly never touches it. Audits are already covered by the sweep
-  # nudge above, which fires on --stocktake's own checkpoint at 40.
+  # nudge above, which fires on --ws-stocktake's own checkpoint at 40.
   rd=$(jq -r '.record.roadmap // empty' "$manifest" 2>/dev/null || true)  # see above
   if [ -n "$rd" ] && [ -f "$PWD/$rd" ]; then
     n=$(grep -c '^[[:space:]]*- \[ \]' "$PWD/$rd" 2>/dev/null || true)
@@ -216,7 +244,7 @@ it around the answer."
       out="${out}${out:+
 
 }$n open block(s) in $rd, unchanged for $b commits of work.
---plan re-orders the roadmap against what has actually landed, and asks whether
+--ws-plan re-orders the roadmap against what has actually landed, and asks whether
 a milestone is complete enough to mark."
     fi
   fi
@@ -232,11 +260,37 @@ if [ -f "$inbox" ]; then
   # inbox would abort the hook here — after the doctor FAILURE was collected and
   # before the handoff is injected — printing nothing at all. The exit-0 tests
   # cannot catch it, because the hook exits 0 either way.
-  n=$(awk '/<!-- Append new entries below this line. -->/{b=1;next} b && /^## \[open\]/{c++} END{print c+0}' "$inbox" || true)
+  # Marker present: count below it, so the fenced template above never counts.
+  # Marker absent: count everything — a fresh machine's inbox is created bare,
+  # and requiring the marker hid every entry on it (audit pass 9, F1). Same
+  # rule as doctor.sh's counter; change them together.
+  n=$(awk '/<!-- Append new entries below this line. -->/{seen=1;next} /^## \[open\]/{if(seen)c++;else p++} END{print (seen?c:p)+0}' "$inbox" || true)
   [ "${n:-0}" -gt 0 ] && out="${out}${out:+
 
 }$n open bug report(s) filed against the Claude configuration.
 Read $inbox; triage them from a session in $CLAUDE_DIR."
+fi
+
+# --------------------------------------------------------- first session
+# A plugin has no channel to speak at install time — measured against the
+# docs: no post-install message field or event exists, and SessionStart is
+# the documented alternative. So the FIRST session after an install gets one
+# orientation block, gated by a marker in the config directory — the same
+# resolution argument as the inbox above: cross-project state that must
+# survive a plugin update, so never under the plugin root. The marker write
+# is `|| true` guarded like everything else here; where the config dir is
+# unwritable the notice repeats, which is the safe direction to fail.
+# Plugin form only: a checkout user has README.md, and this repo's own
+# sessions have the handoff below.
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ ! -f "$CLAUDE_DIR/.ws-welcomed" ]; then
+  out="${out}${out:+
+
+}The workflow-secretary plugin is installed. One-time orientation, for the user:
+type --ws-flags to see everything it provides and what resolves here, and in a
+project it should keep records for, type --ws-adopt to set that up. Until a
+project is adopted the suite stays quiet — nothing here nags. Relay this to the
+user; it will not be shown again."
+  : > "$CLAUDE_DIR/.ws-welcomed" 2>/dev/null || true
 fi
 
 # --------------------------------------------------------------- handoff
@@ -245,7 +299,7 @@ fi
 # would double the cost of a file that is in context twice.
 # $manifest is resolved once, in the record-age section above.
 if [ -f "$manifest" ] && command -v jq >/dev/null 2>&1; then
-  hp=$(jq -r '.record.handoff // empty' "$manifest" 2>/dev/null || true)  # see above
+  hp=$(record_path handoff)  # lane-aware — a lane worktree gets ITS handoff
   case "$hp" in
     ""|CLAUDE.md|./CLAUDE.md) ;;
     *)

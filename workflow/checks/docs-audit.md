@@ -1,7 +1,7 @@
 # Auditing docs for drift
 
-> **A shared method, not a skill.** See [`README.md`](README.md). `--docs` runs it
-> over the site it just wrote or was asked to verify; `--full-check` runs it at full
+> **A shared method, not a skill.** See [`README.md`](README.md). `--ws-docs` runs it
+> over the site it just wrote or was asked to verify; `--ws-full-check` runs it at full
 > scope. Every section here is a check; the scope that selects which pages get the
 > expensive treatment is the runner's, and deliberately not in this file.
 

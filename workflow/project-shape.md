@@ -1,8 +1,8 @@
 # Project shape
 
 **What kind of project this is, decided once.** Several skills need the answer
-and they need the *same* answer: `--docs` maps it to which pages a project owes,
-`--stocktake` maps it to which dimensions to run. Detecting it twice means two
+and they need the *same* answer: `--ws-docs` maps it to which pages a project owes,
+`--ws-stocktake` maps it to which dimensions to run. Detecting it twice means two
 detectors that agree until they don't, and nothing that notices when they stop.
 
 So detection lives here. **The mappings stay with the skills that own them** —
@@ -55,7 +55,7 @@ profile follows its signals.
 A repo describing itself as a library while shipping a server is a project with
 both signals, and possibly a finding.
 
-**Signal names are stable.** Skills key off them, and `--stocktake` records
+**Signal names are stable.** Skills key off them, and `--ws-stocktake` records
 dimensions derived from them in a record that later audits join against — see
 [`audit-coverage.md`](audit-coverage.md).
 
@@ -67,9 +67,9 @@ silently omitting one is a gap nobody knows about.
 
 | Skill | Maps shape to |
 |---|---|
-| `--docs` | Page sets, via its own tier taxonomy |
-| `--stocktake` | Which dimensions run, in its Phase 0 |
-| `--adopt` | Which records a project needs, and therefore which manifest keys to propose |
+| `--ws-docs` | Page sets, via its own tier taxonomy |
+| `--ws-stocktake` | Which dimensions run, in its Phase 0 |
+| `--ws-adopt` | Which records a project needs, and therefore which manifest keys to propose |
 
 A skill consuming this file states which signals it acted on, so a reader can
 tell a deliberate omission from an oversight.

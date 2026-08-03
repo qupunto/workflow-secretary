@@ -16,15 +16,15 @@
 #
 # WHERE A FLAG COUNTS. Flags are read from a *run* at the very START or the
 # very END of the message. A run is one or more whitespace-separated tokens,
-# each of which decomposes entirely into flags — so `--stocktake --release`,
-# `--stocktake--release` and `--stocktake --release --wrap` all fire every flag they
+# each of which decomposes entirely into flags — so `--ws-stocktake --ws-release`,
+# `--ws-stocktake--ws-release` and `--ws-stocktake --ws-release --ws-wrap` all fire every flag they
 # name, and a message made of nothing but flags is covered end to end by the
 # two runs meeting in the middle.
 #
 # Matching anywhere in the message would fire on a pasted command that happens
 # to contain a flag (`git branch --track origin/dev` being the realistic case)
 # and on any message that merely *discusses* a flag. A token must decompose
-# with nothing left over, so `--wrapper` and `origin/dev` end a run rather than
+# with nothing left over, so `--ws-wrapper` and `origin/dev` end a run rather than
 # extending it.
 #
 # Wired up from ~/.claude/settings.json. Silent (exit 0, no output) when no
@@ -41,7 +41,7 @@
 #         It fails at RUNTIME ("declare: -A: invalid option") rather than at
 #         parse time, which is the only reason a guard ABOVE it gets to run at
 #         all — leaving `seen` an indexed array, so the next subscript evaluates
-#         `--wrap` as arithmetic. Keep this check above line ~103.
+#         `--ws-wrap` as arithmetic. Keep this check above line ~103.
 #
 # Both write to stderr and exit 0: a non-zero exit here would block the user's
 # turn outright, and a broken shorthand must never cost someone their prompt.
@@ -59,10 +59,10 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 
 # The invariant this list must keep: NO FLAG IS A PREFIX OF ANOTHER. Where that
 # holds, a token can never be split into a shorter flag plus junk and the order
-# below does not matter. `--stocktake` and `--full-stocktake` look like they collide and
+# below does not matter. `--ws-stocktake` and `--ws-full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--full-stocktake --pullrequest --full-check --release --stocktake --adopt --prune --flags --start --track --docs --check --tools --todo --wrap --plan --help --log)
+FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -118,38 +118,38 @@ for ((i = tail_start; i < n; i++)); do collect "${tokens[$i]}"; done
 
 [ ${#ordered[@]} -eq 0 ] && exit 0
 
-# `--stocktake` and `--full-stocktake` are the same skill at two scopes, so they are
+# `--ws-stocktake` and `--ws-full-stocktake` are the same skill at two scopes, so they are
 # mutually exclusive and the wider one wins.
-if [ -n "${seen[--full-stocktake]:-}" ]; then
-  unset 'seen[--stocktake]'
+if [ -n "${seen[--ws-full-stocktake]:-}" ]; then
+  unset 'seen[--ws-stocktake]'
 fi
 
-# `--full-check` is a different SKILL from `--check` rather than a wider scope of
-# it, but it runs --check's method over --check's files as one of its three
+# `--ws-full-check` is a different SKILL from `--ws-check` rather than a wider scope of
+# it, but it runs --ws-check's method over --ws-check's files as one of its three
 # areas, so firing both sweeps the record twice. The wider one wins.
 #
-# `--docs` and `--tools` are deliberately NOT dropped, even though --full-check
+# `--ws-docs` and `--ws-tools` are deliberately NOT dropped, even though --ws-full-check
 # subsumes their SWEEPS. Both of those flags have a second, unrelated job —
-# writing a page, syncing the catalog — and `--full-check --docs auth` is a
+# writing a page, syncing the catalog — and `--ws-full-check --ws-docs auth` is a
 # health check followed by a request to document something. This hook cannot
 # tell that apart from a redundant sweep, and dropping a write request to save
 # one read is the wrong way to be wrong. The multi-flag preamble already tells
 # Claude to do a shared step once.
-if [ -n "${seen[--full-check]:-}" ]; then
-  unset 'seen[--check]'
+if [ -n "${seen[--ws-full-check]:-}" ]; then
+  unset 'seen[--ws-check]'
 fi
 
-# Either stocktake flag absorbs `--check`. project-stocktake runs --check's
-# method over --check's files as its record dimension and says so — "invoke one
+# Either stocktake flag absorbs `--ws-check`. ws-stocktake runs --ws-check's
+# method over --ws-check's files as its record dimension and says so — "invoke one
 # or the other, never both" — so firing both sweeps the record twice, and the
 # second sweep reports the first one's writes as fresh drift.
 #
-# `--full-check` is deliberately NOT dropped here, on the same reasoning that
-# spares --docs and --tools above. It is a different skill, not a wider scope:
+# `--ws-full-check` is deliberately NOT dropped here, on the same reasoning that
+# spares --ws-docs and --ws-tools above. It is a different skill, not a wider scope:
 # it also covers the docs site and the tooling files, neither of which a
 # stocktake touches. Dropping it would silently narrow what the user asked for.
-if [ -n "${seen[--stocktake]:-}" ] || [ -n "${seen[--full-stocktake]:-}" ]; then
-  unset 'seen[--check]'
+if [ -n "${seen[--ws-stocktake]:-}" ] || [ -n "${seen[--ws-full-stocktake]:-}" ]; then
+  unset 'seen[--ws-check]'
 fi
 
 # Only claim a flag whose skill actually resolves here — at user level, or in
@@ -213,28 +213,29 @@ skill_disabled() {
   return 1
 }
 
-# `-` means "served by this hook itself, not by a skill" — `--flags` is the only
-# one. It is a real mapping rather than a missing arm on purpose: doctor.sh and
-# the contract suite both FAIL on a flag whose skill_for() arm is absent, and
-# that check is worth keeping sharp. A silent empty string would have made the
-# one flag with no skill indistinguishable from a flag someone forgot to wire.
+# `-` means "served by this hook itself, not by a skill" — `--ws-flags` and
+# `--ws-alerts`. It is a real mapping rather than a missing arm on purpose:
+# doctor.sh and the contract suite both FAIL on a flag whose skill_for() arm is
+# absent, and that check is worth keeping sharp. A silent empty string would
+# have made a flag with no skill indistinguishable from one someone forgot to
+# wire.
 skill_for() {
   case $1 in
-    --flags | --help) echo - ;;
-    --track) echo track-complex-tasks ;;
-    --todo | --log) echo project-record ;;
-    --wrap) echo wrap-task ;;
-    --start) echo start-work ;;
-    --release) echo release ;;
-    --pullrequest) echo pr-flow ;;
-    --stocktake | --full-stocktake) echo project-stocktake ;;
-    --adopt) echo adopt-workflow ;;
-    --docs) echo docs ;;
-    --tools) echo tooling-catalog-sync ;;
-    --check) echo record-inspector ;;
-    --full-check) echo full-health-check ;;
-    --plan) echo roadmap ;;
-    --prune) echo prune-skills ;;
+    --ws-flags | --ws-help | --ws-alerts) echo - ;;
+    --ws-track) echo ws-track ;;
+    --ws-todo | --ws-log) echo ws-record ;;
+    --ws-wrap) echo ws-wrap ;;
+    --ws-start) echo ws-start ;;
+    --ws-release) echo ws-release ;;
+    --ws-pr) echo ws-pr ;;
+    --ws-stocktake | --ws-full-stocktake) echo ws-stocktake ;;
+    --ws-adopt) echo ws-adopt ;;
+    --ws-docs) echo ws-docs ;;
+    --ws-tools) echo ws-tools ;;
+    --ws-check) echo ws-check ;;
+    --ws-report) echo ws-report ;;
+    --ws-full-check) echo ws-full-check ;;
+    --ws-plan) echo ws-plan ;;
   esac
 }
 
@@ -267,8 +268,8 @@ skill_gist_() {
       if (match($0, / SHORTHAND:| Also trigger| Invoke on| Trigger on| Use whenever/))
         $0 = substr($0, 1, RSTART - 1)
       # Cut to the first sentence, but only while that still says something.
-      # project-record opens with one short line about the record, and puts the
-      # --todo / --log split in the sentence AFTER it, so cutting
+      # ws-record opens with one short line about the record, and puts the
+      # --ws-todo / --ws-log split in the sentence AFTER it, so cutting
       # unconditionally described both flags with the same nine words.
       # NOTE: no apostrophes in this comment. The whole program is inside a
       # single-quoted shell string, and one here ends it — which is a syntax
@@ -299,7 +300,11 @@ flags_block_() {
   while IFS= read -r f; do
     skill=$(skill_for "$f")
     if [ "$skill" = "-" ]; then
-      printf '| `%s` | — | yes | Lists these flags. Served by the hook, so it needs no skill. |\n' "$f"
+      if [ "$f" = --ws-alerts ]; then
+        printf '| `%s` | — | yes | Toggles the sound cue: `--ws-alerts on\\|off`. Served by the hook, so it needs no skill. |\n' "$f"
+      else
+        printf '| `%s` | — | yes | Lists these flags. Served by the hook, so it needs no skill. |\n' "$f"
+      fi
       continue
     fi
     if path=$(skill_path_ "$skill"); then
@@ -321,7 +326,7 @@ flags_block_() {
 
 block_for() {
   case $1 in
-  --flags | --help)
+  --ws-flags | --ws-help)
     flags_block_
     # The grant line stays HERE, at column 0 in a heredoc, rather than inside
     # flags_block_. doctor.sh reads this shape out of the hook source to compare
@@ -333,19 +338,19 @@ block_for() {
 Authorization: none.
 EOF
     ;;
-  --track)
+  --ws-track)
     cat <<'EOF'
-The user included the `--track` flag. That is an explicit, unconditional
-instruction to invoke the `track-complex-tasks` skill now. The usual complexity
+The user included the `--ws-track` flag. That is an explicit, unconditional
+instruction to invoke the `ws-track` skill now. The usual complexity
 threshold does NOT apply — do not skip the list because the work looks small.
 
 Authorization: none.
 EOF
     ;;
-  --todo)
+  --ws-todo)
     cat <<'EOF'
-The user included the `--todo` flag. That is an explicit, unconditional
-instruction to park an idea rather than build it, using the `project-record`
+The user included the `--ws-todo` flag. That is an explicit, unconditional
+instruction to park an idea rather than build it, using the `ws-record`
 skill — invoke it now, without asking for confirmation first.
 
 The rest of the message is the idea to defer, not a question to answer.
@@ -359,10 +364,10 @@ If the real blocker is an unmade choice rather than bad timing it belongs in the
 open-decisions record instead, and never in both.
 EOF
     ;;
-  --plan)
+  --ws-plan)
     cat <<'EOF'
-The user included the `--plan` flag. That is an explicit, unconditional
-instruction to invoke the `roadmap` skill now — what the next block is, how the
+The user included the `--ws-plan` flag. That is an explicit, unconditional
+instruction to invoke the `ws-plan` skill now — what the next block is, how the
 milestones and their blocks are ordered, or whether one is finished. The rest of
 the message is scope, not a question to answer first.
 
@@ -373,21 +378,21 @@ Irreversible, in force before the skill loads:
   on the strength of your own reading or an agent's report. Say what the
   milestone claimed, what landed, and what is still open against it — then ask.
 - BUT ASK WHEN THE LAST BLOCK LANDS. Do not wait to be told.
-- The mark you write is what authorizes `--release` to tag, so write it into the
+- The mark you write is what authorizes `--ws-release` to tag, so write it into the
   roadmap and not into the conversation: it must survive a `/clear`.
 - A milestone with an open blocking decision, or with unremediated high-severity
   audit findings, is disqualified however finished it looks. Name it rather than
   letting a release discover it.
 - The roadmap holds milestones, blocks and their order. Not tasks, not design
-  arguments. Breaking a block into tasks is `--todo`'s job.
+  arguments. Breaking a block into tasks is `--ws-todo`'s job.
 - Run the grep that would DISPROVE any "nothing does X" or count before writing
   it here.
 EOF
     ;;
-  --adopt)
+  --ws-adopt)
     cat <<'EOF'
-The user included the `--adopt` flag. That is an explicit, unconditional
-instruction to run the `adopt-workflow` skill now — bring this project under the
+The user included the `--ws-adopt` flag. That is an explicit, unconditional
+instruction to run the `ws-adopt` skill now — bring this project under the
 workflow by writing `.claude/workflow.json`.
 
 Authorization: COMMIT what it creates. Not push.
@@ -405,10 +410,10 @@ Irreversible, in force before the skill loads:
   complete on a failing doctor; never report success over one.
 EOF
     ;;
-  --check)
+  --ws-check)
     cat <<'EOF'
-The user included the `--check` flag. That is an explicit, unconditional
-instruction to invoke the `record-inspector` skill now and health-check the
+The user included the `--ws-check` flag. That is an explicit, unconditional
+instruction to invoke the `ws-check` skill now and health-check the
 project's record for claims that no longer match reality and for updates the code
 owes but never got.
 
@@ -424,10 +429,10 @@ Irreversible, in force before the skill loads:
   later reversed is correct as written. Never dispatch a rewrite of one.
 EOF
     ;;
-  --full-check)
+  --ws-full-check)
     cat <<'EOF'
-The user included the `--full-check` flag. That is an explicit, unconditional
-instruction to invoke the `full-health-check` skill now — re-verify every file
+The user included the `--ws-full-check` flag. That is an explicit, unconditional
+instruction to invoke the `ws-full-check` skill now — re-verify every file
 the project keeps for its functional value, at FULL scope: the records, the docs
 site, and the tooling files.
 
@@ -455,21 +460,28 @@ Irreversible, in force before the skill loads:
   entry describing a decision later reversed is correct as written. The only
   thing to check about them is whether a generated index has gone stale.
 - Source code and the test suite are OUT of scope. The suite is
-  --full-stocktake's. Code analysis proper — correctness, security, the data
-  model — is a PROJECT's own skill, which --stocktake invokes where one exists
+  --ws-full-stocktake's. Code analysis proper — correctness, security, the data
+  model — is a PROJECT's own skill, which --ws-stocktake invokes where one exists
   and reports as not run where none does. No flag here delivers it on its own.
 EOF
     ;;
-  --tools)
+  --ws-tools)
     cat <<'EOF'
-The user included the `--tools` flag. That is an explicit, unconditional
-instruction to invoke the `tooling-catalog-sync` skill now — keep the tooling
-catalog in step with what skills and agents actually exist, and fix stale claims
-inside those files.
+The user included the `--ws-tools` flag. That is an explicit, unconditional
+instruction to invoke the `ws-tools` skill now — keep the tooling
+catalog in step with what skills and agents actually exist, fix stale claims
+inside those files, and run the prose prune when that is what was asked.
 
 Authorization: COMMIT. Not push.
 
 Irreversible, in force before the skill loads:
+- In PRUNE mode, propose first and cut second: a proposed cut is a hypothesis,
+  and this is the one job where being wrong is silent — nothing fails when a
+  rule stops being stated, it just stops being followed. NEVER cut inside a
+  section another skill hands VERBATIM to a subagent, or a heading another
+  file cites (grep for the anchor first, run the doctor after), or the last
+  statement of a rule, or an agent file's `description` and `tools:` list. A
+  description you touch gets shorter or stays the same, never longer.
 - DELETE a stale mutable claim rather than correcting it. That one line is the
   part that overrides the instinct to be helpful, so it is here rather than only
   behind a link. Everything else the rule decides — what a skill or agent file
@@ -500,10 +512,36 @@ Irreversible, in force before the skill loads:
   needs a checkout; from a plugin install, raise it upstream as well.
 EOF
     ;;
-  --log)
+  --ws-report)
     cat <<'EOF'
-The user included the `--log` flag. That is an explicit, unconditional
-instruction to invoke the `project-record` skill now and record a decision that
+The user included the `--ws-report` flag. That is an explicit, unconditional
+instruction to invoke the `ws-report` skill now — file the finding the rest of
+the message describes: append it to the machine-local bug-reports inbox, then
+offer to open an issue on the suite's public upstream repository. The rest of
+the message is the finding, not a question to answer first.
+
+Authorization: none. Opening the upstream issue is an outward, public act and
+needs a fresh OK in that turn.
+
+Irreversible, in force before the skill loads:
+- APPEND to the inbox FIRST. A report living only in this conversation is lost
+  at the next /clear; the local entry is the report, the issue is its
+  durability. If gh is absent or unauthorized, the entry stands and the issue
+  is owed — say so rather than failing silently.
+- The upstream repository is PUBLIC. Never include the name, path or any
+  detail of the project this session was working in unless the user says so in
+  words after seeing what was withheld. A published issue outlives deletion.
+- Show the exact title and body before sending, and send only on an explicit
+  OK given in this turn. A standing yes from earlier does not carry.
+- These rules cover every entry a BUNDLED report carries, not only the new
+  finding — and hazards go upstream by group name only, never their text,
+  which is private to the repository that wrote it.
+EOF
+    ;;
+  --ws-log)
+    cat <<'EOF'
+The user included the `--ws-log` flag. That is an explicit, unconditional
+instruction to invoke the `ws-record` skill now and record a decision that
 has already been made. The rest of the message is the decision, not a question
 to answer first — and it is not a request to re-open it.
 
@@ -518,10 +556,10 @@ Irreversible, in force before the skill loads:
   it. Never hand-edit one.
 EOF
     ;;
-  --wrap)
+  --ws-wrap)
     cat <<'EOF'
-The user included the `--wrap` flag. Treat it exactly as "wrap this up, I am
-about to clear the session" — invoke the `wrap-task` skill immediately and
+The user included the `--ws-wrap` flag. Treat it exactly as "wrap this up, I am
+about to clear the session" — invoke the `ws-wrap` skill immediately and
 unconditionally, with no further confirmation, even mid-task.
 
 The rest of the message is context about what to record, not a question to
@@ -542,26 +580,26 @@ Irreversible, in force before the skill loads:
 - Commits and pushes go through git-writer, which owns the history and holds
   these rules. It inherits this grant; it never decides to push.
 - After committing, check whether this session checked off the LAST open block
-  of the current milestone. If it did, invoke --plan so the user is ASKED while
-  the evidence is in front of them, then name --release if they mark it. Do not
-  mark the milestone yourself — that is --plan's, and the mark is what
+  of the current milestone. If it did, invoke --ws-plan so the user is ASKED while
+  the evidence is in front of them, then name --ws-release if they mark it. Do not
+  mark the milestone yourself — that is --ws-plan's, and the mark is what
   authorizes a tag.
 EOF
     ;;
-  --start)
+  --ws-start)
     cat <<'EOF'
-The user included the `--start` flag. That is an explicit, unconditional
-instruction to run the `start-work` skill — invoke it now, without asking
+The user included the `--ws-start` flag. That is an explicit, unconditional
+instruction to run the `ws-start` skill — invoke it now, without asking
 what to work on or whether to begin.
 
-The rest of the message is scope or emphasis ("--start, stick to the social
+The rest of the message is scope or emphasis ("--ws-start, stick to the social
 block"), not a question to answer first.
 
 Authorization: COMMIT as the work lands, so a compaction cannot lose a finished
-lane. NOT push. Wait for the user to say so, or for the user to type --wrap.
+lane. NOT push. Wait for the user to say so, or for the user to type --ws-wrap.
 Nothing this skill INVOKES may push on its behalf: an invoked skill inherits this
 grant, never its own flag's, so closing out goes through handoff-writer for the
-handoff, not through wrap-task for the ritual, and the commits go through
+handoff, not through ws-wrap for the ritual, and the commits go through
 git-writer, which may commit here but not push.
 
 Irreversible, in force before the skill loads:
@@ -581,10 +619,10 @@ Irreversible, in force before the skill loads:
   spend it early.
 EOF
     ;;
-  --release)
+  --ws-release)
     cat <<'EOF'
-The user included the `--release` flag. That is an explicit, unconditional
-instruction to run the `release` skill — invoke it now, without asking whether
+The user included the `--ws-release` flag. That is an explicit, unconditional
+instruction to run the `ws-release` skill — invoke it now, without asking whether
 to start.
 
 The rest of the message is context about what is being released, not a question
@@ -594,11 +632,11 @@ Authorization: COMMIT. The PUSH is NOT covered by this flag.
 
 Irreversible, in force before the skill loads:
 - The precondition is a MILESTONE MARKED COMPLETED in the roadmap, written by
-  --plan. If it looks complete but is not marked, hand to --plan and come back;
+  --ws-plan. If it looks complete but is not marked, hand to --ws-plan and come back;
   do not mark it yourself and do not infer the milestone from recent commits.
 - Show the commits, the tag name and the branch, then wait for an explicit OK
-  IN THAT TURN before pushing either the branch or the tag. Unlike --wrap and
-  --stocktake this flag is not standing authorization to publish: a tag another
+  IN THAT TURN before pushing either the branch or the tag. Unlike --ws-wrap and
+  --ws-stocktake this flag is not standing authorization to publish: a tag another
   checkout has fetched cannot be recalled.
 - Local tags and remote tags are different facts. Reconcile both before
   choosing a version.
@@ -609,10 +647,10 @@ Irreversible, in force before the skill loads:
 - No --force, no --amend, no --no-verify.
 EOF
     ;;
-  --pullrequest)
+  --ws-pr)
     cat <<'EOF'
-The user included the `--pullrequest` flag. That is an explicit, unconditional
-instruction to run the `pr-flow` skill — invoke it now, without asking whether
+The user included the `--ws-pr` flag. That is an explicit, unconditional
+instruction to run the `ws-pr` skill — invoke it now, without asking whether
 to open one.
 
 The rest of the message is context about what is being merged, not a question
@@ -644,10 +682,10 @@ Irreversible, in force before the skill loads:
   anything.
 EOF
     ;;
-  --full-stocktake)
+  --ws-full-stocktake)
     cat <<'EOF'
-The user included the `--full-stocktake` flag. That is an explicit,
-unconditional instruction to run the `project-stocktake` skill at FULL scope —
+The user included the `--ws-full-stocktake` flag. That is an explicit,
+unconditional instruction to run the `ws-stocktake` skill at FULL scope —
 invoke it now, without asking for confirmation first.
 
 The rest of the message is scope or emphasis, not a question to answer first.
@@ -665,15 +703,15 @@ Irreversible, in force before the skill loads:
   was examined.
 - The push grant does NOT extend to remediation code written afterwards. That is
   ordinary work: commit it and ask.
-- Close out through the `wrap-task` skill rather than pushing by hand, so its
+- Close out through the `ws-wrap` skill rather than pushing by hand, so its
   rails apply — a push publishes a ref, so check what rides along, and never
   force-push or resolve a rejection by force.
 EOF
     ;;
-  --docs)
+  --ws-docs)
     cat <<'EOF'
-The user included the `--docs` flag. That is an explicit, unconditional
-instruction to invoke the `docs` skill now — do not ask whether to start. Bare,
+The user included the `--ws-docs` flag. That is an explicit, unconditional
+instruction to invoke the `ws-docs` skill now — do not ask whether to start. Bare,
 it means "document what we just worked on": infer the target from the
 conversation and say what you picked before writing. With an argument, that is
 the target. The rest of the message is scope, not a question to answer first.
@@ -692,10 +730,10 @@ Irreversible, in force before the skill loads:
   knows which of its claims to distrust.
 EOF
     ;;
-  --stocktake)
+  --ws-stocktake)
     cat <<'EOF'
-The user included the `--stocktake` flag. That is an explicit, unconditional
-instruction to run the `project-stocktake` skill incrementally — invoke it now,
+The user included the `--ws-stocktake` flag. That is an explicit, unconditional
+instruction to run the `ws-stocktake` skill incrementally — invoke it now,
 without asking for confirmation first.
 
 The rest of the message is scope or emphasis, not a question to answer first.
@@ -723,46 +761,58 @@ Irreversible, in force before the skill loads:
   never incremental. When in doubt, widen.
 - The push grant does NOT extend to remediation code written afterwards. That is
   ordinary work: commit it and ask.
-- Close out through the `wrap-task` skill rather than pushing by hand, so its
+- Close out through the `ws-wrap` skill rather than pushing by hand, so its
   rails apply — a push publishes a ref, so check what rides along, and never
   force-push or resolve a rejection by force.
 EOF
     ;;
-  --prune)
+  --ws-alerts)
+    printf 'The user included the `--ws-alerts` flag. The hook has already applied it:\n%s\n' "$alerts_msg"
     cat <<'EOF'
-The user included the `--prune` flag. That is an explicit, unconditional
-instruction to invoke the `prune-skills` skill now — find prose in this
-project's skill and agent files that does not change what Claude does, and
-dispatch the cuts to `--tools`, which owns those files.
 
-Authorization: COMMIT. Not push.
+Relay that state to the user in one line. There is no skill to invoke and
+nothing further to do — the toggle is a machine-local preference the alert
+hook reads, not a record.
 
-Irreversible, in force before the skill loads:
-- This skill WRITES NOTHING. Every cut goes to `--tools`, which owns those files
-  and takes its own second look. A proposed cut is a hypothesis about what is
-  load-bearing, and this is the one job where being wrong is silent: nothing
-  fails when a rule stops being stated, it just stops being followed.
-- NEVER cut inside a section another skill hands VERBATIM to a subagent.
-  `record-inspector`'s "What to look for" and "What is NOT a finding" are handed
-  over by `--stocktake` and `--full-check`, so a cut there silently changes what
-  those skills dispatch and nothing detects it — the doctor's citation check
-  sees the heading, never the body.
-- Removing or renaming a heading another file cites breaks that citation check.
-  Grep for the anchor before proposing the cut, and run the doctor after.
-- Before cutting a restatement, confirm the rule is genuinely stated elsewhere
-  and say where. Two copies is duplication; zero is a behaviour change disguised
-  as tidying.
-- Prefer DELETING a count to correcting it. "Five" is right until someone adds a
-  sixth.
-- An agent file's frontmatter `description` and `tools:` list are never cut. The
-  description is what the orchestrator matches a task against, so narrowing it
-  shows up as the agent never being chosen, never as an error.
-- The frontmatter `description` is loaded in every session of every project. If
-  you touch one it must get shorter or stay the same, never longer.
+Authorization: none.
 EOF
     ;;
   esac
 }
+
+# `--ws-alerts` is served by the hook and takes its argument from the prompt:
+# the token immediately after the flag, `on` or `off` (anything else reports
+# the current state). Applied HERE, deterministically, before the blocks are
+# emitted — so what the block reports is what has already happened, not an
+# instruction that might be reinterpreted.
+ALERTS_STATE="$CONFIG_DIR/alerts-on"
+alerts_msg=''
+if [ -n "${seen[--ws-alerts]:-}" ]; then
+  alerts_arg=''
+  for ((i = 0; i < n; i++)); do
+    if decompose "${tokens[$i]}" 2>/dev/null | grep -qx -- --ws-alerts; then
+      case ${tokens[$((i + 1))]:-} in on | off) alerts_arg=${tokens[$((i + 1))]} ;; esac
+      break
+    fi
+  done
+  case $alerts_arg in
+    on)
+      if : > "$ALERTS_STATE" 2>/dev/null; then
+        alerts_msg='Sound alerts are now ON for this machine.'
+      else
+        alerts_msg="Sound alerts could NOT be enabled: $ALERTS_STATE is not writable."
+      fi ;;
+    off)
+      rm -f "$ALERTS_STATE" 2>/dev/null || true
+      alerts_msg='Sound alerts are now OFF for this machine.' ;;
+    *)
+      if [ -f "$ALERTS_STATE" ]; then
+        alerts_msg='No argument given — sound alerts are currently ON here. `--ws-alerts on|off` toggles.'
+      else
+        alerts_msg='No argument given — sound alerts are currently OFF here. `--ws-alerts on|off` toggles.'
+      fi ;;
+  esac
+fi
 
 blocks=""
 claimed=()

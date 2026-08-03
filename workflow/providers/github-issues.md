@@ -1,7 +1,7 @@
 # `record.todo` in GitHub Issues
 
 **A backlog provider.** Where a project declares one, `record.todo` is not a
-file — it is a set of open issues, and `--todo` writes there instead.
+file — it is a set of open issues, and `--ws-todo` writes there instead.
 
 Declared in `.claude/workflow.json`:
 
@@ -24,11 +24,11 @@ makes the medium a project decision rather than a condition of adoption.
 **Nothing else moves.** `record.decisions` and `record.openDecisions` stay files
 even here, and that is deliberate — they are prose read months later by someone
 reconstructing why, and an issue thread is a conversation rather than a record.
-The split `--todo` already enforces is the same one: **the task goes to the
+The split `--ws-todo` already enforces is the same one: **the task goes to the
 provider, the reasoning goes to the decision log**, and the issue carries a link
 to it rather than the argument itself.
 
-**One writer still.** `project-record` is the sole writer of issues carrying the
+**One writer still.** `ws-record` is the sole writer of issues carrying the
 configured label. An issue without that label is somebody else's — a user bug
 report, a discussion — and this workflow does not touch it.
 
@@ -44,7 +44,7 @@ report, a discussion — and this workflow does not touch it.
 | a `## Later` section, or any deferral by placement | `[later → why]`, first line of the body, same as blocked |
 
 **Two things a file backlog carries in its shape do not survive the move, and
-both are load-bearing for `--start`.**
+both are load-bearing for `--ws-start`.**
 
 **Order is not priority here.** A markdown backlog is severity- and
 dependency-ordered top to bottom, and that ordering *is* data. `gh issue list`
@@ -56,10 +56,10 @@ than hoping for it to be inferred from sequence.
 
 **Deferral has no placement to express it**, which is why the marker row above
 exists. In a file, moving an item under `## Later` is how a decision not to build
-it yet is recorded, and `--start` refuses to pick from there. An issue has no
+it yet is recorded, and `--ws-start` refuses to pick from there. An issue has no
 such position, so a deliberately-parked item is otherwise indistinguishable from
-an active one — and the first thing `--start` would reach for is the most
-recently filed, which under `--todo` is precisely the thing that was *just
+an active one — and the first thing `--ws-start` would reach for is the most
+recently filed, which under `--ws-todo` is precisely the thing that was *just
 deferred*. Mark it, or the deferral silently reverses itself.
 
 **Closing is the delete.** Do not comment "done" and leave it open, and do not
@@ -93,7 +93,7 @@ most, and it defeats them silently:
 
 - the **dedupe check** before creating sees zero copies of the item it just
   filed, so a skill that re-runs opens the second copy the rule forbids;
-- a **count read after closing** — which is exactly what `--wrap` does, landing
+- a **count read after closing** — which is exactly what `--ws-wrap` does, landing
   work and then reporting where the project stands — over-reports by however
   many items just left the backlog.
 
@@ -158,7 +158,7 @@ not recoverable is a session that reported an item parked and parked nothing.
   not filed, so it can be filed by hand.
 - `gh auth status` failing → the same, naming authorization as the cause.
 - The repo not resolving → this is a **manifest** fault, not a transient one.
-  Report it as drift and dispatch to `--adopt` in amendment mode.
+  Report it as drift and dispatch to `--ws-adopt` in amendment mode.
 
 **Never fall back to writing a local `TODO.md`.** A project that declared a
 provider and finds a stray markdown backlog appearing has two backlogs, which is
@@ -167,8 +167,8 @@ and is the place a broken one surfaces.
 
 ## What the sweeps do with it
 
-`--check` and `--stocktake` read the backlog the same way, through the list
-command above, and dispatch findings to `--todo` as always. The one difference
+`--ws-check` and `--ws-stocktake` read the backlog the same way, through the list
+command above, and dispatch findings to `--ws-todo` as always. The one difference
 worth knowing: **a checkpoint cannot narrow an issue sweep the way it narrows a
 file sweep.** A file's staleness is a diff against a baseline commit; an issue's
 is not visible in the git history at all, so an issue backlog is always read in

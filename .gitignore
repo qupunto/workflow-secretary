@@ -104,6 +104,13 @@
 # Blanks every declared record. This one DOES travel: an adopter runs it to start
 # agnostic, and publish.sh runs the copy rather than keeping a second list.
 !reset-records.sh
+# Moves machine-local workflow state (untracked records, the lane selector, the
+# inbox) between machines. Travels: an adopter changing machines is its whole
+# audience. The archives it produces are NOT re-included — they are snapshots.
+!export-records.sh
+# The tidy exit: removes the suite's machinery from a project, records only
+# behind a second flag. Travels — stopping cleanly is an adopter act.
+!retire-workflow.sh
 # Agent audit reports. Tracked so they are BACKED UP — they are the most
 # expensive artifact this repo produces and they existed on one machine only
 # until 2026-08-02, one disk failure from gone.

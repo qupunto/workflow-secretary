@@ -25,12 +25,12 @@ does not breach append-only, and it is not a reason to re-audit anything.
 ## Two kinds of caller, and they want very different amounts
 
 This is why the record has its own primitive rather than living inside
-`--stocktake` — [`ownership.md`](../ownership.md)'s split test, in its
+`--ws-stocktake` — [`ownership.md`](../ownership.md)'s split test, in its
 starkest form:
 
 | Caller | Wants |
 |---|---|
-| `--stocktake` Phase 4 | A whole new entry: the full field block plus the coverage block |
+| `--ws-stocktake` Phase 4 | A whole new entry: the full field block plus the coverage block |
 | Anything landing a remediation | **One field on an existing entry.** `Outcome`, and nothing else |
 
 The second must not have to invoke an audit procedure to get written.
@@ -44,7 +44,7 @@ and enforces what may go in.
 
 - **Tree** — the commit the audit ran against, and whether the working tree was
   clean. Not a date alone: a date does not resolve to a tree.
-- **Scope** — `--stocktake` or `--full-stocktake`, which dimensions, and whether
+- **Scope** — `--ws-stocktake` or `--ws-full-stocktake`, which dimensions, and whether
   checkpoints were honoured or ignored.
 - **Method** — how the reading was done, and by what. **Where no code analysis
   ran, say so in those words.** An entry that lists mechanical checks passing
@@ -70,13 +70,13 @@ that benefits from broad coverage is not the one that writes it down.
 
 ## What never goes in
 
-**The resulting tasks.** Those are `record.todo`'s, written by `--todo`. An audit
+**The resulting tasks.** Those are `record.todo`'s, written by `--ws-todo`. An audit
 entry says what was found; the backlog says what will be done about it, and the
 two move on completely different schedules.
 
 ## Authorization
 
 **None of its own.** Its grant is whatever the caller was granted, and it confers
-nothing. `--stocktake` carries commit-and-push scoped to its own record, and this
+nothing. `--ws-stocktake` carries commit-and-push scoped to its own record, and this
 file is inside that scope — but the push is still the caller's act through
 `git-writer`, never this skill's.

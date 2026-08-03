@@ -14,29 +14,29 @@ key belongs at all. This skill checks that the key is real, that its value
 resolves, and writes. Where the caller hands over a value that does not check
 out, it hands the disagreement back rather than writing a corrected guess.
 
-## Why this is not part of `--adopt`
+## Why this is not part of `--ws-adopt`
 
 Two callers want different amounts of work, which is
 [`ownership.md`](../ownership.md)'s split test:
 
-- **`--adopt`, adopting** — a whole manifest written once, after detection,
+- **`--ws-adopt`, adopting** — a whole manifest written once, after detection,
   searching and a round of questions.
-- **`--adopt`, amending** — one key added or corrected in a manifest that
+- **`--ws-adopt`, amending** — one key added or corrected in a manifest that
   already exists. No detection phase, nothing to ask.
 
 A one-key amendment should not have to run an adoption to get written. The
-detection and the asking stay with `--adopt` because **a primitive has no channel
+detection and the asking stay with `--ws-adopt` because **a primitive has no channel
 to reach the user**; everything downstream of the answer is here.
 
 ## What it writes
 
 `.claude/workflow.json` and nothing else. In particular:
 
-- **Not the record files.** `--adopt` creates those empty. Creating a container
+- **Not the record files.** `--ws-adopt` creates those empty. Creating a container
   is not writing a record, and this skill does not even do that much.
 - **Not `permissions.ask`.** That is a merge into the project's
   `.claude/settings.json`, which is not a record, has no single owner, and stays
-  with `--adopt`.
+  with `--ws-adopt`.
 - **Not `.claude/sweeps.json`.** That is `sweep-tracker`'s, and it is not a
   manifest key — [`manifest.md`](../manifest.md) says why `sweeps`
   names the path rather than holding the state.
@@ -76,8 +76,14 @@ Three checks, and all three are cheap:
   repo that does not resolve is a failed key like any other: leave it out and say
   which. **`gh` being absent or unauthorized is not a failed key** — it is a
   property of this machine, the manifest is still correct, and doctor warns about
-  it every run. Write the key and say that `--todo` cannot reach the backlog from
+  it every run. Write the key and say that `--ws-todo` cannot reach the backlog from
   here until `gh auth login`.
+
+  **`lanes.named.*.records` paths are record paths like any other**, with three
+  constraints of their own that `doctor.sh` enforces: only the splittable keys
+  (`todo`, `openDecisions`, `handoff`) may appear, every declared path exists,
+  and each record splits for **all** named lanes or none. Refuse a lane map
+  that breaks any of the three rather than writing it.
 - **The name is the existing one where one fits.** Two names for one concept is
   the failure `manifest.md` exists to end — `indexCheck` where every consumer
   wants `indexRegen`.
