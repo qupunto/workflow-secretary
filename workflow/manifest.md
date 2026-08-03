@@ -9,7 +9,7 @@ nowhere, one value documented as both a string and an array.
 Who may write each record is [`ownership.md`](ownership.md); what each record
 holds is [`record-contract.md`](record-contract.md). This file is about **keys**.
 
-**To create one, use `--adopt`** — it detects the project's shape, maps files
+**To create one, use `--ws-adopt`** — it detects the project's shape, maps files
 that already exist to the records that expect them, and proves the result with
 `doctor.sh`. Writing a manifest by hand is fine too; this table is what it must
 conform to either way.
@@ -94,7 +94,7 @@ reference doc (overview)" or "(data model)" are naming *which file in that array
 they mean, not a `record.reference.overview` key. There is no such key.
 
 **`record.audits` has no conventional fallback**, because no filename for it is
-conventional. `--stocktake` asks once on a first pass and then creates one; see that
+conventional. `--ws-stocktake` asks once on a first pass and then creates one; see that
 skill's no-manifest section.
 
 **`record.decisionsIndex` has no fallback, and that is not an oversight.** It is
@@ -112,7 +112,7 @@ updated.
 | `commands.typecheck` | shell command | — |
 | `commands.test` | shell command | The **full** suite with coverage, not a bare test run |
 | `commands.indexRegen` | shell command | **Rewrites** `record.decisionsIndex`. For the owners that append to the decision log |
-| `commands.indexCheck` | shell command | **Verifies** the index is current, without writing. For `--check`, which writes nothing — usually the same script with a `--check` flag |
+| `commands.indexCheck` | shell command | **Verifies** the index is current, without writing. For `--ws-check`, which writes nothing — usually the same script with a `--check` flag |
 | `commands.testConsentEnv` | env var **name** | Where the suite is gated behind a token only the user can supply |
 | `commands.ci` | object | `{ "tool": "gh", "workflow": "<name>" }`, or a shell command returning run status |
 
@@ -125,17 +125,60 @@ and says so — it never substitutes a different role's agent.**
 `architecture`, `implement`, `infra`, `test`, `exploit`, `audit`, `roadmap`,
 `release`.
 
-### `lanes` — concurrent-write collision
+### `lanes` — concurrent-write collision, and named worktree lanes
 
-Globs. Consumed by `--start` when partitioning parallel work.
+Consumed by `--ws-start` when partitioning parallel work — and, for `lanes.named`,
+by every reader of the three splittable records.
 
 | Key | Rule |
 |---|---|
 | `lanes.exclusive` | At most one lane in a batch, and it runs first, alone |
 | `lanes.serialize` | A lane *modifying* one runs alone or first; lanes merely *calling* it run in parallel |
 | `lanes.generated` | No lane writes these; the orchestrator regenerates once |
+| `lanes.named` | Map of lane name → `{"scope": [globs], "records": {…}}`, one entry per lane for a project worked on from several git worktrees at once |
 
-### `audit` — scope control for `--stocktake`
+**`lanes.named` holds the worktree lanes**, nested so lane names cannot collide
+with the three reserved keys above. Each entry's `scope` globs are the paths the
+lane owns — a `--ws-start` batch running inside that worktree partitions within
+them — and its `records` object may redirect a record to a lane-scoped file:
+
+```jsonc
+"lanes": {
+  "named": {
+    "backend": { "scope": ["backend/**"],
+                 "records": { "todo": "TODO.backend.md",
+                              "openDecisions": "docs/open-decisions.backend.md",
+                              "handoff": "docs/handoff/backend.md" } },
+    "frontend": { "scope": ["frontend/**"], "records": {} }
+  }
+}
+```
+
+Only `todo`, `openDecisions` and `handoff` may appear under a lane's `records` —
+which records may split by lane and which must never is
+[`record-contract.md`](record-contract.md)'s rule, and `doctor.sh` fails on any
+other key there. A splittable record is split for **all** named lanes or none:
+a half-split is how two writers land on one file, and `doctor.sh` fails on that
+too. Name lane files by **lane**, which is durable (`TODO.backend.md`), never by
+worktree, which is litter that outlives the worktree.
+
+**The selector is a file, not a key: `.claude/lane`** — gitignored, one per
+worktree, holding the lane name, written once at worktree setup
+(`--ws-adopt --lane <name>`). Absence means "unsplit project", the same degradation
+as any missing key. It is deliberately **not** derived from the git branch name:
+tempting and fragile, where the explicit file is boring and correct. Like
+`sweeps`, it is per-checkout state that legitimately does not exist, so it is
+not a `record.*` path and its absence is never a failure — but a selector naming
+a lane the manifest does not declare **is** a `doctor.sh` failure.
+
+**The resolution rule, stated once, here:** where a lane is selected and
+`lanes.named.<lane>.records.X` exists, it overrides `record.X`; in every other
+case `record.X` applies exactly as it does today. Cross-lane reads need no
+extra key — every lane's paths sit in this shared manifest, which is tracked
+and identical on every branch, and that identity is what removes the
+record-file merge conflicts worktree lanes otherwise produce.
+
+### `audit` — scope control for `--ws-stocktake`
 
 | Key | Type | Notes |
 |---|---|---|
@@ -146,9 +189,9 @@ Globs. Consumed by `--start` when partitioning parallel work.
 
 | Key | Type | Notes |
 |---|---|---|
-| `branch.integration` | branch name | What `--wrap` pushes, and what `--pullrequest` opens a PR from |
-| `branch.publish` | branch name | What `--release` tags, and what `--pullrequest` merges into |
-| `branch.mergeMethod` | `merge` \| `squash` \| `rebase` | How `--pullrequest` merges. Fallback **`merge`** — a squash discards the individual commit messages the history is the record of, so it is a project's explicit choice rather than a default |
+| `branch.integration` | branch name | What `--ws-wrap` pushes, and what `--ws-pr` opens a PR from |
+| `branch.publish` | branch name | What `--ws-release` tags, and what `--ws-pr` merges into |
+| `branch.mergeMethod` | `merge` \| `squash` \| `rebase` | How `--ws-pr` merges. Fallback **`merge`** — a squash discards the individual commit messages the history is the record of, so it is a project's explicit choice rather than a default |
 | `gate.coverage` | object of thresholds | e.g. `{"lines": 91, "branches": 79}` — what CI enforces |
 | `commitTrailer` | trailer key | e.g. `Claude-Session` |
 | `sweeps` | path (generated, **gitignored**) | The sweep checkpoint cache. Fallback `.claude/sweeps.json`; its shape and rules are [`sweep-checkpoint.md`](sweep-checkpoint.md) |

@@ -22,7 +22,7 @@
 #   1. This repo was never adopted on the second machine, so shorthand-flags.sh
 #      was simply absent and every --flag silently degraded to model judgement.
 #      The flags mostly still worked, so nothing looked wrong.
-#   2. Two skills cited `track-complex-tasks` as an authority while it resolved
+#   2. Two skills cited `ws-track` as an authority while it resolved
 #      to nothing in that project. A dangling reference reads exactly like a
 #      live one.
 #   3. The repo's own .gitignore ignored README.md and docs/, so documentation
@@ -407,9 +407,9 @@ else
     [ $prefix_clash -eq 0 ] && pass "no flag is a prefix of another"
 
     for f in $flags; do
-      # A flag may appear anywhere in a case alternation — `--stocktake | --full-stocktake)`
+      # A flag may appear anywhere in a case alternation — `--ws-stocktake | --ws-full-stocktake)`
       # maps both — so split the alternatives and test membership rather than
-      # pattern-matching the line. Matching only `^ *FLAG)` reported --full-stocktake
+      # pattern-matching the line. Matching only `^ *FLAG)` reported --ws-full-stocktake
       # as unmapped when it was mapped as the second alternative.
       skill=$(awk -v flag="$f" '
         /^[[:space:]]*--[-a-z|[:space:]]*\)[[:space:]]*echo/ {
@@ -425,9 +425,9 @@ else
         fail "$f is in FLAGS but has no skill_for() mapping"
         continue
       fi
-      # A block_for() label may be an alternation — `--flags | --help)` covers
+      # A block_for() label may be an alternation — `--ws-flags | --ws-help)` covers
       # both — so split the alternatives rather than matching the line start.
-      # `^  FLAG)` alone reported --help as blockless when it was the second
+      # `^  FLAG)` alone reported --ws-help as blockless when it was the second
       # alternative of a live case, the same defect the skill_for() reader above
       # already carries a comment about.
       awk -v flag="$f" '
@@ -457,7 +457,7 @@ else
     #
     # DELIBERATELY BLUNT about one distinction: "not push" and "push needs a
     # fresh OK in that turn" both reduce to push=no, because both mean the flag
-    # alone does not authorize publishing. --start and --release therefore look
+    # alone does not authorize publishing. --ws-start and --ws-release therefore look
     # identical here and are not. What this catches is a flag silently gaining
     # or losing push, which is the drift that would matter.
     own="$CLAUDE_DIR/workflow/ownership.md"
@@ -486,7 +486,7 @@ else
       for f in $flags; do
         hook_auth=$(awk -v flag="$f" '
           # A case label may be an alternation, and matching only its first
-          # alternative left --help unreadable while --flags silently picked up
+          # alternative left --ws-help unreadable while --ws-flags silently picked up
           # the NEXT block\047s grant. Split the alternatives, and reset at every
           # label so a scan can never run past the end of its own arm.
           /^[[:space:]]*--[-a-z|[:space:]]*\)[[:space:]]*$/ {
@@ -651,9 +651,9 @@ fi
 head_ "Trigger phrases a session would hit by accident"
 
 # A description is how the MODEL decides to invoke a skill, so a trigger listed
-# there is a claim about ordinary language. `wrap-task` listed `"done"` and
-# `release` listed `"ship it"` — both hold a push grant, so "ok that's done"
-# could commit and push work nobody asked to publish. `project-stocktake`
+# there is a claim about ordinary language. `ws-wrap` listed `"done"` and
+# `ws-release` listed `"ship it"` — both hold a push grant, so "ok that's done"
+# could commit and push work nobody asked to publish. `ws-stocktake`
 # listed `"where are we"`, the most expensive skill in the suite answering a
 # question a sentence would.
 #
@@ -786,7 +786,7 @@ fi
 head_ "Section citations"
 
 # A skill that hands another skill's SECTION to an agent — "the brief is
-# `--check`'s \"What to look for\" section". The check above proves the cited
+# `--ws-check`'s \"What to look for\" section". The check above proves the cited
 # SKILL resolves; it says nothing about the heading inside it. A renamed or
 # deleted heading then leaves a citation that reads exactly like a live one, and
 # whatever depended on that brief silently dispatches with nothing.
@@ -1088,7 +1088,7 @@ while IFS=$'\t' read -r kind f ln body; do
     fail "${f#"$CLAUDE_DIR"/}:$ln
         runs an installation path that only exists in a checkout:
           $body
-        Resolve the root instead, checkout first — see the \`workflow-contracts\`
+        Resolve the root instead, checkout first — see the \`ws-contracts\`
         skill. Config-directory paths (bug-reports.md, projects/, settings.json)
         are correct as they are and are not flagged."
   fi
@@ -1194,7 +1194,7 @@ else
   # is dead config, not a broken one.
   #
   # Containers with project-chosen sub-keys — hazards, gate.coverage,
-  # audit.invalidates — are deliberately not descended into.
+  # audit.invalidates, lanes.named — are deliberately not descended into.
   KNOWN_KEYS='manifest branch record commands gate agents lanes audit
 onSchemaChange hazards commitTrailer
 branch.integration branch.publish branch.mergeMethod
@@ -1207,7 +1207,7 @@ commands.testConsentEnv commands.ci
 sweeps
 agents.architecture agents.implement agents.infra agents.test agents.exploit
 agents.audit agents.roadmap agents.release
-lanes.exclusive lanes.serialize lanes.generated
+lanes.exclusive lanes.serialize lanes.generated lanes.named
 audit.dimensions audit.invalidates
 gate.coverage'
 
@@ -1287,6 +1287,98 @@ gate.coverage'
              "$manifest" 2>/dev/null | sort -u)
 fi
 
+# -------------------------------------------------------------- worktree lanes
+
+head_ "Worktree lanes"
+
+# `lanes.named` splits the three forward-looking records into per-lane files —
+# the resolution rule is workflow/manifest.md's, the splittable set is
+# record-contract.md's. Everything that can go wrong with a split is silent
+# from inside a session: a selector naming a lane nobody declared resolves to
+# the unsplit records, so two worktrees quietly share one file; a half-split
+# does the same for whichever lane was left out; a lane redirecting a record
+# that must never split fragments a single timeline across files nobody reads
+# together. Each has to surface here or it surfaces as a merge conflict — or
+# worse, as a silent overwrite that never conflicts at all.
+selector="$PWD/.claude/lane"
+lane_names=""
+if [ -f "$PWD/.claude/workflow.json" ]; then
+  lane_names=$(jq -r '.lanes.named // {} | keys[]' "$PWD/.claude/workflow.json" 2>/dev/null || true)
+fi
+
+if [ -z "$lane_names" ]; then
+  if [ -f "$selector" ]; then
+    fail ".claude/lane exists but the manifest declares no lanes.named, so the
+        selector resolves to nothing and every reader falls back to the
+        unsplit records, silently. Declare the lanes or delete the selector."
+  else
+    pass "no lanes.named — project is unsplit"
+  fi
+else
+  n_lanes=$(printf '%s\n' "$lane_names" | grep -c . || true)
+
+  # Only the splittable records may be redirected, and every declared path
+  # must exist — the same contract the record.* walk above holds paths to.
+  lane_bad=0
+  while IFS=$'\t' read -r lname key val; do
+    [ -n "$lname" ] || continue
+    case $key in
+      todo | openDecisions | handoff) ;;
+      *)
+        fail "lanes.named.$lname.records.$key — '$key' is not a splittable
+        record. Only todo, openDecisions and handoff may split by lane:
+        the append-only logs are single timelines, and roadmap, behaviour
+        and reference describe one system. workflow/record-contract.md."
+        lane_bad=$((lane_bad + 1))
+        continue ;;
+    esac
+    if [ ! -e "$PWD/$val" ]; then
+      fail "declared in lanes.named.$lname.records but missing: $val"
+      lane_bad=$((lane_bad + 1))
+    fi
+  done < <(jq -r '.lanes.named | to_entries[] | .key as $l
+                    | (.value.records // {}) | to_entries[]
+                    | "\($l)\t\(.key)\t\(.value)"' \
+             "$PWD/.claude/workflow.json" 2>/dev/null)
+  [ "$lane_bad" -eq 0 ] &&
+    pass "every lane record is splittable and its path exists ($n_lanes lane(s))"
+
+  # All lanes or none, per record. A record split for only some lanes leaves
+  # the rest sharing the unsplit file — two writers on one path, the exact
+  # collision lanes exist to remove, reintroduced one lane at a time.
+  half_split=0
+  for k in todo openDecisions handoff; do
+    c=$(jq -r --arg k "$k" \
+          '[.lanes.named[] | select(.records[$k] != null)] | length' \
+          "$PWD/.claude/workflow.json" 2>/dev/null || echo 0)
+    if [ "${c:-0}" -ne 0 ] && [ "${c:-0}" -ne "$n_lanes" ]; then
+      fail "record '$k' is split for $c of $n_lanes lanes. A splittable record
+        splits for ALL named lanes or NONE — the lanes left out share the
+        unsplit file, which is two writers on one path."
+      half_split=$((half_split + 1))
+    fi
+  done
+  [ "$half_split" -eq 0 ] &&
+    pass "no half-split records — each splits for all lanes or none"
+
+  # The selector, where this checkout carries one. Its absence is normal — the
+  # main checkout of a split project legitimately reads the unsplit records.
+  if [ -f "$selector" ]; then
+    sel=$(tr -d '[:space:]' < "$selector" 2>/dev/null || true)
+    if [ -z "$sel" ]; then
+      fail ".claude/lane is empty — it must hold exactly one declared lane name"
+    elif printf '%s\n' "$lane_names" | grep -qx "$sel"; then
+      pass "selector: this worktree is lane '$sel'"
+    else
+      fail ".claude/lane names '$sel', which lanes.named does not declare.
+        Every reader would fall back to the unsplit records, silently —
+        declare the lane or fix the selector."
+    fi
+  else
+    pass "no .claude/lane selector — this checkout reads the unsplit records"
+  fi
+fi
+
 # ---------------------------------------------------------------- bug reports
 
 head_ "Bug reports against this config"
@@ -1305,14 +1397,19 @@ inbox="$CONFIG_DIR/bug-reports.md"
 if [ ! -f "$inbox" ]; then
   pass "no bug-reports.md — nothing filed from another project"
 else
-  # Count only BELOW the append marker. The file's own entry template is a
-  # literal `## [open] <one-line summary>` inside a fence, so a naive grep
-  # reports one open report on a completely empty inbox — forever, and a warning
-  # that is always there is one nobody reads.
+  # Where the file carries the append marker, count only BELOW it: the entry
+  # template above it is a literal `## [open] <one-line summary>` inside a
+  # fence, so a naive grep reports one open report on a completely empty inbox
+  # — forever, and a warning that is always there is one nobody reads.
+  # A file WITHOUT the marker counts in full. No filing template mentions the
+  # marker, so a fresh machine's first filing creates the file bare — and
+  # requiring it made every entry on every such machine invisible to both
+  # counters (audit pass 9, F1: proven against a well-formed marker-less inbox).
   MARKER='<!-- Append new entries below this line. -->'
   open_list=$(awk -v m="$MARKER" '
-    index($0, m) { below = 1; next }
-    below && /^## \[open\]/ { print NR ": " $0 }' "$inbox")
+    index($0, m) { seen = 1; next }
+    /^## \[open\]/ { if (seen) print NR ": " $0; else pre = pre NR ": " $0 "\n" }
+    END { if (!seen) printf "%s", pre }' "$inbox")
   open_n=$(printf '%s' "$open_list" | grep -c . || true)
   if [ "$open_n" -eq 0 ]; then
     pass "bug-reports.md has no open entries"
@@ -1330,7 +1427,7 @@ head_ "Backlog provider"
 
 # record.todo may name a provider instead of a file. Everything that can go
 # wrong with one is silent from inside a session: gh missing, gh unauthorized,
-# a repo slug that no longer resolves. Each makes --todo unable to file the item
+# a repo slug that no longer resolves. Each makes --ws-todo unable to file the item
 # it was asked to file, and the provider contract forbids falling back to a
 # local TODO.md — so the failure has to surface HERE or it surfaces as a parked
 # task that was never parked.
@@ -1345,7 +1442,7 @@ if [ -z "$prov" ]; then
 elif [ "$prov" != "github-issues" ]; then
   fail "record.todo declares provider '$prov', which nothing implements.
         workflow/providers/ holds the ones that exist. A declared provider is
-        never a silent fallback to a file — --todo would write nowhere."
+        never a silent fallback to a file — --ws-todo would write nowhere."
 else
   prov_repo=$(jq -r '.record.todo.repo // empty' "$PWD/.claude/workflow.json" 2>/dev/null || true)
   prov_label=$(jq -r '.record.todo.label // empty' "$PWD/.claude/workflow.json" 2>/dev/null || true)
@@ -1353,14 +1450,14 @@ else
     fail "record.todo declares github-issues but no 'repo'. It is required —
         workflow/providers/github-issues.md."
   elif ! command -v gh >/dev/null 2>&1; then
-    warn "record.todo is github-issues but gh is not installed, so --todo cannot
+    warn "record.todo is github-issues but gh is not installed, so --ws-todo cannot
         file anything on this machine. The manifest is fine; this box is not."
   elif ! gh auth status >/dev/null 2>&1; then
-    warn "record.todo is github-issues and gh is not authorized here, so --todo
+    warn "record.todo is github-issues and gh is not authorized here, so --ws-todo
         cannot file anything. Run: gh auth login"
   elif ! gh repo view "$prov_repo" >/dev/null 2>&1; then
     fail "record.todo names repo '$prov_repo', which does not resolve. That is a
-        manifest fault rather than a transient one — fix it through --adopt in
+        manifest fault rather than a transient one — fix it through --ws-adopt in
         amendment mode."
   else
     if [ -z "$prov_label" ]; then
@@ -1378,8 +1475,8 @@ else
                | head -1)
       if [ -z "$real" ]; then
         fail "record.todo names label '$prov_label', which does not exist on
-        $prov_repo. gh returns an empty list rather than an error, so --todo
-        would read an empty backlog and --start would find nothing to do —
+        $prov_repo. gh returns an empty list rather than an error, so --ws-todo
+        would read an empty backlog and --ws-start would find nothing to do —
         indistinguishable from having finished the work."
       elif [ "$real" != "$prov_label" ]; then
         warn "record.todo says label '$prov_label' but the label is '$real'.
@@ -1397,7 +1494,7 @@ fi
 
 head_ "Sweep checkpoint"
 
-# The cache that lets --check, --docs and --tools re-read only what moved. It is
+# The cache that lets --ws-check, --ws-docs and --ws-tools re-read only what moved. It is
 # the one file here whose being WRONG is silent by construction: a bad baseline
 # or a covered glob nobody earned produces a clean report on files nothing read,
 # and every incremental sweep after it inherits that. Shape and rules:
@@ -1476,6 +1573,42 @@ else
       | select(((.value.scopes // []) | map(.covered // []) | flatten | length) == 0)
       | select(.key != "test-run")
       | .key' "$sweeps" 2>/dev/null)
+fi
+
+# ------------------------------------------------------ plugin manifest version
+
+head_ "Plugin manifest version"
+
+# The plugin cache path is plugins/cache/<marketplace>/<plugin>/<version>/, so
+# plugin.json's `version` is what keeps two published vintages from
+# overwriting one directory — and nothing owned the field: audit pass 10 found
+# it two tags behind, with the release procedure bumping the changelog and the
+# tag but never this file. --ws-release now bumps it before the tag; this
+# check is what notices when that step was skipped. A version AHEAD of the
+# newest tag is a release in flight (bump lands before the tag by design), so
+# only a trailing version warns — and CI runs --strict, where a warn is red.
+pj="$CLAUDE_DIR/.claude-plugin/plugin.json"
+if [ ! -f "$pj" ]; then
+  pass "no .claude-plugin/plugin.json — not a plugin tree, nothing to trail"
+else
+  pv=$(jq -r '.version // empty' "$pj" 2>/dev/null || true)
+  newest_tag=$(git -C "$CLAUDE_DIR" tag -l 'v*' --sort=-v:refname 2>/dev/null | head -1 || true)
+  if [ -z "$newest_tag" ]; then
+    pass "no release tag resolves here — nothing for plugin.json's version to trail"
+  elif [ -z "$pv" ]; then
+    fail "plugin.json declares no version. The plugin cache path keys on that
+        field, so installs of different vintages would collide on one
+        directory — set it to the newest tag's number."
+  elif [ "v$pv" = "$newest_tag" ]; then
+    pass "plugin.json version $pv matches the newest tag $newest_tag"
+  elif [ "$(printf 'v%s\n%s\n' "$pv" "$newest_tag" | sort -V | tail -1)" = "v$pv" ]; then
+    pass "plugin.json version $pv leads the newest tag $newest_tag — a release in flight"
+  else
+    warn "plugin.json says $pv while the newest tag is $newest_tag.
+        Two published vintages under one version overwrite one plugin cache
+        directory. --ws-release bumps this file beside the changelog entry,
+        before the tag — do that now and the next tag ships consistent."
+  fi
 fi
 
 # ---------------------------------------------------------------------- result

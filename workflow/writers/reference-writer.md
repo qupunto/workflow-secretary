@@ -15,7 +15,7 @@ in [`manifest.md`](../manifest.md) — **say which you used.**
 **`record.reference` is often a list of paths rather than one**, and frequently
 includes the project's `README.md`. That mapping is the manifest saying the
 README *is* the project's reference material, which makes it this skill's — not
-an ordinary file anyone may edit, and not `--docs`' to place by tier.
+an ordinary file anyone may edit, and not `--ws-docs`' to place by tier.
 
 ## What this record holds
 
@@ -26,7 +26,7 @@ adopted.
 Two things it never holds:
 
 - **Decision history.** Why the stack is this stack belongs in
-  `record.decisions`, written by `--log`. This file says what is true now; a
+  `record.decisions`, written by `--ws-log`. This file says what is true now; a
   reader wanting the argument has somewhere else to go.
 - **Runtime rules.** Auth, ownership, state transitions, error statuses — those
   are `record.behaviour`'s, written by
@@ -36,12 +36,12 @@ Two things it never holds:
 
 ## Two kinds of caller, and they want different amounts
 
-This is why the record has its own primitive rather than living inside `--docs` —
+This is why the record has its own primitive rather than living inside `--ws-docs` —
 [`ownership.md`](../ownership.md)'s split test.
 
 ### A dispatched one-line correction
 
-From `--check`, `--full-check`, `--start` or `--stocktake`. Scope is **the section
+From `--ws-check`, `--ws-full-check`, `--ws-start` or `--ws-stocktake`. Scope is **the section
 the finding names, and nothing else.**
 
 1. **Re-verify against source before writing.** A dispatched finding is a
@@ -54,7 +54,7 @@ the finding names, and nothing else.**
 
 ### A structural change
 
-From `--start` Phase 6 after a schema or architecture change, or from `--adopt`
+From `--ws-start` Phase 6 after a schema or architecture change, or from `--ws-adopt`
 when a project's shape was established for the first time.
 
 1. **Read the source of truth.** For a data model that is the schema and its

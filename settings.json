@@ -31,8 +31,9 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "fable",
   "skillOverrides": {
-    "workflow-contracts": "name-only"
+    "ws-contracts": "name-only"
   },
   "hooks": {
     "UserPromptSubmit": [
@@ -51,6 +52,37 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/session-check.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/alert.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/alert.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/alert.sh"
           }
         ]
       }

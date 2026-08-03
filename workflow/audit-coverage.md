@@ -1,6 +1,6 @@
 # The audit-coverage block
 
-**The format `--stocktake` writes into every entry of `record.audits`, and reads back
+**The format `--ws-stocktake` writes into every entry of `record.audits`, and reads back
 on the next run to decide what it may skip.** One copy, here, because a format
 defined only inside a project's own audit record does not exist until that
 project's first audit invents it — and the first audit is exactly the one with no
@@ -34,7 +34,7 @@ audit-coverage:
 one the manifest's `audit.dimensions` declared. Stability is the point: coverage
 accounting across audits is a join on this string.
 
-**Which is why the names above are real ones.** `--stocktake` runs `record` and
+**Which is why the names above are real ones.** `--ws-stocktake` runs `record` and
 `consistency` against any repository, `interface` when the shape has a public
 API, a CLI or a service, and `safety-nets` always. It deliberately does **not**
 run `correctness`, `security` or `data-model` — those belong to a project's own

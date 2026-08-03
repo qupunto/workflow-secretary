@@ -1,8 +1,8 @@
 # Record drift — what to look for
 
 > **A shared method, not a skill.** See [`README.md`](README.md). The runners that
-> borrow it are `--check` (incremental, records only), `--full-check` (full scope,
-> records + docs + tooling) and `--stocktake` (the record dimension of a whole-project
+> borrow it are `--ws-check` (incremental, records only), `--ws-full-check` (full scope,
+> records + docs + tooling) and `--ws-stocktake` (the record dimension of a whole-project
 > audit). Each supplies its own scope and decides what to do with a finding; this file
 > is only the taxonomy of what counts as one.
 
@@ -42,7 +42,7 @@ stated diff-shaped: a diff-shaped obligation is mechanically checkable.
 | a skill or agent file added, removed, or changed in purpose | `record.tooling.catalog`, and the docs site's Claude-tooling annex page, which is derived from it |
 
 The last row is two findings, not one, and they dispatch to different owners:
-the catalog is `--tools`', the annex page is `--docs`'. A catalog that moved
+the catalog is `--ws-tools`', the annex page is `--ws-docs`'. A catalog that moved
 while the page did not is the ordinary failure of any derived copy, and it is
 invisible from either file alone.
 
@@ -65,7 +65,7 @@ is
 [`record-contract.md`](../record-contract.md#the-mutable-claim-rule),
 which is the authority; read it rather than a copy here.
 
-Dispatch these to `--tools`, whose rule is to *delete* the claim rather than
+Dispatch these to `--ws-tools`, whose rule is to *delete* the claim rather than
 correct it.
 
 ### 4. Generated files that are out of date
@@ -74,7 +74,7 @@ Where the manifest names a check command (`commands.indexCheck`), run
 it. A generated file cannot drift, only lag — and that is detectable, which is
 exactly why it is generated.
 
-**A stale result goes to `--todo` / `--log`**, which owns the index and its
+**A stale result goes to `--ws-todo` / `--ws-log`**, which owns the index and its
 `commands.indexRegen`. Never regenerate it here: running the regen command is a
 write, and this skill writes nothing.
 
@@ -100,11 +100,11 @@ Two findings live here, and they dispatch to different owners:
 | Finding | Dispatch to |
 |---|---|
 | `record.changelog` describes a version no tag resolves | `changelog-writer` — the entry gets its unreleased status set |
-| `record.roadmap` claims a milestone shipped, rather than that it is completed | `--plan` — a tag is the only proof a version shipped |
+| `record.roadmap` claims a milestone shipped, rather than that it is completed | `--ws-plan` — a tag is the only proof a version shipped |
 
 **Report it; never resolve it by tagging.** Choosing between tagging the commit
 a milestone completed at and recording the work as unreleased is a release
-decision the user makes, and `--release` is where it is put to them. This
+decision the user makes, and `--ws-release` is where it is put to them. This
 dimension exists so the drift is found on an ordinary sweep rather than only
 when someone happens to cut a release — which is exactly when nobody is
 releasing.

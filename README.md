@@ -52,7 +52,8 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 | `settings.json` | Permissions and hook wiring |
 | `hooks/shorthand-flags.sh` | `UserPromptSubmit` hook — the `--flag` shorthands |
 | `hooks/session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `doctor.sh` failure, a sweep or a record gone stale, an open bug report. It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
-| `hooks/hooks.json` | Wires those two events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
+| `hooks/alert.sh` | `Notification`/`Stop`/`PreToolUse(AskUserQuestion)` hook — a sound cue when a session waits for input. Ships silent; `--ws-alerts on\|off` toggles it per machine via a state file in the config directory |
+| `hooks/hooks.json` | Wires those same events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The plugin manifest. `claude plugin validate` reads it |
 | `doctor.sh` | Read-only health check for this config and the current project. Stays at the root rather than moving into `hooks/`, because it is run by hand as often as by the hook |
 | `reset-records.sh` | Blanks every record the manifest declares back to its heading. Dry-run by default; `--write` to do it. What makes a fork yours rather than an inheritance — see below |
@@ -68,7 +69,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 does, and the form this suite is developed in — `skillOverrides` in
 `settings.json` controls each skill individually. This repository sets its
 dispatch-only primitives to `name-only` so their descriptions do not load in
-every session — `workflow-contracts` is the only such skill since the record
+every session — `ws-contracts` is the only such skill since the record
 procedures moved to `workflow/writers/` and stopped being skills; `doctor.sh`
 warns when a skill no flag maps to has no entry. Read the current set out of
 `settings.json` rather than a count here.
@@ -99,13 +100,10 @@ and the only whole-hog lever is removing it. Decide whether you want the suite
 entire before installing it — and run `claude plugin details` to see the
 always-on cost, rather than counting bytes.
 
-**That lever is worth roughly what the overrides save.** Measured rather than
-estimated, on 2026-08-01 when the record procedures were still skills: the
-plugin form's always-on cost exceeded the same tree as a checkout by about a
-third, and the excess was exactly their `name-only` descriptions the plugin form
-cannot suppress. Those procedures have since left `skills/`, so the proportion
-has moved; the structure has not — run the command rather than trusting this
-paragraph's arithmetic.
+**That lever is worth roughly what the overrides save** — measured on
+2026-08-01 at about a third of the always-on cost, an excess since shrunk by
+the record procedures leaving `skills/`; the structure holds even where the
+figure has moved.
 
 Neither the overrides nor the `doctor.sh` check that guards them is dead code —
 both are correct for the checkout shape, which stays supported. And
@@ -129,9 +127,9 @@ and a fresh clone has to pass its own health check.
 
 **Read that emptiness as a decision, not an omission.** Shipping the populated
 originals as a worked example was the obvious alternative and was rejected: a
-session in your clone would read that backlog and *believe* it — `--start` would
-pick work off someone else's project, and `--check` would verify those claims
-against the wrong repository. `--adopt`'s own rule applies, that the owning skill
+session in your clone would read that backlog and *believe* it — `--ws-start` would
+pick work off someone else's project, and `--ws-check` would verify those claims
+against the wrong repository. `--ws-adopt`'s own rule applies, that the owning skill
 writes the first real line so that it is a true one.
 
 **If you fork this, or inherit records from anywhere, run `reset-records.sh`.**
@@ -155,8 +153,8 @@ a reset script gets to decide.
 Every record above is a markdown file, with one exception. A team already living
 in GitHub Issues cannot adopt a workflow whose backlog is a file — they would be
 maintaining two, and the second one loses. So `record.todo` alone may name a
-**provider** instead of a path, and then `--todo` files an issue, `--start`
-reads the open ones, and `--wrap` counts them:
+**provider** instead of a path, and then `--ws-todo` files an issue, `--ws-start`
+reads the open ones, and `--ws-wrap` counts them:
 
 ```json
 "record": { "todo": { "provider": "github-issues", "repo": "owner/name", "label": "backlog" } }
@@ -174,7 +172,7 @@ decisions are prose read months later, and an issue thread is a conversation.
 And be aware of the maturity gap — **the file form is the battle-tested path**,
 used by the suite on its own repository since the beginning; the provider is
 newer and has
-far fewer miles on it. `--adopt` offers the choice when it finds open issues.
+far fewer miles on it. `--ws-adopt` offers the choice when it finds open issues.
 
 ## Adopting the repo on a new machine
 
@@ -248,6 +246,41 @@ fails *silently* — the event fires, nothing happens, and every `--flag` quietl
 degrades to being matched from a skill description instead of being injected
 deterministically. That state persisted unnoticed on one machine for weeks.
 
+### Machine-local state does not clone — export it
+
+A clone brings every tracked file and nothing else. What it leaves behind on
+the old machine: record files a project keeps **untracked**, the `.claude/lane`
+worktree selector, and — in the config directory — `bug-reports.md`, the one
+file whose loss is unrecoverable. `export-records.sh` moves exactly that set:
+
+```bash
+export-records.sh                      # on the old machine, per project
+export-records.sh --import <archive>   # on the new one, after the clone
+```
+
+It skips tracked records (the clone brings them) and the sweep checkpoint (a
+cache), refuses archive entries that escape the project, and refuses to
+overwrite a non-empty file unless given `--force`. `--ws-adopt` runs the import
+when handed an archive during adoption.
+
+### Stopping cleanly — retirement is also a script
+
+`claude plugin uninstall workflow-secretary` removes the skills and hooks and
+touches no project — the manifest, sweep cache and records a project
+accumulated all stay behind. `retire-workflow.sh` is the tidy exit, run per
+project, dry-run by default:
+
+```bash
+retire-workflow.sh            # show what would go
+retire-workflow.sh --write    # remove the machinery: manifest, sweep cache, lane selector
+retire-workflow.sh --write --records   # ...and the workflow-shaped records
+```
+
+Records hide behind the second flag because they hold the project's own
+knowledge, and some files never go whatever the flags: the reference docs
+(usually the README), the changelog, the tooling files, and a handoff living
+in `CLAUDE.md`. Export first if in doubt.
+
 ## Adding anything to this repo
 
 **`.gitignore` ignores `*` and re-includes by name**, so a new *kind* of file is
@@ -270,9 +303,11 @@ cost is one check whenever the shape of the repo changes.
 `hooks/shorthand-flags.sh` injects an explicit instruction for each flag, so
 invoking a skill by flag is deterministic rather than a judgement call.
 
-**Type `--flags` to get this list from the hook itself**, computed at run time
-and marked up with what actually resolves where you are standing. `--help` does
-the same. Everything below is the curated version — which one you want, and how
+**Type `--ws-flags` to get this list from the hook itself**, computed at run time
+and marked up with what actually resolves where you are standing. `--ws-help` does
+the same, and `--ws-alerts on|off` is the third flag the hook serves without a
+skill — it toggles the sound cue `hooks/alert.sh` plays when a session waits
+for input. Everything below is the curated version — which one you want, and how
 often — and it is the only part of this section that a machine does not generate.
 
 ### Which flag do I want?
@@ -282,19 +317,19 @@ difference is **what they read**, not how hard they try:
 
 | You want to know | Flag | Reads | Writes |
 |---|---|---|---|
-| Is what we wrote down still true? | `--check` | the records only, and only those whose code moved | nothing — dispatches to each record's owner |
-| Is the whole configuration sound? | `--full-check` | records + the docs site + the tooling files, every one, ignoring checkpoints | nothing with an owner; fixes unowned files directly |
-| Where is this project? | `--stocktake` | all of the above plus conventions, public surface, safety nets, and the code via the project's own analysis skill | rebuilds the backlog, writes an audit entry |
-| Is this document true and well-formed? | `--docs` | one docs site — paths, links, anchors, claims against source | the pages it fixes |
+| Is what we wrote down still true? | `--ws-check` | the records only, and only those whose code moved | nothing — dispatches to each record's owner |
+| Is the whole configuration sound? | `--ws-full-check` | records + the docs site + the tooling files, every one, ignoring checkpoints | nothing with an owner; fixes unowned files directly |
+| Where is this project? | `--ws-stocktake` | all of the above plus conventions, public surface, safety nets, and the code via the project's own analysis skill | rebuilds the backlog, writes an audit entry |
+| Is this document true and well-formed? | `--ws-docs` | one docs site — paths, links, anchors, claims against source | the pages it fixes |
 
-`--full-check` is **not** a bigger `--check`. It is `--check` plus five unrelated
+`--ws-full-check` is **not** a bigger `--ws-check`. It is `--ws-check` plus five unrelated
 jobs — the docs site, the tooling files, the defect inbox, the prune, the
 catalog refresh. Reach for it when you distrust the configuration, not when you
 want a thorough record sweep.
 
 Running two of them against one request pays twice for the same answers, so the
-hook drops the narrower flag when a wider one is present: `--full-check` absorbs
-`--check`, and either stocktake absorbs it too. `--docs` and `--tools` are never
+hook drops the narrower flag when a wider one is present: `--ws-full-check` absorbs
+`--ws-check`, and either stocktake absorbs it too. `--ws-docs` and `--ws-tools` are never
 dropped, because each has a second job that is a *write* request and silently
 skipping one to save a read is the wrong way to be wrong.
 
@@ -306,16 +341,16 @@ behind.
 
 | When | Flag | Why then |
 |---|---|---|
-| Starting anything non-trivial | `--track` | before the work, so the list is the plan rather than a summary |
-| The moment you decide *not* to build something | `--todo` | the reasoning is perishable; it is gone by tomorrow |
-| A decision made with no task attached | `--log` | the same, minus the backlog entry |
-| Finishing a unit of work, or before `/clear` | `--wrap` | the handoff is what the next session inherits |
-| Every week or so, or after a refactor | `--check` | cheap, incremental, and catches the records the code just falsified |
-| Before a release, or when you stop trusting the record | `--full-check` | the expensive one; earns its cost when the answer might be "no" |
-| Every month or so, or when picking a project back up | `--stocktake` | rebuilds the backlog around where things actually are |
-| After editing any skill or agent file | `--tools` | immediately, before ending the turn — it is the one with a deadline |
+| Starting anything non-trivial | `--ws-track` | before the work, so the list is the plan rather than a summary |
+| The moment you decide *not* to build something | `--ws-todo` | the reasoning is perishable; it is gone by tomorrow |
+| A decision made with no task attached | `--ws-log` | the same, minus the backlog entry |
+| Finishing a unit of work, or before `/clear` | `--ws-wrap` | the handoff is what the next session inherits |
+| Every week or so, or after a refactor | `--ws-check` | cheap, incremental, and catches the records the code just falsified |
+| Before a release, or when you stop trusting the record | `--ws-full-check` | the expensive one; earns its cost when the answer might be "no" |
+| Every month or so, or when picking a project back up | `--ws-stocktake` | rebuilds the backlog around where things actually are |
+| After editing any skill or agent file | `--ws-tools` | immediately, before ending the turn — it is the one with a deadline |
 
-**If you only ever use three, use `--track`, `--todo` and `--wrap`.** They are
+**If you only ever use three, use `--ws-track`, `--ws-todo` and `--ws-wrap`.** They are
 the ones that pay on the first day; everything else pays back over weeks.
 
 **Position is the whole signal.** Flags are read from a *run* at the very start
@@ -323,16 +358,16 @@ or the very end of a message, where a run is one or more whitespace-separated
 tokens that each decompose entirely into flags:
 
 ```
---wrap                            invoke
---stocktake--release--wrap            invoke all three, in that order
-that's everything --docs          invoke
-remind me what --docs does        does NOT invoke — this is a question
+--ws-wrap                            invoke
+--ws-stocktake--ws-release--ws-wrap            invoke all three, in that order
+that's everything --ws-docs          invoke
+remind me what --ws-docs does        does NOT invoke — this is a question
 git branch --track origin/dev     does NOT invoke — pasted command
 ```
 
 Matching anywhere in a message would fire on any message that merely *discusses*
 a flag, and on pasted shell commands. A token must decompose with nothing left
-over, so `--wrapper` and `origin/dev` end a run rather than extending it.
+over, so `--ws-wrapper` and `origin/dev` end a run rather than extending it.
 
 A flag whose skill does not resolve in the current project is **inert, not
 broken** — `skill_exists()` declines to inject an instruction that cannot be
@@ -355,21 +390,21 @@ Current flags:
 
 | Flag | Skill | Tier |
 |---|---|---|
-| `--adopt` | `adopt-workflow` | orchestrator |
-| `--track` | `track-complex-tasks` | primitive |
-| `--todo` | `project-record` | primitive |
-| `--log` | `project-record` | primitive |
-| `--plan` | `roadmap` | primitive |
-| `--tools` | `tooling-catalog-sync` | primitive |
-| `--check` | `record-inspector` | orchestrator — writes nothing; dispatches |
-| `--full-check` | `full-health-check` | orchestrator — writes no record; dispatches. `--release` runs it before a tag |
-| `--docs` | `docs` | orchestrator |
-| `--start` | `start-work` | orchestrator |
-| `--stocktake` / `--full-stocktake` | `project-stocktake` | orchestrator |
-| `--pullrequest` | `pr-flow` | orchestrator |
-| `--release` | `release` | orchestrator |
-| `--wrap` | `wrap-task` | orchestrator |
-| `--prune` | `prune-skills` | orchestrator |
+| `--ws-adopt` | `ws-adopt` | orchestrator |
+| `--ws-track` | `ws-track` | primitive |
+| `--ws-todo` | `ws-record` | primitive |
+| `--ws-log` | `ws-record` | primitive |
+| `--ws-plan` | `ws-plan` | primitive |
+| `--ws-tools` | `ws-tools` | primitive |
+| `--ws-check` | `ws-check` | orchestrator — writes nothing; dispatches |
+| `--ws-full-check` | `ws-full-check` | orchestrator — writes no record; dispatches. `--ws-release` runs it before a tag |
+| `--ws-docs` | `ws-docs` | orchestrator |
+| `--ws-start` | `ws-start` | orchestrator |
+| `--ws-stocktake` / `--ws-full-stocktake` | `ws-stocktake` | orchestrator |
+| `--ws-pr` | `ws-pr` | orchestrator |
+| `--ws-release` | `ws-release` | orchestrator |
+| `--ws-wrap` | `ws-wrap` | orchestrator |
+| `--ws-report` | `ws-report` | orchestrator — appends to the machine-local inbox, then opens an upstream issue on a fresh OK |
 
 **What each flag authorizes is deliberately not a column here.** A grant is
 written by hand in two places — the block `shorthand-flags.sh` injects, and the
@@ -380,22 +415,25 @@ authoritative, so the matrix is the single answer to *what may this flag do*.
 Three grants recur there: commit but not push, commit and push, and commit with
 a push that needs a fresh OK in the same turn.
 
-**`--pullrequest` is the only thing that moves work between the two branches.**
-`--wrap` pushes `branch.integration` and stops; this drafts the PR body from the
+**`--ws-pr` is the only thing that moves work between the two branches.**
+`--ws-wrap` pushes `branch.integration` and stops; this drafts the PR body from the
 branch range rather than from what the session remembers doing, opens it, watches
-its CI, and merges once you confirm in that turn. It is spelled out rather than
-`--pr` because no flag may be a prefix of another — `--pr` inside `--prune` would
-let a token decompose into the shorter flag plus junk, and `doctor.sh` fails that.
+its CI, and merges once you confirm in that turn. `--ws-pr`'s short form has a
+history: no flag may be a prefix of another — a token would decompose into the
+shorter flag plus junk, and `doctor.sh` fails the list on it — and `--ws-pr`
+sat inside the old prune flag, which was renamed and later retired when its
+skill merged into `ws-tools`. The invariant held throughout; the neighbours
+moved.
 
-Two flags reach one skill where that skill does two jobs: `--todo` parks an idea
-and `--log` records a decision, both through `project-record`.
+Two flags reach one skill where that skill does two jobs: `--ws-todo` parks an idea
+and `--ws-log` records a decision, both through `ws-record`.
 
 Two pairs are one job at two scopes, and the wider one wins when both are typed:
-`--stocktake` / `--full-stocktake`, and `--check` / `--full-check`.
+`--ws-stocktake` / `--ws-full-stocktake`, and `--ws-check` / `--ws-full-check`.
 
 A third suppression is absorption rather than scope: either stocktake flag drops
-`--check`, because `project-stocktake` runs that sweep as its own record
-dimension. `--full-check` survives alongside a stocktake, since it also covers
+`--ws-check`, because `ws-stocktake` runs that sweep as its own record
+dimension. `--ws-full-check` survives alongside a stocktake, since it also covers
 the docs site and the tooling files that no stocktake reads.
 
 **Some primitives have no flag**, deliberately, and are invoked by other skills
@@ -411,14 +449,14 @@ one's record; four are worth knowing by name:
   and its rules are
   [`workflow/sweep-checkpoint.md`](workflow/sweep-checkpoint.md).
 - **`handoff-writer`** owns `record.handoff`, the compressed state a fresh
-  session inherits. `--wrap` calls it for a full currency pass, `--start` for
-  what a batch changed, `--stocktake` for the warnings an audit created or
-  resolved, and `--check` for a single stale claim.
-- **`changelog-writer`** owns `record.changelog`. `--release` calls it for the
-  entry that goes with a version, and `--check` when the changelog claims a
+  session inherits. `--ws-wrap` calls it for a full currency pass, `--ws-start` for
+  what a batch changed, `--ws-stocktake` for the warnings an audit created or
+  resolved, and `--ws-check` for a single stale claim.
+- **`changelog-writer`** owns `record.changelog`. `--ws-release` calls it for the
+  entry that goes with a version, and `--ws-check` when the changelog claims a
   version no tag resolves.
 - **`git-writer`** owns the git history — commits, tags, and the merge
-  `--pullrequest` asks for. Every skill that may commit calls it, which is what
+  `--ws-pr` asks for. Every skill that may commit calls it, which is what
   keeps the rules that make a commit safe in one place rather than in whichever
   caller happened to think of them.
 
@@ -432,7 +470,7 @@ good as the reader applying the rule correctly.
 That is why a skill which both decides something and writes the record of it
 gets split: the deciding half keeps the flag, because it is the half that has to
 reach the user, and the writing half becomes a flagless primitive anything can
-call. `--release` is the worked example — it holds the publish gate and writes
+call. `--ws-release` is the worked example — it holds the publish gate and writes
 nothing. [`workflow/ownership.md`](workflow/ownership.md) is the authority on all
 of it, including when a split is *not* worth making.
 
@@ -443,7 +481,7 @@ cannot edit.
 
 The rule holds with no exceptions today, and the one it once had was resolved
 the right way round — by generalising the skill rather than dropping its flag.
-`prune-skills` reads `record.tooling.sources` from whatever project it runs in,
+`ws-tools`'s prune reads `record.tooling.sources` from whatever project it runs in,
 so it is global like the rest.
 
 ## Finding a bug in this suite from another project
@@ -455,7 +493,7 @@ justification at the next `/clear`. Installed as a plugin it is worse: the write
 succeeds and is destroyed at the next plugin update, silently.
 
 This does **not** restrict your project's own skills and agents. Those are what
-`record.tooling.sources` globs and what `--tools` exists to maintain. The rule
+`record.tooling.sources` globs and what `--ws-tools` exists to maintain. The rule
 draws the line at the installation, not around skill files in general.
 
 So a session files instead: one append to `bug-reports.md` in your config

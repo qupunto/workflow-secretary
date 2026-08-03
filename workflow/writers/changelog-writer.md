@@ -22,11 +22,11 @@ or a false claim corrected. This is the step inside those.
 
 ## Not the decision log
 
-The nearest neighbour is `--log`, and the two are easy to collapse into each
+The nearest neighbour is `--ws-log`, and the two are easy to collapse into each
 other because both are dated, append-only histories. They have different
 readers, and that is the whole test:
 
-| | `record.decisions` (`--log`) | `record.changelog` (this skill) |
+| | `record.decisions` (`--ws-log`) | `record.changelog` (this skill) |
 |---|---|---|
 | Answers | why a choice was made | what a user of the software notices |
 | Read by | whoever maintains the project | whoever consumes it |
@@ -64,31 +64,31 @@ sanctioned rather than a breach of append-only.
 **Never invent a tag boundary to make the claim true.** Recording plainly that a
 version was never tagged is better than retro-tagging a guessed commit — the
 first is honest and reversible, the second is permanent and probably wrong.
-Which of the two happens is the user's call, and `--release` is where it gets
+Which of the two happens is the user's call, and `--ws-release` is where it gets
 asked.
 
 ## Scope: do what the caller asked for and stop
 
 | Called by | Write |
 |---|---|
-| `--release` | The entry for the version being cut, under the version and date the caller supplies |
-| `--check` | The one drift finding it dispatched — re-verified first — usually marking an entry unreleased |
+| `--ws-release` | The entry for the version being cut, under the version and date the caller supplies |
+| `--ws-check` | The one drift finding it dispatched — re-verified first — usually marking an entry unreleased |
 
 **Re-verify a dispatched finding against `git tag -l` before changing anything** —
 that is what settles a release-drift claim here. The rule is
 [`ownership.md`](../ownership.md#the-inspector-writes-nothing).
 
 **Write what was asked and stop.** No version bump, no tag, no commit — a caller
-that wanted a release would have run `--release`.
+that wanted a release would have run `--ws-release`.
 
 ## What this skill does not do
 
 - **It does not decide the version.** The number comes from the caller, which
   gets it from `record.roadmap` for a milestone or derives a patch. If a caller
   supplies none and the roadmap names none, ask rather than deriving one.
-- **It does not tag, commit or push.** Tags are `--release`'s and nothing else
+- **It does not tag, commit or push.** Tags are `--ws-release`'s and nothing else
   in this workflow writes one. The caller commits under the caller's grant; this
-  skill confers nothing, so dispatched from `--check` it writes the file and
+  skill confers nothing, so dispatched from `--ws-check` it writes the file and
   stops there.
 - **It does not write any other record.** Reasoning goes to `record.decisions`
-  via `--log`; a milestone's completion is `--plan`'s mark.
+  via `--ws-log`; a milestone's completion is `--ws-plan`'s mark.

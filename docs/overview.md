@@ -28,13 +28,16 @@ before a single skill runs.
 │
 ├── doctor.sh              read-only health check — see "Verifying" below
 ├── reset-records.sh       blanks the records to their headings — what makes a fork yours
+├── export-records.sh      moves machine-local state between machines by archive
+├── retire-workflow.sh     the tidy exit — removes the machinery, and only on request the records
 ├── publish.sh             assembles and gates the public tree; deliberately never pushes
 │
-├── hooks/                 both hook scripts, and the hooks.json a plugin needs
+├── hooks/                 the hook scripts, and the hooks.json a plugin needs
 │   ├── shorthand-flags.sh   UserPromptSubmit — `--flag` to invocation
 │   ├── session-check.sh     SessionStart — see "The hooks" below
+│   ├── alert.sh             Notification/Stop — opt-in sound cue, `--ws-alerts on|off`
 │   └── hooks.json           read only when installed as a plugin
-├── .claude-plugin/        plugin.json — what makes this directory installable
+├── .claude-plugin/        plugin.json and marketplace.json — installable, and its own marketplace
 │
 ├── skills/                the global suite; available in every project
 ├── workflow/              the contracts every skill links to instead of copying
@@ -60,7 +63,7 @@ no `SKILL.md` is ignored today, but relying on that is a bet on Claude Code's
 discovery internals rather than on documented behaviour.
 
 **Every `record.*` path in that tree is named by `.claude/workflow.json` rather
-than by convention**, and that manifest is the first file both `--adopt` and
+than by convention**, and that manifest is the first file both `--ws-adopt` and
 `doctor.sh` resolve against — which is why a repo running the workflow on itself
 needs one at all. A project without a manifest still works: skills fall back to
 the conventional names in `workflow/manifest.md` and skip what they cannot
@@ -80,7 +83,7 @@ is paid for far more often than a byte in another.
 | `CLAUDE.md` | every session, every project — **in the checkout form only** | the most expensive file in the repo, and unread entirely as a plugin |
 | Each skill's frontmatter `description` | every session | it is what decides whether the skill is ever invoked |
 | A skill's **body** | only when that skill is invoked | length here is cheap by comparison |
-| `skills/docs/references/*.md` | only when the `docs` skill reads one | reference detail belongs here, not in a body |
+| `skills/ws-docs/references/*.md` | only when the `ws-docs` skill reads one | reference detail belongs here, not in a body |
 | A `shorthand-flags.sh` block | when its flag fires | injected into the prompt |
 | The project's `record.handoff` | every session in **any** project whose manifest maps it away from `CLAUDE.md`, via `session-check.sh` | so handoff length is a permanent per-session cost of adopting, not a local quirk |
 
@@ -104,7 +107,7 @@ you have it at all.
 
 **As a checkout**, `skillOverrides` in `settings.json` controls each skill
 individually. This repository sets its dispatch-only primitives to `name-only` —
-today the single skill `workflow-contracts` — so their descriptions do not load
+today the single skill `ws-contracts` — so their descriptions do not load
 in sessions that can never invoke them: a dispatched skill is reached only by
 another skill, so a description is pure cost. Read the current set out of
 `settings.json` rather than a count here; it shrank once already, when the
@@ -143,7 +146,7 @@ loaded as project context at all.** `claude plugin validate` says so and suggest
 a skill instead. So an adopter who installs rather than clones would get no
 statement that the workflow is global, that skills read `.claude/workflow.json`,
 or where the three contracts are — none of which is inferable from a skill body.
-That is what `workflow-contracts` carries, and why `CLAUDE.md` now holds the
+That is what `ws-contracts` carries, and why `CLAUDE.md` now holds the
 contract paths and a pointer rather than the rules themselves: one owner, in the
 form that can actually reach both. The warning does not go away, because it fires
 on the file existing at the plugin root rather than on what is in it.
@@ -169,12 +172,12 @@ were taken.
 
 ## The hooks
 
-Two events are wired in `settings.json`, and both fail *silently* when
+The events wired in `settings.json` all fail *silently* when
 misconfigured — the event fires, nothing happens, and behaviour degrades without
 an error.
 
-Both scripts live in `hooks/`. Installed as a plugin the wiring comes from
-`hooks/hooks.json` instead, which declares the same two events against
+The scripts live in `hooks/`. Installed as a plugin the wiring comes from
+`hooks/hooks.json` instead, which declares the same events against
 `${CLAUDE_PLUGIN_ROOT}`; plugin hooks **merge** with the user's rather than
 replacing them, so an adopter's own hooks keep firing.
 
@@ -204,6 +207,11 @@ replacing them, so an adopter's own hooks keep firing.
   stays silent — the harness has already loaded it, or there is nothing to load,
   so injecting would put the same file in context twice. Read the script for the
   current thresholds; it is the authority and this page describes it.
+- **`Notification`, `Stop`, `PreToolUse(AskUserQuestion)` → `hooks/alert.sh`.** An
+  opt-in sound cue when the session waits for input. Silent until a machine runs
+  `--ws-alerts on`, which the flag hook serves itself by writing a state file in
+  the config directory; one cue per burst of events, sound only, never blocking —
+  it always exits 0 and prints nothing.
 
 Because the failure is silent, `doctor.sh` checks the wiring rather than assuming
 it. That state persisted unnoticed on one machine for weeks.

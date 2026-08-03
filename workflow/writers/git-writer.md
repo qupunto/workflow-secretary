@@ -7,7 +7,7 @@ either calls this one; who owns what is
 [`ownership.md`](../ownership.md).
 
 **Project facts come from `.claude/workflow.json`**: `branch.integration` is
-what ordinary work goes to, `branch.publish` is what `--release` tags, and
+what ordinary work goes to, `branch.publish` is what `--ws-release` tags, and
 `commitTrailer` names the session trailer. Without a manifest, fall back to the
 current branch and say so in one line.
 
@@ -40,13 +40,13 @@ drifting, which is the reason `README.md` gives for refusing a third copy there.
 It was in sync when deleted; nothing kept it so.
 
 Two grants the matrix's row does not spell out, because they belong to the step
-rather than to the flag: under `--pullrequest` **the merge** needs a fresh OK of
-its own, not just the push; under `--release` so does **the tag**. In both cases
+rather than to the flag: under `--ws-pr` **the merge** needs a fresh OK of
+its own, not just the push; under `--ws-release` so does **the tag**. In both cases
 the caller has already obtained it — you are not the one to ask.
 
 **The matrix lists flags, not callers.** A skill reached by dispatch carries the
-grant of the flag the *user* typed, however many hops away — a `--docs` invoked
-by `--tools` arrives with `--tools`' commit-and-not-push, not with `--docs`'
+grant of the flag the *user* typed, however many hops away — a `--ws-docs` invoked
+by `--ws-tools` arrives with `--ws-tools`' commit-and-not-push, not with `--ws-docs`'
 nothing. Trace back to the flag; do not read an absent row as a refusal.
 
 If you cannot tell which grant is in force, you are not authorized. Ask.
@@ -133,7 +133,7 @@ it, and "finished" is an inference. A stale transcript is evidence, not proof.
 
 ## Tags
 
-Only `--release` calls for one, and only after it has shown the user the commits,
+Only `--ws-release` calls for one, and only after it has shown the user the commits,
 the tag name and the branch and received an explicit OK **in that turn**.
 
 ```bash
@@ -159,8 +159,8 @@ fetched it, deleting it locally changes nothing.
   to adjust what is in it.
 - **It does not rebase, revert or branch.** Those are decisions with a user in
   the loop, and none of them is history this workflow authors. **The one merge
-  it does perform** is the one `--pullrequest` hands it, with the method from
-  `branch.mergeMethod` and only once `pr-flow` has the user's OK in that turn —
+  it does perform** is the one `--ws-pr` hands it, with the method from
+  `branch.mergeMethod` and only once `ws-pr` has the user's OK in that turn —
   [`ownership.md`](../ownership.md)'s `merge` row is the authority,
   and it is the reason a merge commit has an owner at all.
 - **It does not clean the tree.** No `git stash`, no `git checkout --` over

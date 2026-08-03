@@ -17,14 +17,14 @@ belongs where, and why putting it elsewhere breaks something.
 | `record.todo` | What to build and how. Checkboxes, technical detail, file references. Forward-looking only. | Reasoning about *whether* to build something. Completed items — they are removed, not struck through. |
 | `record.decisions` | The **why**, chronological, append-only. What was chosen, and what was rejected. | Anything undecided. Rewrites of past entries. Statements of current behaviour. |
 | `record.decisionsIndex` | **Generated.** One row per decision. The cheap way in. | Anything hand-written. |
-| `record.openDecisions` | Decisions **pending**: options, tradeoffs, a recommendation where one exists, and what each one blocks. | Anything settled — it moves out when decided. |
+| `record.openDecisions` | Decisions **pending**, one `## <the choice>` heading per entry: options, tradeoffs, a recommendation where one exists, and what each one blocks. The heading is contractual — machinery counts entries by `## ` line, and an entry shaped any other way is invisible to the staleness nudge. | Anything settled — it moves out when decided. |
 | `record.behaviour` | What the system **currently does** at runtime, by topic. | Why it does it. Decided-but-unbuilt behaviour. |
 | `record.reference` | Current state — stack, architecture, data model, conventions. | Decision history. |
 | `record.audits` | What was examined, when, against which commit, and what was found. Each entry carries an [`audit-coverage`](audit-coverage.md) block. | The resulting tasks — those go to `record.todo`. |
 | `record.roadmap` | Milestones and the blocks inside them, their order and dependencies, the version each milestone intends to ship as, and which milestones are completed. | Design arguments. The claim that a version *shipped* — a tag is the only proof of that. |
 | `record.changelog` | What someone *using* the project would notice, per released version. | Unreleased work. |
 | `record.handoff` | What a fresh session must know **before it touches code**, compressed, plus pointers to everything else. | Anything it can look up when the topic comes up. |
-| `record.tooling.catalog` | What skills and agents exist, what each is for in one human sentence, and a diagram of who invokes whom. It is the **source** for the docs site's Claude-tooling annex page, which `--docs` derives and owns. | Anything that changes as the project changes — see the mutable-claim rule below, and the carve-out under this table, which is narrow and applies to this row only. |
+| `record.tooling.catalog` | What skills and agents exist, what each is for in one human sentence, and a diagram of who invokes whom. It is the **source** for the docs site's Claude-tooling annex page, which `--ws-docs` derives and owns. | Anything that changes as the project changes — see the mutable-claim rule below, and the carve-out under this table, which is narrow and applies to this row only. |
 
 **The catalog row contradicts itself unless this carve-out is read with it.** Its
 "Holds" column requires an inventory of what skills and agents exist; its "Does
@@ -40,7 +40,7 @@ line about what some skill is in the middle of — no; those are ordinary mutabl
 claims and get deleted rather than corrected.
 
 The carve-out holds only because something re-derives this file on a schedule:
-`--tools` rebuilds it whenever a skill or agent changes, and a repo whose
+`--ws-tools` rebuilds it whenever a skill or agent changes, and a repo whose
 maintenance skill refreshes it on every run keeps it honest. An inventory nothing
 re-derives drifts silently and is worse than no inventory, because it reads as
 current.
@@ -103,6 +103,26 @@ rule nobody can apply confidently; "bodies never change, and these three cells
 are the only mutable ones" is a rule you can verify by reading. **Widening the
 set is a decision to record, not an edit to make** — and rewriting a body under
 cover of updating its status is the failure this table exists to name.
+
+## Lane-scoped records — which may split, and which must never
+
+A project worked on from several git worktrees at once may split a record into
+per-lane files, declared under the manifest's `lanes.named` and resolved by
+[`manifest.md`](manifest.md)'s resolution rule. **Splittable: `todo`,
+`openDecisions`, `handoff`** — forward-looking records, lane-scoped by nature,
+and the three every concurrent session wants to write, which is exactly where
+the merge conflicts were. **Never: `decisions`, `audits`, `changelog`** — the
+append-only single timelines; three branches appending at EOF conflict
+trivially and resolve as "keep both" — **nor `roadmap`, `behaviour`,
+`reference`**, which describe one system. A lane-local decision log is the
+failure this rule exists to prevent: the why of a choice fragments across
+files nobody reads together.
+
+Under lanes the decision log is fed by promotion, not by lane writes: a lane
+appends *candidate* entries to its own openDecisions file, and the merge to
+the integration branch is what promotes settled ones into `record.decisions`.
+One writer per file still holds — each lane file has the same owner its
+unsplit record has, per [`ownership.md`](ownership.md).
 
 ## The mutable-claim rule
 

@@ -12,7 +12,7 @@ authority when this file and that one disagree.
 Resolve the path from `.claude/workflow.json`. Without a manifest the fallback is
 in [`manifest.md`](../manifest.md) — **say which you used.** A
 manifest that names the file is the authority on placement, so it keeps its path
-and skips `--docs`' tier placement and sidebar wiring entirely.
+and skips `--ws-docs`' tier placement and sidebar wiring entirely.
 
 ## What this record holds
 
@@ -22,10 +22,10 @@ someone needs before they can predict what a request will do.
 
 Three things it never holds, and each has an owner:
 
-- **Why a rule is the way it is.** That is `--log`'s (`record.decisions`). A rule
+- **Why a rule is the way it is.** That is `--ws-log`'s (`record.decisions`). A rule
   with its rationale inline is a decision log growing inside a reference, and it
   goes stale in a way nobody notices because the rule beside it is still true.
-- **Decided-but-unbuilt behaviour.** Also `--log`'s. This file describes the
+- **Decided-but-unbuilt behaviour.** Also `--ws-log`'s. This file describes the
   running system; a rule that does not exist yet is a plan, and a reader who
   cannot tell the two apart has no reason to trust either.
 - **Stack, architecture, data model, conventions.** That is `record.reference`'s,
@@ -33,12 +33,12 @@ Three things it never holds, and each has an owner:
 
 ## Two kinds of caller, and they want different amounts
 
-This is why the record has its own primitive rather than living inside `--docs` —
+This is why the record has its own primitive rather than living inside `--ws-docs` —
 [`ownership.md`](../ownership.md)'s split test.
 
 ### A dispatched one-line correction
 
-From `--check`, `--full-check`, `--start` or `--stocktake`. Scope is **the section
+From `--ws-check`, `--ws-full-check`, `--ws-start` or `--ws-stocktake`. Scope is **the section
 the finding names, and nothing else.**
 
 1. **Re-verify against source before writing.** A dispatched finding is a
@@ -53,7 +53,7 @@ the finding names, and nothing else.**
 
 ### A batch of runtime changes
 
-From `--start` Phase 6, or `--docs` when a page it owns turns out to describe
+From `--ws-start` Phase 6, or `--ws-docs` when a page it owns turns out to describe
 behaviour rather than architecture.
 
 1. **Read the source, not the diff summary.** The caller knows what it changed;

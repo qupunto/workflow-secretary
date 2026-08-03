@@ -12,21 +12,25 @@ authority if the two ever disagree.
 **Project facts come from `.claude/workflow.json`**: `record.handoff` is the
 file, and the other `record.*` keys are what it points *at*. Without a manifest
 the fallback is `CLAUDE.md` — say in one line that you used it, because a silent
-fallback is how a project ends up with two handoff files.
+fallback is how a project ends up with two handoff files. Where a `.claude/lane`
+selector names a lane, `lanes.named.<lane>.records.handoff` overrides
+`record.handoff` — [`manifest.md`](../manifest.md)'s resolution rule — and the
+lane's handoff is the one this procedure writes from that worktree; the
+session hook injects the same file.
 
 **Refuse that fallback when the working directory is `~/.claude`.** There
 `CLAUDE.md` is not a project's handoff, it is the user's global instruction file
 loaded into every session of every project, and a per-session handoff written
 into it is both destructive and paid for everywhere forever. So when the cwd is
 `~/.claude` and no manifest declares `record.handoff`: **write nothing**, and
-hand back the two fixes — run `--adopt`, or declare `record.handoff` in
+hand back the two fixes — run `--ws-adopt`, or declare `record.handoff` in
 `.claude/workflow.json` — for the caller to pick between.
 
 **No flag of its own**, on the same reasoning as `sweep-tracker`: nobody wants
 "write the handoff", they want a wrap, a landed batch, or an audit. This is the
 step inside those, not a thing to ask for.
 
-## Why a primitive and not part of `--wrap`
+## Why a primitive and not part of `--ws-wrap`
 
 `record.handoff` has several callers, and they want different amounts of work. A
 single owner keeps that honest: the caller picks the scope by picking the
@@ -35,8 +39,8 @@ than its whole procedure.
 
 **The grant is always the caller's**, per
 [`ownership.md`](../ownership.md). This skill has no flag, so it
-confers nothing on its own: dispatched from `--check`, which grants nothing, it
-writes the file and does not commit; called from `--start`, which grants commit
+confers nothing on its own: dispatched from `--ws-check`, which grants nothing, it
+writes the file and does not commit; called from `--ws-start`, which grants commit
 but not push, it writes the file and the caller commits. **It never pushes and
 never decides to.**
 
@@ -148,13 +152,13 @@ most often: [`record-contract.md`](../record-contract.md#negative-claims).
 
 | Called by | Write |
 |---|---|
-| `--wrap` | The full currency pass — every section re-checked against what the session did |
-| `--start` | What the batch changed, plus any `!important` it created or resolved |
-| `--stocktake` | Only the `!important` warnings that audit created or resolved: one line each plus a pointer, resolved ones deleted |
-| `--check` | The one stale claim it found, re-verified first |
-| `--full-check` | Every finding it dispatched here, each re-verified first: resolved warnings still present, and pointers that no longer resolve |
+| `--ws-wrap` | The full currency pass — every section re-checked against what the session did |
+| `--ws-start` | What the batch changed, plus any `!important` it created or resolved |
+| `--ws-stocktake` | Only the `!important` warnings that audit created or resolved: one line each plus a pointer, resolved ones deleted |
+| `--ws-check` | The one stale claim it found, re-verified first |
+| `--ws-full-check` | Every finding it dispatched here, each re-verified first: resolved warnings still present, and pointers that no longer resolve |
 
-**A caller with no row gets the `--check` row**, not the `--wrap` one: write the
+**A caller with no row gets the `--ws-check` row**, not the `--ws-wrap` one: write the
 findings you were handed and stop. Say in one line that the caller was not
 listed, so the row can be added rather than guessed at again.
 
@@ -164,7 +168,7 @@ Re-verify first, and **hand the disagreement back** rather than writing a
 correction that is itself wrong — every session reads what you write here.
 
 **Fix what was asked and stop.** No task-list pass, no summary, no commit, no
-`/clear` nudge — a caller that wanted a wrap would have called `--wrap`.
+`/clear` nudge — a caller that wanted a wrap would have called `--ws-wrap`.
 
 ## If nothing changed
 
@@ -175,7 +179,7 @@ effort is not.
 
 - **It does not commit or push.** The caller does, under the caller's grant.
 - **It does not write any other record.** Not `record.todo`, not
-  `record.decisions` — those are `--todo`/`--log`'s, and a handoff that starts
+  `record.decisions` — those are `--ws-todo`/`--ws-log`'s, and a handoff that starts
   carrying reasoning is how the split collapses.
-- **It does not decide whether a milestone finished.** `--wrap` reads
-  `record.roadmap` for that, and `--plan` is what marks it.
+- **It does not decide whether a milestone finished.** `--ws-wrap` reads
+  `record.roadmap` for that, and `--ws-plan` is what marks it.

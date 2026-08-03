@@ -90,9 +90,9 @@ for f in $FLAGS; do
         t=$0; sub(/.*echo[[:space:]]+/,"",t); sub(/[[:space:]]*;;.*/,"",t); print t; exit }
     }' "$HOOK")
   [ -n "$skill" ] || { bad "$f has no skill_for() mapping"; continue; }
-  # A block_for() label may be an alternation — `--flags | --help)` covers both —
+  # A block_for() label may be an alternation — `--ws-flags | --ws-help)` covers both —
   # so test membership of the alternatives rather than pattern-matching the
-  # start of the line. Matching only `^  FLAG)` reported --help as having no
+  # start of the line. Matching only `^  FLAG)` reported --ws-help as having no
   # block when it was the second alternative of one, which is the same defect
   # the skill_for() reader above already had to fix.
   awk -v flag="$f" '
@@ -123,71 +123,71 @@ done
 
 head_ "Position is the whole signal"
 
-fires  "--wrap" "--wrap"
-fires  "--wrap the purge work is done" "--wrap"
-fires  "that is everything for today --wrap" "--wrap"
-silent "remind me what --wrap does" "mid-sentence: discussed, not invoked"
-silent "should --wrap also update the changelog?" "a question about the flag"
+fires  "--ws-wrap" "--ws-wrap"
+fires  "--ws-wrap the purge work is done" "--ws-wrap"
+fires  "that is everything for today --ws-wrap" "--ws-wrap"
+silent "remind me what --ws-wrap does" "mid-sentence: discussed, not invoked"
+silent "should --ws-wrap also update the changelog?" "a question about the flag"
 silent "git branch --track origin/dev" "pasted command"
-silent "see the --wrapper module" "glued to a word"
+silent "see the --ws-wrapper module" "glued to a word"
 silent "no flags here at all" "nothing to fire"
 
 head_ "Runs fire every flag they name, in typed order"
 
-out=$(run "--stocktake--release--wrap")
+out=$(run "--ws-stocktake--ws-release--ws-wrap")
 case $out in
-  *"--stocktake --release --wrap"*) ok "glued run keeps typed order" ;;
+  *"--ws-stocktake --ws-release --ws-wrap"*) ok "glued run keeps typed order" ;;
   *) bad "glued run lost order or flags: $(printf '%s' "$out" | head -1)" ;;
 esac
 
-out=$(run "--wrap --stocktake")
+out=$(run "--ws-wrap --ws-stocktake")
 case $out in
-  *"--wrap --stocktake"*) ok "spaced run keeps typed order" ;;
+  *"--ws-wrap --ws-stocktake"*) ok "spaced run keeps typed order" ;;
   *) bad "spaced run did not preserve order" ;;
 esac
 
 head_ "Audit scope is mutually exclusive, wider wins"
 
-out=$(run "--full-stocktake --stocktake")
-if printf '%s' "$out" | grep -q -- "--full-stocktake" && \
-   ! printf '%s' "$out" | grep -qE 'flags: .*--stocktake( |$)'; then
-  ok "--full-stocktake suppresses --stocktake"
+out=$(run "--ws-full-stocktake --ws-stocktake")
+if printf '%s' "$out" | grep -q -- "--ws-full-stocktake" && \
+   ! printf '%s' "$out" | grep -qE 'flags: .*--ws-stocktake( |$)'; then
+  ok "--ws-full-stocktake suppresses --ws-stocktake"
 else
-  bad "--stocktake was not suppressed by --full-stocktake"
+  bad "--ws-stocktake was not suppressed by --ws-full-stocktake"
 fi
 
 head_ "A record sweep does not run twice"
 
-# project-stocktake runs --check's method over --check's files as its record
+# ws-stocktake runs --ws-check's method over --ws-check's files as its record
 # dimension: "invoke one or the other, never both". Firing both sweeps the
 # record twice, and the second reports the first one's writes as fresh drift.
-for wide in --stocktake --full-stocktake; do
-  out=$(run "$wide --check")
+for wide in --ws-stocktake --ws-full-stocktake; do
+  out=$(run "$wide --ws-check")
   if printf '%s' "$out" | grep -q -- "included the \`$wide\` flag" && \
-     ! printf '%s' "$out" | grep -q -- "included the \`--check\` flag"; then
-    ok "$wide absorbs --check"
+     ! printf '%s' "$out" | grep -q -- "included the \`--ws-check\` flag"; then
+    ok "$wide absorbs --ws-check"
   else
-    bad "--check was not absorbed by $wide"
+    bad "--ws-check was not absorbed by $wide"
   fi
 done
 
-# The half with no symptom. --full-check is a different SKILL rather than a
+# The half with no symptom. --ws-full-check is a different SKILL rather than a
 # wider scope — it also sweeps the docs site and the tooling files, which no
 # stocktake touches — so absorbing it would silently narrow the request.
-out=$(run "--stocktake --full-check")
-if printf '%s' "$out" | grep -q -- "flags: --stocktake --full-check"; then
-  ok "--stocktake leaves --full-check standing"
+out=$(run "--ws-stocktake --ws-full-check")
+if printf '%s' "$out" | grep -q -- "flags: --ws-stocktake --ws-full-check"; then
+  ok "--ws-stocktake leaves --ws-full-check standing"
 else
-  bad "--full-check was wrongly absorbed by --stocktake"
+  bad "--ws-full-check was wrongly absorbed by --ws-stocktake"
 fi
 
 # Suppressed since the pair was introduced, never covered until now.
-out=$(run "--full-check --check")
-if printf '%s' "$out" | grep -q -- "included the \`--full-check\` flag" && \
-   ! printf '%s' "$out" | grep -q -- "included the \`--check\` flag"; then
-  ok "--full-check absorbs --check"
+out=$(run "--ws-full-check --ws-check")
+if printf '%s' "$out" | grep -q -- "included the \`--ws-full-check\` flag" && \
+   ! printf '%s' "$out" | grep -q -- "included the \`--ws-check\` flag"; then
+  ok "--ws-full-check absorbs --ws-check"
 else
-  bad "--check was not absorbed by --full-check"
+  bad "--ws-check was not absorbed by --ws-full-check"
 fi
 
 # -------------------------------------------------------------------- gating
@@ -217,24 +217,24 @@ done
 
 head_ "The flag list is computed, not written down"
 
-# The whole value of --flags is that it cannot go stale. It is built from the
+# The whole value of --ws-flags is that it cannot go stale. It is built from the
 # FLAGS array and skill_for() at run time, so a flag added without touching it
 # still appears. A hand-written list would pass every other test in this file
 # while being wrong, which is the failure this asserts against: every flag in
 # FLAGS must have a row.
-out=$(run "--flags" "$TMP/bare")
+out=$(run "--ws-flags" "$TMP/bare")
 missing=""
 for f in $FLAGS; do
   printf '%s' "$out" | grep -qF "| \`$f\`" || missing="$missing $f"
 done
-[ -z "$missing" ] && ok "--flags lists every flag in FLAGS ($(printf '%s' "$FLAGS" | wc -w) rows)" \
-                  || bad "--flags omitted:$missing — the list is not computed from FLAGS"
+[ -z "$missing" ] && ok "--ws-flags lists every flag in FLAGS ($(printf '%s' "$FLAGS" | wc -w) rows)" \
+                  || bad "--ws-flags omitted:$missing — the list is not computed from FLAGS"
 
 # And it must be honest about what does not resolve, which is most of its value
 # in a project that has not adopted the suite.
 case $out in
-  *'**no**'*) ok "--flags marks a flag whose skill is absent as inert" ;;
-  *) bad "--flags reported nothing as inert from a bare project — it cannot be reading the disk" ;;
+  *'**no**'*) ok "--ws-flags marks a flag whose skill is absent as inert" ;;
+  *) bad "--ws-flags reported nothing as inert from a bare project — it cannot be reading the disk" ;;
 esac
 
 head_ "A settings-disabled skill does not get its flag block either"
@@ -258,31 +258,31 @@ overrides() { # scope, level — write one entry, or remove the file when level 
   if [ -z "$2" ]; then
     rm -f "$dir/settings.json"
   else
-    jq -nc --arg l "$2" '{skillOverrides:{"wrap-task":$l}}' > "$dir/settings.json"
+    jq -nc --arg l "$2" '{skillOverrides:{"ws-wrap":$l}}' > "$dir/settings.json"
   fi
 }
 
 for level in off user-invocable-only; do
   overrides user "$level"
-  out=$(run "--wrap")
-  [ -z "$out" ] && ok "--wrap inert while wrap-task is \"$level\"" \
-                || bad "--wrap fired for a skill the harness will refuse (\"$level\")"
+  out=$(run "--ws-wrap")
+  [ -z "$out" ] && ok "--ws-wrap inert while ws-wrap is \"$level\"" \
+                || bad "--ws-wrap fired for a skill the harness will refuse (\"$level\")"
 done
 
 for level in on name-only; do
   overrides user "$level"
-  out=$(run "--wrap")
-  printf '%s' "$out" | grep -q -- 'included the `--wrap` flag' \
-    && ok "--wrap still fires while wrap-task is \"$level\"" \
-    || bad "--wrap lost to an override that does not block model invocation (\"$level\")"
+  out=$(run "--ws-wrap")
+  printf '%s' "$out" | grep -q -- 'included the `--ws-wrap` flag' \
+    && ok "--ws-wrap still fires while ws-wrap is \"$level\"" \
+    || bad "--ws-wrap lost to an override that does not block model invocation (\"$level\")"
 done
 
 # Project outranks user for this key. That is why the lookup stops at the first
 # file naming the skill rather than merging the two.
 overrides user off
 overrides project on
-out=$(run "--wrap")
-printf '%s' "$out" | grep -q -- 'included the `--wrap` flag' \
+out=$(run "--ws-wrap")
+printf '%s' "$out" | grep -q -- 'included the `--ws-wrap` flag' \
   && ok "project settings outrank user settings" \
   || bad "a user-level off beat a project-level on"
 
@@ -389,6 +389,104 @@ else
                  *) bad "an unmarked handoff lost content — back-compat broken" ;;
   esac
 
+  # The lane selector. A worktree of a lane-split project carries .claude/lane,
+  # and lanes.named.<lane>.records.handoff then overrides record.handoff —
+  # manifest.md's resolution rule. Both directions matter: the selected lane
+  # must get ITS card, and a selector that resolves to nothing must DEGRADE to
+  # the unsplit record rather than kill the hook — doctor.sh is where a bad
+  # selector fails loudly, never here.
+  laneproj="$TMP/lane-proj"
+  mkdir -p "$laneproj/.claude" "$laneproj/docs/handoff"
+  printf '{"record":{"handoff":".claude/HANDOFF.md"},
+           "lanes":{"named":{
+             "backend":{"scope":["backend/**"],"records":{"handoff":"docs/handoff/backend.md"}},
+             "frontend":{"scope":["frontend/**"],"records":{"handoff":"docs/handoff/frontend.md"}}}}}\n' \
+    > "$laneproj/.claude/workflow.json"
+  printf 'SENTINEL-UNSPLIT-HANDOFF\n' > "$laneproj/.claude/HANDOFF.md"
+  printf 'SENTINEL-BACKEND-HANDOFF\n' > "$laneproj/docs/handoff/backend.md"
+  printf 'SENTINEL-FRONTEND-HANDOFF\n' > "$laneproj/docs/handoff/frontend.md"
+
+  printf 'backend\n' > "$laneproj/.claude/lane"
+  out=$(cd "$laneproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *SENTINEL-BACKEND-HANDOFF*) ok "a lane worktree gets its lane's handoff" ;;
+                 *) bad "the selected lane's handoff was not injected" ;;
+  esac
+  case "$out" in *SENTINEL-UNSPLIT-HANDOFF* | *SENTINEL-FRONTEND-HANDOFF*)
+        bad "injected a handoff belonging to another lane or to the unsplit record" ;;
+                 *) ok "and only that lane's — not the unsplit or a sibling's" ;;
+  esac
+
+  # A selector naming an undeclared lane resolves to the unsplit record. The
+  # hook degrades; the doctor is what fails on it.
+  printf 'nosuchlane\n' > "$laneproj/.claude/lane"
+  out=$(cd "$laneproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *SENTINEL-UNSPLIT-HANDOFF*)
+        ok "an undeclared lane degrades to the unsplit handoff" ;;
+                 *) bad "an undeclared selector lost the handoff entirely" ;;
+  esac
+
+  # No selector at all: the main checkout of a split project reads the unsplit
+  # records, exactly as before lanes existed.
+  rm -f "$laneproj/.claude/lane"
+  out=$(cd "$laneproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *SENTINEL-UNSPLIT-HANDOFF*)
+        ok "no selector reads the unsplit records — back-compat holds" ;;
+                 *) bad "a split manifest with no selector lost the unsplit handoff" ;;
+  esac
+
+  # The swallowed-output class, at the selector read. chmod 000 makes the tr
+  # redirection fail; unguarded, that status reaches the ERR trap through the
+  # assignment and the hook exits 0 having printed nothing — discarding a
+  # doctor FAILURE, the one thing it exists to print. A directory would NOT
+  # exercise this: the -f test in front of the read already skips one, so only
+  # an unreadable FILE reaches the guard at all — proven by stripping the
+  # guard from a copy and watching this assertion fail, per the hazard note.
+  : > "$laneproj/.claude/lane"; chmod 000 "$laneproj/.claude/lane"
+  out=$(cd "$laneproj" && CLAUDE_CONFIG_DIR="$TMP/failconf" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *FAIL*) ok "an unreadable selector does not swallow a doctor FAILURE" ;;
+                 *) bad "a selector read failure silenced the hook — the ERR-trap class" ;;
+  esac
+  chmod 644 "$laneproj/.claude/lane"; rm -f "$laneproj/.claude/lane"
+
+  # The first-session orientation. A plugin cannot speak at install time — no
+  # such mechanism exists — so the first session after an install gets one
+  # block, and the marker is what makes "one" true. Three directions matter:
+  # it fires exactly once, it never fires for a checkout, and it must not
+  # displace a doctor FAILURE when both have something to say.
+  wc=$(mktemp -d); mkdir -p "$wc/conf" "$wc/proj"
+  out=$(cd "$wc/proj" && CLAUDE_CONFIG_DIR="$wc/conf" CLAUDE_PLUGIN_ROOT="$wc/conf" \
+        bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *"--ws-adopt"*"--ws-flags"*|*"--ws-flags"*"--ws-adopt"*)
+        ok "a fresh plugin install gets the one-time orientation" ;;
+                 *) bad "first plugin session got no orientation — install stays mute" ;;
+  esac
+  [ -f "$wc/conf/.ws-welcomed" ] && ok "and the marker makes it one-time" \
+                                 || bad "no marker written — the orientation would repeat forever"
+  out=$(cd "$wc/proj" && CLAUDE_CONFIG_DIR="$wc/conf" CLAUDE_PLUGIN_ROOT="$wc/conf" \
+        bash "$CHECK" </dev/null 2>/dev/null)
+  [ -z "$out" ] && ok "the second plugin session is silent again" \
+                || bad "the orientation repeated past its marker: $out"
+  rm -f "$wc/conf/.ws-welcomed"
+  out=$(cd "$wc/proj" && CLAUDE_CONFIG_DIR="$wc/conf" bash "$CHECK" </dev/null 2>/dev/null)
+  [ -z "$out" ] && ok "a checkout session never sees the plugin orientation" \
+                || bad "the orientation fired without a plugin root: $out"
+  # Both at once: a failing doctor plus the first session — neither displaces
+  # the other.
+  printf '#!/usr/bin/env bash\necho "  FAIL  synthetic"\nexit 1\n' > "$wc/conf/doctor.sh"
+  chmod +x "$wc/conf/doctor.sh"
+  out=$(cd "$wc/proj" && CLAUDE_CONFIG_DIR="$wc/conf" CLAUDE_PLUGIN_ROOT="$wc/conf" \
+        bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *FAIL*"--ws-adopt"*|*"--ws-adopt"*FAIL*)
+        ok "the orientation and a doctor FAILURE travel together" ;;
+                 *) bad "one of orientation/doctor-failure displaced the other: ${out:0:80}" ;;
+  esac
+
   # ------------------------------------------------------------- record age
   head_ "Record age nudges, and the far larger set of cases where it must not"
 
@@ -408,10 +506,16 @@ else
     rm -rf "$d"; mkdir -p "$d/.claude" "$d/docs"
     git init -q "$d" 2>/dev/null
     git -C "$d" config user.email t@test; git -C "$d" config user.name t
-    # These fixtures make ~80 commits each in a tight loop. Auto-gc can fire
-    # part-way through that and has no business running inside a fixture, and a
-    # signing hook belongs to whoever's machine this is, not to the test.
+    # These fixtures make ~121 commits each in a tight loop. gc.auto=0 only
+    # gates the gc task: since git 2.46 every commit detaches a maintenance
+    # child, and git 2.54 made its default strategy a geometric repack that
+    # fires at ~100 loose objects regardless of gc.auto — repacking under a
+    # still-committing loop until HEAD transiently fails to parse.
+    # maintenance.auto=false stops the spawn itself; gc.auto=0 stays for the
+    # gc path of older gits. A signing hook belongs to whoever's machine this
+    # is, not to the test.
     git -C "$d" config gc.auto 0
+    git -C "$d" config maintenance.auto false
     git -C "$d" config commit.gpgsign false
     printf '%s\n' "$2" > "$d/.claude/workflow.json"
     printf '%s\n' "$3" > "$d/docs/open-decisions.md"
@@ -492,8 +596,8 @@ else
     *"open decision"*"docs/open-decisions.md"*) ok "nudges on a stale open decision" ;;
     *) bad "an open decision blocked for 25 commits and nothing was said: $out" ;;
   esac
-  printf '%s' "$out" | grep -q -- '--start' \
-    && ok "the open-decision nudge names --start" \
+  printf '%s' "$out" | grep -q -- '--ws-start' \
+    && ok "the open-decision nudge names --ws-start" \
     || bad "nudge with no flag to act on — the reader is told a fact and no move"
   printf '%s' "$out" | grep -q 'TODO.md' \
     && bad "backlog nudged at 25 commits; the two thresholds are not separate" \
@@ -511,8 +615,8 @@ else
     *"TODO.md"*) ok "nudges on a backlog untouched for 80 commits" ;;
     *) bad "backlog untouched through 80 commits of work and nothing was said" ;;
   esac
-  printf '%s' "$out" | grep -q -- '--stocktake' \
-    && ok "the backlog nudge names --stocktake" \
+  printf '%s' "$out" | grep -q -- '--ws-stocktake' \
+    && ok "the backlog nudge names --ws-stocktake" \
     || bad "backlog nudge names no flag"
 
   (cd "$rec" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null >/dev/null 2>&1)
@@ -522,7 +626,7 @@ else
   # The roadmap is the third nudge and the last one. record.decisions and
   # record.audits are deliberately uncovered — the decision log is append-only
   # so its age carries no signal, and the sweep nudge above already fires on a
-  # stale --stocktake baseline at 40. Asserting the roadmap ALONE here is the
+  # stale --ws-stocktake baseline at 40. Asserting the roadmap ALONE here is the
   # point of the fixture: the open-decisions file is empty by design and the
   # backlog is finished, so anything else in the output is a nudge that should
   # not have fired.
@@ -559,12 +663,37 @@ else
     *"ROADMAP.md"*) ok "nudges on a roadmap untouched for 80 commits" ;;
     *) bad "roadmap untouched through 80 commits of work and nothing was said: $out" ;;
   esac
-  printf '%s' "$out" | grep -q -- '--plan' \
-    && ok "the roadmap nudge names --plan" \
+  printf '%s' "$out" | grep -q -- '--ws-plan' \
+    && ok "the roadmap nudge names --ws-plan" \
     || bad "roadmap nudge names no flag — the reader gets a fact and no move"
   printf '%s' "$out" | grep -q 'TODO.md\|open-decisions' \
     && bad "a record that is correctly empty was nudged alongside the roadmap: $out" \
     || ok "the roadmap nudge fires alone, with both other records quiet"
+
+  # The record-age nudges follow the lane selector too. A lane worktree whose
+  # pending decision sits in ITS open-decisions file must be nudged about that
+  # file — nudging it about the unsplit one, which is correctly quiet, would
+  # tell the one session that can settle the decision that nothing is open.
+  lanerec="$TMP/rec-lane"
+  recfix "$lanerec" '{"record":{"todo":"TODO.md","openDecisions":"docs/open-decisions.md"},
+    "lanes":{"named":{
+      "backend":{"records":{"openDecisions":"docs/open-decisions.backend.md"}},
+      "frontend":{"records":{"openDecisions":"docs/open-decisions.frontend.md"}}}}}' \
+    "$QUIET_OD" "$DONE_TD"
+  printf '%s\n' "$ENTRY" > "$lanerec/docs/open-decisions.backend.md"
+  printf '%s\n' "$QUIET_OD" > "$lanerec/docs/open-decisions.frontend.md"
+  printf 'backend\n' > "$lanerec/.claude/lane"
+  git -C "$lanerec" add -A >/dev/null 2>&1
+  git -C "$lanerec" commit -q -m lane >/dev/null 2>&1 \
+    || bad "rec-lane: the lane-records commit failed — the lane nudge assertions are meaningless"
+  advance "$lanerec" 25
+  at_distance "$lanerec" docs/open-decisions.backend.md 25
+  out=$(recrun "$lanerec")
+  case "$out" in
+    *"open decision"*"docs/open-decisions.backend.md"*)
+        ok "the open-decision nudge follows the lane selector" ;;
+    *) bad "a lane worktree's own open decision drew no nudge: $out" ;;
+  esac
 
   # A roadmap whose blocks are all marked completed is FINISHED, not neglected.
   # This is the roadmap's version of the empty-by-design case below, and it is
@@ -591,7 +720,7 @@ else
                 || bad "spoke about a roadmap file that is not there: $out"
 
   # Undeclared is not absent. A project with a ROADMAP.md sitting in the tree
-  # and no roadmap key never asked to be nudged towards --plan.
+  # and no roadmap key never asked to be nudged towards --ws-plan.
   noplan="$TMP/rec-roadmap-undeclared"
   recfix "$noplan" "$BOTH" "$QUIET_OD" "$DONE_TD" "$PLAN"
   advance "$noplan" 120
@@ -727,6 +856,42 @@ Nothing pending.'
     chmod 644 "$swh/.claude/HANDOFF.md"
   fi
   chmod 644 "$probe"
+
+  # ---------------------------------------------------- inbox entry counting
+  head_ "The inbox counter reads marked and marker-less files alike"
+
+  # Both counters (here and doctor.sh) count `## [open]` below the append
+  # marker, so the fenced template above it never registers as an entry. But no
+  # filing template mentions the marker, so a fresh machine's first filing
+  # creates the file bare — and a counter that REQUIRES the marker reads that
+  # inbox as empty forever (audit pass 9, F1: the finding dies unsurfaced).
+  # Both directions are asserted because each has been broken once: the false
+  # positive by the fenced template, the false negative by requiring the marker.
+  ib="$TMP/inbox-conf"
+  rm -rf "$ib"; mkdir -p "$ib"
+  printf '## [open] filed from a fresh machine\nDetail: no marker anywhere in this file\n' > "$ib/bug-reports.md"
+  out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$ib" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"1 open bug report"*) ok "a marker-less inbox is counted in full" ;;
+    *) bad "an entry in a marker-less inbox stayed invisible: $out" ;;
+  esac
+
+  printf '# Bug reports\n\nFormat:\n\n```\n## [open] <one-line summary>\n```\n\n<!-- Append new entries below this line. -->\n' > "$ib/bug-reports.md"
+  out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$ib" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"bug report"*) bad "the fenced template above the marker was counted as an entry: $out" ;;
+    *) ok "an empty inbox with template and marker stays silent" ;;
+  esac
+
+  printf '\n## [open] a real entry below the marker\n' >> "$ib/bug-reports.md"
+  out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$ib" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"1 open bug report"*) ok "an entry below the marker counts; the template above does not" ;;
+    *) bad "a marked inbox miscounted its entries: $out" ;;
+  esac
 fi
 
 # ------------------------------------------------------------------- doctor.sh
@@ -1028,6 +1193,43 @@ OWNFIX
     && ok "the override check reports that it ran on a clean fixture" \
     || bad "the override check said nothing on a clean fixture — it may be blind"
 
+  # 14. The inbox counter, both directions — the doctor's copy of the rule the
+  #     session hook is tested on above. The marker suppresses the fenced
+  #     template; its absence must not suppress real entries, because no filing
+  #     template mentions the marker and a fresh machine's inbox is bare
+  #     (audit pass 9, F1).
+  dfix="$TMP/doc-inbox"; docfix "$dfix"
+  printf '## [open] filed bare from a fresh machine\n' > "$dfix/bug-reports.md"
+  says "$dfix" '1 open bug report' \
+    "the doctor counts a marker-less inbox in full"
+  printf '# Bug reports\n\n```\n## [open] <one-line summary>\n```\n\n<!-- Append new entries below this line. -->\n' > "$dfix/bug-reports.md"
+  printf '%s' "$(doc "$dfix")" | grep -q 'no open entries' \
+    && ok "the fenced template above the marker still counts as nothing" \
+    || bad "an empty marked inbox reads as having open entries"
+
+  # 15. plugin.json's version against the newest tag. The plugin cache path
+  #     keys on that field, so a trailing version means two published vintages
+  #     overwrite one directory — found two tags behind with no owner by audit
+  #     pass 10 (F2). Leading passes: the release procedure bumps before it
+  #     tags, so a version ahead of the tags is a release in flight.
+  dfix="$TMP/doc-pver"; docfix "$dfix"
+  mkdir -p "$dfix/.claude-plugin"
+  printf '{"name":"x","version":"0.1.0"}\n' > "$dfix/.claude-plugin/plugin.json"
+  docommit "$dfix"
+  git -C "$dfix" tag v0.2.0
+  says "$dfix" 'plugin.json says 0.1.0 while the newest tag is v0.2.0' \
+    "a plugin manifest trailing the newest tag is reported"
+  printf '{"name":"x","version":"0.2.0"}\n' > "$dfix/.claude-plugin/plugin.json"
+  docommit "$dfix"
+  printf '%s' "$(doc "$dfix")" | grep -q 'matches the newest tag v0.2.0' \
+    && ok "a matching plugin version passes" \
+    || bad "a matching plugin version did not pass"
+  printf '{"name":"x","version":"0.3.0"}\n' > "$dfix/.claude-plugin/plugin.json"
+  docommit "$dfix"
+  printf '%s' "$(doc "$dfix")" | grep -q 'leads the newest tag' \
+    && ok "a leading plugin version is a release in flight, not a warning" \
+    || bad "a leading plugin version warned or failed"
+
 fi
 
 # -------------------------------------------------------------------- result
@@ -1064,7 +1266,7 @@ JSON
 out=$(cd "$provp" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
 case $out in
   *"nothing implements"*) ok "a provider nothing implements is a FAILURE, not a silent fallback" ;;
-  *) bad "an unimplemented provider passed — --todo would write nowhere and say nothing" ;;
+  *) bad "an unimplemented provider passed — --ws-todo would write nowhere and say nothing" ;;
 esac
 
 # The nudge must be silent here, and for the stated reason rather than by luck.
@@ -1253,7 +1455,7 @@ esac
 
 head_ "A description cannot invite invocation on an ordinary word"
 
-# `wrap-task` listed `"done"` and `release` listed `"ship it"` — both hold a push
+# `ws-wrap` listed `"done"` and `ws-release` listed `"ship it"` — both hold a push
 # grant, so "ok that's done" could commit and push. The fix for the class is to
 # NAME the tempting word and refuse it, so the check has to pass a description
 # that mentions the word in order to forbid it, or it forbids its own remedy.
@@ -1430,6 +1632,282 @@ else
   grep -q 'still here' "$rr/ok/TODO.md" \
     && ok "without --write it changes nothing" \
     || bad "reset-records.sh wrote without --write"
+
+  # A hazards.* pointer anchored into a file this script blanks must be
+  # trimmed with the content — the anchor is gone, and a dangling pointer is a
+  # doctor FAILURE in the very tree the script exists to make healthy. Found
+  # by publish.sh's Gate 3 the day hazards.* was first declared. A pointer
+  # into a file the run did not touch is the project's own and must survive.
+  hzm=$(mktemp -d); mkdir -p "$hzm/proj/.claude" "$hzm/proj/docs"
+  printf '{"record":{"handoff":".claude/HANDOFF.md"},
+           "hazards":{"doomed":".claude/HANDOFF.md#some-section",
+                      "kept":"docs/traps.md#live-section"}}\n' \
+    > "$hzm/proj/.claude/workflow.json"
+  printf '# Handoff\n\n## Some section\n' > "$hzm/proj/.claude/HANDOFF.md"
+  printf '# Traps\n\n## Live section\n' > "$hzm/proj/docs/traps.md"
+  bash "$RR" --write --dir "$hzm/proj" >/dev/null 2>&1
+  jq -e '.hazards.doomed' "$hzm/proj/.claude/workflow.json" >/dev/null 2>&1 \
+    && bad "a hazards pointer into a blanked file was left dangling" \
+    || ok "a hazards pointer into a blanked file is trimmed"
+  jq -e '.hazards.kept == "docs/traps.md#live-section"' \
+      "$hzm/proj/.claude/workflow.json" >/dev/null 2>&1 \
+    && ok "a hazards pointer into an untouched file survives" \
+    || bad "reset-records.sh trimmed a hazards pointer it had no reason to"
+
+  # The hazards sibling is resolved from record.handoff's own directory, not
+  # from a hardcoded .claude/HAZARDS.md — the hardcoded path shipped a
+  # relocated fork's standing warnings un-blanked (audit pass 9, F7).
+  rh=$(mktemp -d); mkdir -p "$rh/proj/docs" "$rh/proj/.claude"
+  printf '{"record":{"handoff":"docs/HANDOFF.md"}}\n' > "$rh/proj/.claude/workflow.json"
+  printf '# Handoff\n\ncontent\n' > "$rh/proj/docs/HANDOFF.md"
+  printf '# Standing hazards\n\nthis forks warnings\n' > "$rh/proj/docs/HAZARDS.md"
+  bash "$RR" --write --dir "$rh/proj" >/dev/null 2>&1
+  [ "$(cat "$rh/proj/docs/HAZARDS.md")" = "# Standing hazards" ] \
+    && ok "a hazards file beside a relocated handoff is blanked" \
+    || bad "reset-records.sh left a relocated fork's hazards un-blanked"
+  [ ! -f "$rh/proj/.claude/HAZARDS.md" ] \
+    && ok "and nothing is invented at the old hardcoded path" \
+    || bad "reset-records.sh created .claude/HAZARDS.md out of nothing"
+
+  # Lane records are the same records under other names, and the enumeration
+  # missed the whole class — a forked lane-split project shipped every lane's
+  # backlog, open decisions and handoff un-blanked while export and retire
+  # both handled them (audit pass 10, F1). And a handoff at CLAUDE.md is KEPT:
+  # that file also holds the project's standing instructions, which is why
+  # retire-workflow.sh kept it while this script blanked it (F5).
+  lp=$(mktemp -d); mkdir -p "$lp/proj/.claude" "$lp/proj/docs"
+  printf '{"record":{"todo":"TODO.md","handoff":"CLAUDE.md"},
+           "lanes":{"named":{"backend":{"records":{
+             "todo":"TODO.backend.md","handoff":"docs/handoff.backend.md"}}}}}\n' \
+    > "$lp/proj/.claude/workflow.json"
+  for f in TODO.md CLAUDE.md TODO.backend.md docs/handoff.backend.md docs/HAZARDS.md; do
+    printf 'PRIVATE\n' > "$lp/proj/$f"
+  done
+  bash "$RR" --write --dir "$lp/proj" >/dev/null 2>&1
+  [ "$(cat "$lp/proj/TODO.backend.md")" = "# Backlog" ] \
+    && [ "$(cat "$lp/proj/docs/handoff.backend.md")" = "# Handoff" ] \
+    && ok "lane records are blanked like the records they are" \
+    || bad "a lane record survived --write with its content (pass 10 F1)"
+  [ "$(cat "$lp/proj/docs/HAZARDS.md")" = "# Standing hazards" ] \
+    && ok "a lane handoff's hazards sibling is blanked with it" \
+    || bad "a lane handoff's HAZARDS.md sibling kept its content"
+  grep -q 'PRIVATE' "$lp/proj/CLAUDE.md" \
+    && ok "a CLAUDE.md handoff is kept — it also holds standing instructions" \
+    || bad "reset-records.sh blanked a CLAUDE.md handoff (pass 10 F5)"
+fi
+
+head_ "export-records.sh moves only what a clone would not bring"
+
+# It exists for the machine change: untracked records travel in an archive,
+# tracked ones travel with the repository. The failure modes worth pinning are
+# the same class as reset-records.sh's — it reads paths from a manifest, which
+# is data, and an import writes files from an archive, which is also data.
+ER="$_root/export-records.sh"
+if [ ! -x "$ER" ]; then
+  bad "export-records.sh missing or not executable at $ER"
+else
+  ex=$(mktemp -d); mkdir -p "$ex/proj/.claude" "$ex/proj/docs"
+  git init -q "$ex/proj"
+  git -C "$ex/proj" config user.email t@t; git -C "$ex/proj" config user.name t
+  printf '{"record":{"todo":"TODO.md","openDecisions":"docs/od.md"}}\n' \
+    > "$ex/proj/.claude/workflow.json"
+  printf 'TRACKED\n' > "$ex/proj/TODO.md"
+  printf 'UNTRACKED-RECORD\n' > "$ex/proj/docs/od.md"
+  printf 'docs/\n' > "$ex/proj/.gitignore"
+  git -C "$ex/proj" add .gitignore TODO.md .claude/workflow.json
+  git -C "$ex/proj" commit -qm x
+  (cd "$ex/proj" && bash "$ER" -o out.tar.gz >/dev/null 2>&1)
+  if [ -f "$ex/proj/out.tar.gz" ]; then
+    tar tzf "$ex/proj/out.tar.gz" | grep -qx 'docs/od.md' \
+      && ok "an untracked record is exported" \
+      || bad "the untracked record did not make the archive"
+    tar tzf "$ex/proj/out.tar.gz" | grep -qx 'TODO.md' \
+      && bad "a TRACKED record was exported — the clone already brings it" \
+      || ok "a tracked record stays out of the archive"
+  else
+    bad "export produced no archive at all"
+  fi
+
+  # Round trip into a bare destination.
+  mkdir -p "$ex/dest/docs"
+  (cd "$ex/dest" && bash "$ER" --import "$ex/proj/out.tar.gz" >/dev/null 2>&1)
+  [ "$(cat "$ex/dest/docs/od.md" 2>/dev/null)" = "UNTRACKED-RECORD" ] \
+    && ok "import restores the record byte-for-byte" \
+    || bad "the round trip lost the record"
+
+  # All-or-nothing: a non-empty collision refuses the WHOLE import.
+  printf 'DO NOT CLOBBER\n' > "$ex/dest/docs/od.md"
+  (cd "$ex/dest" && bash "$ER" --import "$ex/proj/out.tar.gz" >/dev/null 2>&1); rc=$?
+  [ "$rc" -ne 0 ] && [ "$(cat "$ex/dest/docs/od.md")" = "DO NOT CLOBBER" ] \
+    && ok "a non-empty collision refuses the import without --force" \
+    || bad "import overwrote an existing file, or refused and exited 0"
+  (cd "$ex/dest" && bash "$ER" --import "$ex/proj/out.tar.gz" --force >/dev/null 2>&1)
+  [ "$(cat "$ex/dest/docs/od.md")" = "UNTRACKED-RECORD" ] \
+    && ok "--force overwrites, so the refusal is a guard and not a wall" \
+    || bad "--force did not restore the record"
+
+  # A hostile archive must be refused before anything is written. GNU tar
+  # strips a leading ../ itself, but the refusal is the contract — a tar that
+  # extracts differently is not a reason this script writes outside a project.
+  mkdir -p "$ex/evil"; printf 'x\n' > "$ex/evil/p"
+  tar czf "$ex/hostile.tar.gz" --transform 's|^|../|' -C "$ex/evil" p 2>/dev/null
+  (cd "$ex/dest" && bash "$ER" --import "$ex/hostile.tar.gz" >/dev/null 2>&1); rc=$?
+  [ "$rc" -ne 0 ] \
+    && ok "an entry escaping the project refuses the import" \
+    || bad "a ../ archive entry was accepted"
+fi
+
+head_ "retire-workflow.sh removes tiers, not everything"
+
+# The tidy exit. Same threat model as reset-records.sh — it reads paths from a
+# manifest, which is data, and it deletes — plus one of its own: the records
+# tier holds the project's knowledge and must survive the default.
+RW="$_root/retire-workflow.sh"
+if [ ! -x "$RW" ]; then
+  bad "retire-workflow.sh missing or not executable at $RW"
+else
+  rw=$(mktemp -d); mkdir -p "$rw/proj/.claude" "$rw/proj/docs" "$rw/outside"
+  mkfix() {
+    printf '{"record":{"todo":"TODO.md","changelog":"CHANGELOG.md","reference":["README.md"],
+             "decisions":"docs/decisions.md","handoff":"CLAUDE.md"},
+             "sweeps":".claude/sweeps.json"}\n' > "$rw/proj/.claude/workflow.json"
+    for f in TODO.md CHANGELOG.md README.md CLAUDE.md docs/decisions.md .claude/sweeps.json .claude/lane; do
+      printf 'x\n' > "$rw/proj/$f"
+    done
+  }
+  mkfix
+  bash "$RW" --dir "$rw/proj" >/dev/null 2>&1
+  [ -f "$rw/proj/.claude/workflow.json" ] && [ -f "$rw/proj/.claude/sweeps.json" ] \
+    && ok "dry run removes nothing" \
+    || bad "retire-workflow.sh deleted without --write"
+
+  bash "$RW" --write --dir "$rw/proj" >/dev/null 2>&1
+  [ ! -f "$rw/proj/.claude/workflow.json" ] && [ ! -f "$rw/proj/.claude/sweeps.json" ] \
+    && [ ! -f "$rw/proj/.claude/lane" ] \
+    && ok "--write removes the machinery tier" \
+    || bad "machinery survived --write"
+  [ -f "$rw/proj/TODO.md" ] && [ -f "$rw/proj/docs/decisions.md" ] \
+    && ok "records survive a machinery-only retire" \
+    || bad "--write without --records deleted a record"
+
+  mkfix
+  bash "$RW" --write --records --dir "$rw/proj" >/dev/null 2>&1
+  [ ! -f "$rw/proj/TODO.md" ] && [ ! -f "$rw/proj/docs/decisions.md" ] \
+    && ok "--records removes the workflow-shaped records" \
+    || bad "--records left a workflow-shaped record behind"
+  [ -f "$rw/proj/CHANGELOG.md" ] && [ -f "$rw/proj/README.md" ] && [ -f "$rw/proj/CLAUDE.md" ] \
+    && ok "changelog, reference and a CLAUDE.md handoff always survive" \
+    || bad "a file that exists beyond the workflow was deleted"
+
+  # Containment: a record symlinked out of the project is refused, not deleted
+  # through, and refusing is fatal.
+  mkfix
+  printf 'PRECIOUS\n' > "$rw/outside/notes.md"
+  rm -f "$rw/proj/TODO.md"; ln -s "$rw/outside/notes.md" "$rw/proj/TODO.md"
+  bash "$RW" --write --records --dir "$rw/proj" >/dev/null 2>&1; rc=$?
+  [ -f "$rw/outside/notes.md" ] \
+    && ok "a symlinked record is refused rather than followed" \
+    || bad "retire-workflow.sh followed a symlink out of the project"
+  [ "$rc" -ne 0 ] && ok "and refusing is fatal" \
+                  || bad "refused a path and still exited 0"
+
+  # An absolute manifest path used to be silently KEPT: the existence probe
+  # prepended $DIR unconditionally, so contained()'s absolute arm — and the
+  # loud refusal behind it — was unreachable. Outside must refuse, fatally.
+  mkfix
+  printf 'PRECIOUS SWEEPS\n' > "$rw/outside/sweeps.json"
+  printf '{"record":{"todo":"TODO.md"},"sweeps":"%s"}\n' "$rw/outside/sweeps.json" \
+    > "$rw/proj/.claude/workflow.json"
+  bash "$RW" --write --dir "$rw/proj" >/dev/null 2>&1; rc=$?
+  grep -q 'PRECIOUS' "$rw/outside/sweeps.json" 2>/dev/null \
+    && ok "an absolute manifest path outside the project is refused, not silently kept" \
+    || bad "retire-workflow.sh deleted through an absolute manifest path"
+  [ "$rc" -ne 0 ] && ok "and the absolute refusal is fatal" \
+                  || bad "an absolute path outside the project passed with exit 0"
+
+  # The suite's own tree is never a valid target.
+  suite=$(mktemp -d); mkdir -p "$suite/.claude-plugin" "$suite/.claude"
+  printf '{"name": "workflow-secretary"}\n' > "$suite/.claude-plugin/plugin.json"
+  printf '{"record":{"todo":"TODO.md"}}\n' > "$suite/.claude/workflow.json"
+  printf 'x\n' > "$suite/TODO.md"
+  bash "$RW" --write --records --dir "$suite" >/dev/null 2>&1; rc=$?
+  [ "$rc" -ne 0 ] && [ -f "$suite/TODO.md" ] \
+    && ok "the suite's own tree is refused outright" \
+    || bad "retire-workflow.sh ran against the suite itself"
+fi
+
+head_ "The alert hook cues only when asked to"
+
+ALERT="$(dirname "$HOOK")/alert.sh"
+if [ ! -f "$ALERT" ]; then
+  bad "no alert hook beside $HOOK — the sound cue shipped without its script"
+else
+  acfg="$TMP/alerts-cfg"; atmp="$TMP/alerts-tmp"
+  mkdir -p "$acfg" "$atmp"
+  # The stamp lives in the config dir beside alerts-on, not the shared temp
+  # dir — a fixed /tmp name is another user's to own or pre-link.
+  stamp="$acfg/.ws-alert.stamp"
+
+  # The toggle, through the flag hook itself. CLAUDE_CONFIG_DIR scopes the
+  # state file to this test, exactly as it scopes the doctor elsewhere.
+  aflag() { # prompt
+    printf '%s' "$(jq -nc --arg p "$1" '{prompt:$p}')" \
+      | CLAUDE_CONFIG_DIR="$acfg" HOME="$TMP/home" bash "$HOOK" 2>/dev/null \
+      | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+  }
+
+  out=$(aflag "--ws-alerts on")
+  [ -f "$acfg/alerts-on" ] && printf '%s' "$out" | grep -q 'now ON' \
+    && ok "--ws-alerts on writes the state file and says so" \
+    || bad "--ws-alerts on did not create the state file or did not report ON"
+
+  out=$(aflag "--ws-alerts")
+  [ -f "$acfg/alerts-on" ] && printf '%s' "$out" | grep -q 'currently ON' \
+    && ok "bare --ws-alerts reports the state without toggling it" \
+    || bad "bare --ws-alerts toggled or misreported the state"
+
+  out=$(aflag "--ws-alerts off")
+  [ ! -f "$acfg/alerts-on" ] && printf '%s' "$out" | grep -q 'now OFF' \
+    && ok "--ws-alerts off removes the state file and says so" \
+    || bad "--ws-alerts off left the state file or did not report OFF"
+
+  # The cue itself. WS_ALERTS_CMD=: keeps the suite from chiming at whoever
+  # runs it; the stamp is the observable half of the cue path.
+  arun() { CLAUDE_CONFIG_DIR="$acfg" WS_ALERTS_CMD=: \
+             bash "$ALERT" </dev/null 2>/dev/null; }
+
+  rm -f "$stamp"
+  out=$(arun); rc=$?
+  [ "$rc" -eq 0 ] && [ -z "$out" ] && [ ! -f "$stamp" ] \
+    && ok "with alerts off the hook exits 0, silent, and cues nothing" \
+    || bad "alerts-off run cued anyway (rc=$rc, stamp=$([ -f "$stamp" ] && echo yes || echo no))"
+
+  # Proven against a broken copy during development: strip the state-file
+  # gate and the assertion above fails on the stamp it then writes.
+  : > "$acfg/alerts-on"
+  out=$(arun); rc=$?
+  [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -f "$stamp" ] \
+    && ok "with alerts on the hook cues once, still silent on stdout" \
+    || bad "alerts-on run did not cue or was not silent (rc=$rc)"
+
+  s1=$(cat "$stamp" 2>/dev/null)
+  arun >/dev/null
+  s2=$(cat "$stamp" 2>/dev/null)
+  [ "$s1" = "$s2" ] && ok "a burst of events cues once, not per event" \
+                    || bad "the dedupe stamp moved on an immediate second event"
+
+  # The override genuinely replaces the cue rather than being decoration.
+  rm -f "$stamp" "$atmp/cue-ran"
+  CLAUDE_CONFIG_DIR="$acfg" \
+    WS_ALERTS_CMD="touch '$atmp/cue-ran'" bash "$ALERT" </dev/null 2>/dev/null
+  cue=0
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    [ -f "$atmp/cue-ran" ] && { cue=1; break; }
+    sleep 0.05
+  done
+  [ "$cue" -eq 1 ] && ok "WS_ALERTS_CMD runs in place of the built-in chime" \
+                   || bad "WS_ALERTS_CMD was set and never ran"
+  rm -f "$acfg/alerts-on"
 fi
 
 head_ "Result"
