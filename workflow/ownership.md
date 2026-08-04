@@ -118,6 +118,7 @@ while it stays easy to state.
 | log an audit | — | [`writers/audit-writer.md`](writers/audit-writer.md) | primitive | `record.audits` | — |
 | commit | — | [`writers/git-writer.md`](writers/git-writer.md) | primitive | commits and tags | — |
 | inspect | `--ws-check` | `ws-check` | orchestrator | **nothing** — dispatches to the owner | — |
+| overview | `--ws-overview` | `ws-overview` | orchestrator | **nothing** — a read-only report; its counts go in the reply, which is not a record | — |
 | health-check | `--ws-full-check` | `ws-full-check` | orchestrator | **nothing with an owner** — every write goes through the owner it invokes: the skill files and the catalog through `--ws-tools`, the checkpoints through `sweep-tracker`. It edits the project's unowned files directly, the same as any ordinary work there | — |
 | take stock | `--ws-stocktake` `--ws-full-stocktake` | `ws-stocktake` | orchestrator | **nothing** — the entry goes through `audit-writer` | commit **and** push, **its own record only** |
 | merge | `--ws-pr` | `ws-pr` | orchestrator | **nothing** — the merge goes through `git-writer` | commit; push needs a fresh OK |
@@ -334,6 +335,30 @@ Three grants recur, and the distinction between them is deliberate:
   permanent, or anything that moves work onto `branch.publish`. A tag another
   checkout has fetched cannot be recalled, and a merge another checkout has
   pulled is reverted rather than undone. (`--ws-release`, `--ws-pr`)
+
+## Work scoped to another lane is announced first, then routed to that lane
+
+The second which-session-may-act rule, for projects worked on in worktree
+lanes. Where the manifest declares `lanes.named` and a `.claude/lane` selector
+names this session's lane, a request whose scope falls under a *different*
+lane's `scope` globs is another worktree's work, and two things hold — both
+**before any file is touched**:
+
+- **Warn up front.** Name the session's lane, the owning lane, and where the
+  work will happen. The scope globs sit in the shared manifest, so the
+  mismatch is detectable the moment the request arrives — detect it then, not
+  at commit time, when the only remaining options are both wrong.
+- **The work happens in the owning lane's home.** Its worktree, its branch,
+  its records. Interactively, offer the switch to a session in that worktree;
+  where the user has the work proceed from here anyway, it proceeds *into*
+  the owning lane's worktree and branch — absolute paths — and its record
+  writes resolve through that lane's `records`, not this one's.
+  **Lane-foreign files are never committed to the current worktree's
+  branch**: a commit that mixes lanes undoes the partition the lanes exist to
+  provide, and the conflict it defers lands on whoever merges next.
+
+A request that straddles two lanes is a partition question, not a licence —
+split it, do this lane's share here, and route the rest.
 
 ## Decide here, delegate the writing
 

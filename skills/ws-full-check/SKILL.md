@@ -155,14 +155,27 @@ For every `[open]` entry below the append marker:
    applies.
 3. **Route it** with the rest of this run's findings, in step 6 — it is a finding
    like any other, and its owner is looked up the same way.
-4. **Close it.** `[open]` becomes `[done]` when the fix lands, and the commit
+4. **Close it.** `[open]` becomes `[closed]` when the fix lands, and the commit
    says what it was. Delete the entry outright if it did not reproduce, naming in
    the commit what was claimed and why it is false — a wrong report is
    calibration, and dropping it silently teaches nobody anything.
 
+**The inbox has an upstream half: open issues on `qupunto/workflow-secretary`.**
+Adopters cannot reach this machine's inbox, so their filings arrive as issues —
+`--ws-report`'s own upstream path ends there too. In the same triage, run
+`gh issue list -R qupunto/workflow-secretary --state open` and take each open
+issue through the four steps above; the body is the entry. Closing differs in
+two ways: it happens on GitHub
+(`gh issue close <n> --comment "<what landed, or why it does not reproduce>"`),
+and only once the fix is *published* — an issue closed against a private
+commit reads as fixed to an adopter whose install does not carry it. Where
+`gh` cannot reach the repository, report the upstream half as **not checked**,
+never as empty.
+
 **An empty inbox is a result worth reporting.** "Nothing was filed" and "I did
 not look" are different sentences, and only one of them is ever implied by
-silence.
+silence. The same holds for each half separately — a clean local inbox says
+nothing about the upstream one.
 
 ### 5. Verify before anything reaches the user
 

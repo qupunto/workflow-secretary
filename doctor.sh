@@ -242,6 +242,50 @@ else
         sync with any other machine. See README.md."
 fi
 
+# ------------------------------------------------- plugin/checkout coexistence
+
+# Both install forms on one machine means both copies of the hooks fire on every
+# prompt — measured on a real install, not predicted. The checkout half of the
+# evidence is the config directory itself carrying the suite's plugin manifest
+# at its root, which is the source repository's own shape; the plugin half is a
+# cached workflow-secretary install, or enabledPlugins naming one. Keyed on
+# CONFIG_DIR throughout: coexistence is a property of the MACHINE, never of
+# whichever installation this particular run was pointed at.
+coexist_checkout=0
+if [ -f "$CONFIG_DIR/.claude-plugin/plugin.json" ] && ! is_plugin_root "$CONFIG_DIR" &&
+   git -C "$CONFIG_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  coexist_checkout=1
+fi
+coexist_plugin=0
+if ls -d "$CONFIG_DIR"/plugins/cache/*/workflow-secretary/ >/dev/null 2>&1; then
+  coexist_plugin=1
+elif jq -c '.enabledPlugins // empty' "$CONFIG_DIR/settings.json" 2>/dev/null | grep -q 'workflow-secretary'; then
+  coexist_plugin=1
+fi
+if [ $coexist_checkout -eq 1 ] && [ $coexist_plugin -eq 1 ]; then
+  fail "the suite is installed TWICE — this config directory is the checkout
+        form, and a workflow-secretary plugin is installed beside it. The hooks
+        double-fire, once from each form, on every prompt.
+        \`claude plugin uninstall workflow-secretary\` or retire the checkout;
+        keeping both is never right."
+else
+  pass "the suite is installed at most once — no plugin/checkout coexistence"
+fi
+
+# What an uninstall leaves behind: empty enabledPlugins / extraKnownMarketplaces
+# in settings.json. In the checkout form that file is TRACKED, so the residue
+# does not stay local — it becomes a commit every other machine pulls.
+if [ $PLUGIN_MODE -eq 0 ] &&
+   git -C "$CLAUDE_DIR" ls-files --error-unmatch settings.json >/dev/null 2>&1; then
+  residue=$(jq -r '[to_entries[]
+      | select(.key == "enabledPlugins" or .key == "extraKnownMarketplaces")
+      | select(.value | length == 0) | .key] | join(", ")' \
+    "$CLAUDE_DIR/settings.json" 2>/dev/null)
+  [ -n "$residue" ] &&
+    warn "uninstall residue in tracked settings.json: empty $residue — a plugin
+        teardown left them; delete the keys rather than committing them"
+fi
+
 # ------------------------------------------------------------------ credentials
 
 # The whole premise of publishing this directory is that ONE file never leaves

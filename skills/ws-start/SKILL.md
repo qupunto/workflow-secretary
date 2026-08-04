@@ -64,6 +64,16 @@ what the lanes are for.
    top of another session's half-finished edits is the failure this phase exists
    to catch. If the dirt is not this session's, stop and say so rather than
    building on it.
+
+   **A lane worktree syncs forward before anything reads a record.** Where a
+   `.claude/lane` selector is present and the worktree's branch is behind
+   `branch.integration`, `git fetch` and `git merge --ff-only` it up to date
+   before Phase 0 reads anything — a batch run against records the integration
+   branch has already moved past re-executes obligations that were already
+   executed there, the lane handoff being the copy that bites. Where the two
+   branches have genuinely diverged, stop and report: reconciling them is a
+   merge decision, not a batch's first step. The wrap-side twin lives in
+   `--ws-wrap`'s worktree section: a lane wrap syncs back after its push.
 2. **Check the pipeline before adding to it.** Where the manifest names a CI
    workflow, query it. A pipeline can sit red for days before anyone notices, and
    a batch merged onto a red one hides which change broke it. If it is red,

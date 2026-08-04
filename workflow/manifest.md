@@ -178,6 +178,12 @@ extra key — every lane's paths sit in this shared manifest, which is tracked
 and identical on every branch, and that identity is what removes the
 record-file merge conflicts worktree lanes otherwise produce.
 
+**Scope globs also bound what a session may act on.** A request that falls
+under another lane's `scope` is announced and routed to that lane rather than
+executed where it lands — [`ownership.md`](ownership.md)'s rule ("Work scoped
+to another lane"), stated there because it is about which session may act,
+not about which key resolves.
+
 ### `audit` — scope control for `--ws-stocktake`
 
 | Key | Type | Notes |
