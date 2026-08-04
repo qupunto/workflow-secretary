@@ -55,7 +55,7 @@ it stops being readable.
    │                                                              │
    │    --ws-start    --ws-check    --ws-full-check   --ws-release│
    │    --ws-wrap     --ws-pr       --ws-stocktake    --ws-report │
-   │    --ws-docs     --ws-adopt                                  │
+   │    --ws-docs     --ws-adopt    --ws-overview                 │
    └───────────────────────────┬──────────────────────────────────┘
                                │
                                │  invokes, passing its grant down
@@ -64,7 +64,7 @@ it stops being readable.
    │  PRIMITIVES — a record, the history, or a rule               │
    │                                                              │
    │    with a flag:  --ws-track    --ws-todo / --ws-log          │
-   │                  --ws-plan     --ws-tools                    │
+   │                  --ws-plan     --ws-tools     --ws-scout     │
    │                                                              │
    │    flagless:     ws-contracts  (a skill)                     │
    │                                                              │
@@ -78,13 +78,9 @@ it stops being readable.
               the record files, and the git history
 ```
 
-**Every orchestrator now writes no record**, and the box needs only one row to
-say so. It used to need two: `--ws-docs`, `--ws-stocktake` and `--ws-adopt` each still
-owned a record under a documented carve-out, and the diagram drew that rather
-than the intended state, because a map that shows the destination is read as
-showing the territory. Those three splits landed on 2026-08-01 — into
-`behaviour-writer`, `reference-writer`, `audit-writer` and `manifest-writer` —
-so the distinction no longer partitions anything.
+**Every orchestrator writes no record**, and the box needs only one row to say
+so. The diagram draws the current state, never an intended one — a map that
+shows the destination is read as showing the territory.
 
 The picture shows tier and grant direction only. **Who invokes whom is the table
 below**, deliberately not drawn here: the two would fight for the same arrows.
@@ -95,12 +91,11 @@ label. It is a primitive on the same test as the rest: one job, no session of
 its own, no authorization it did not inherit.
 
 **These procedures are not skills.** They live at `workflow/writers/*.md`
-and a caller reaches one by reading the file, not by invoking anything — they
-moved out of `skills/` on 2026-08-02 because a skill's description loads into
-every session whether the skill is used or not, and each of theirs said it was
-invoked by other skills rather than by the user. They are drawn in this box
-because the tier is unchanged: one record each, sole writer, no grant of their
-own. `workflow/writers/README.md` is their index.
+and a caller reaches one by reading the file, not by invoking anything — a
+skill's description loads into every session whether the skill is used or not,
+and each of these is invoked only by other skills, a trigger a description
+cannot serve. They are drawn in this box because the tier is the same: one
+record each, sole writer, no grant of their own. `workflow/writers/README.md` is their index.
 
 **The flagless row cannot be entered from the top**, and that is the point
 rather than an omission: a primitive with no flag has no grant of its own to
@@ -114,14 +109,15 @@ because the tier says what a skill owns, not who may call it.
 |---|---|---|
 | `--ws-adopt` | `manifest-writer`, `--ws-docs`, `git-writer` | writing the manifest it decided on; scaffolding a project that has no documentation; committing. Amendment mode — one key in an existing manifest — reaches `manifest-writer` without the detection phase |
 | `--ws-start` | `--ws-track`, `--ws-todo` / `--ws-log`, `--ws-plan`, `--ws-tools`, `--ws-docs`, `behaviour-writer`, `reference-writer`, `handoff-writer`, `git-writer`, `sweep-tracker` | building the task list before the batch; recording what the batch produced, committing it, and stamping the suite run so the next audit need not repeat it. `--ws-docs` only where a change also earns a page. Its Phase 6 handoffs run **serialized**, never concurrently — every record writer re-verifies against the other records, so each one's read set is all of them |
-| `--ws-check` | the owner of each finding, and `sweep-tracker` | it writes nothing itself — dispatch is the whole design. Every row in its table is now a primitive, so a one-line staleness fix no longer has to run a whole orchestrator procedure to get written |
+| `--ws-check` | the owner of each finding, and `sweep-tracker` | it writes nothing itself — dispatch is the whole design. Every row in its table is a primitive, so a one-line staleness fix never has to run a whole orchestrator procedure to get written |
 | `--ws-full-check` | the same owners at full scope, plus `--ws-tools` (claims and prune), `sweep-tracker`, `doctor.sh` and the project's own test command | ignoring every checkpoint. It resolves the suite carry-forward at the start and deliberately never stamps it at the end, because its later steps always run against a tree it has already edited |
 | `--ws-stocktake` | `--ws-todo` / `--ws-log`, `--ws-plan`, `--ws-tools`, `--ws-wrap`, `audit-writer`, `handoff-writer`, `git-writer`, `sweep-tracker`, and the project's own code-analysis skill where one exists | the dispositions, its own audit entry, and a dispatched close-out. It runs the record dimension itself from `workflow/checks/record-drift.md` — the hook drops `--ws-check` when either stocktake flag is typed |
 | `--ws-release` | `--ws-full-check`, `changelog-writer`, `git-writer` | everything being in order before a tag — drift included, since that is one of its dimensions — then the entry and the tag. It reads `--ws-plan`'s mark and never writes it |
 | `--ws-wrap` | `handoff-writer`, `--ws-plan`, `git-writer` | the handoff, the milestone question, the commits. It *names* `--ws-pr` where the pushed branch is ahead of `branch.publish`, and never invokes it — a session ending and work being ready to merge are two different facts |
-| `--ws-pr` | `git-writer`, `--ws-todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because measured over forty merged PRs two unresolved threads in five were chatter. It drafts the body and holds the gate, and writes nothing itself |
-| `--ws-tools` | `--ws-docs`, `--ws-todo`, `sweep-tracker`, `git-writer` | handing the catalog over, stamping the sweep. It draws the diagram below itself. A tooling *task* it uncovers goes to `--ws-todo` rather than being written here |
+| `--ws-pr` | `git-writer`, `--ws-todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because a meaningful share of unresolved threads is chatter. It drafts the body and holds the gate, and writes nothing itself |
+| `--ws-tools` | `--ws-docs`, `--ws-todo`, `sweep-tracker`, `git-writer` | handing the catalog over, stamping the sweep. It draws the diagram above itself. A tooling *task* it uncovers goes to `--ws-todo` rather than being written here |
 | `--ws-docs` | `--ws-todo`, `--ws-track`, `sweep-tracker` | parking a page set larger than one session, since this skill stores no state of its own; narrowing its next audit |
+| `--ws-scout` | `--ws-log` | the reasoning entry an adoption earns, at the moment the user adopts — the registry row stays lean and points at it |
 
 `--ws-check` and `--ws-full-check` appear as callers and never as callees of a write:
 an inspector that writes is a second writer on every file it touches.
@@ -130,8 +126,8 @@ an inspector that writes is a second writer on every file it touches.
 
 ## Global skills
 
-In `skills/`, loaded in every project. The record procedures used to
-be here; they are the table after this one.
+In `skills/`, loaded in every project. The record procedures are the table
+after this one.
 
 | Skill | Flag | What it does |
 |---|---|---|
@@ -141,12 +137,14 @@ be here; they are the table after this one.
 | `ws-pr` | `--ws-pr` | Moves work from the integration branch onto the publish branch through a pull request — drafts the body from the branch range rather than from memory, opens it, watches its CI, and merges behind a fresh confirmation. The only thing in the suite that moves work between the two branches |
 | `ws-stocktake` | `--ws-stocktake`, `--ws-full-stocktake` | Where is this project — record, conventions, public surface, safety nets — then rebuilds the backlog around the answer. Invokes the project's own code-analysis skill where one exists |
 | `ws-record` | `--ws-todo`, `--ws-log` | Parks work that is not being built now, and records decisions already made |
+| `ws-scout` | `--ws-scout` | Consults the project's toolbelt registry before any capability gets hand-built, searches the stack's public registries when the registry has no answer, and explains the candidates — advises, never implements. Sole writer of `record.toolbelt`; the reasoning behind each row goes through `--ws-log` |
 | `ws-check` | `--ws-check` | Asks whether a project's records still match reality — including whether the documents claim a version no tag resolves; reports and dispatches, writes nothing itself |
 | `ws-report` | `--ws-report` | Files a finding about this suite upstream — appends it to the machine-local inbox, then opens a GitHub issue on the public repository behind a preview, a redaction of the project context, and a fresh OK. Can bundle every open inbox entry under the same rules; hazards are referenced by group name, never quoted |
 | `ws-release` | `--ws-release` | Decides that a version ships, once the roadmap marks a milestone done, and asks before anything is published. The entry and the tag are written by the two primitives above |
 | `ws-plan` | `--ws-plan` | Keeps milestones and blocks in order, and marks a milestone complete |
+| `ws-overview` | `--ws-overview` | Reports where a project stands at a glance — branch and lane, per-record counts, sweep freshness, pending warnings, the nearest milestones — read fresh at invocation, writing nothing at all. Every mechanical number comes from its probe script in one call; the model adds only the judgment lines. The read-only sibling of `--ws-check`: it counts what the records say and never verifies them |
 | `ws-start` | `--ws-start` | Picks up pending work and does it, in parallel lanes partitioned so they cannot collide |
-| `ws-tools` | `--ws-tools` | Keeps this catalog current, hands it to `--ws-docs` where a site exists, deletes stale claims from skill and agent files, and runs the prose prune over the same set — absorbed from the separate trim skill on 2026-08-03 |
+| `ws-tools` | `--ws-tools` | Keeps this catalog current, hands it to `--ws-docs` where a site exists, deletes stale claims from skill and agent files, and runs the prose prune over the same set |
 | `ws-track` | `--ws-track` | Builds the visible task list for multi-step work and keeps it honest as the work moves |
 | `ws-contracts` | — | States how the suite is wired — that the skills are global, that project facts come from `.claude/workflow.json`, what a project without a manifest falls back to, and where the three contracts resolve in a checkout versus a plugin install. It exists because a plugin root's `CLAUDE.md` is never loaded, so an adopter who installs rather than clones would otherwise see none of it |
 | `ws-wrap` | `--ws-wrap` | Closes out a session — task list, the handoff through `handoff-writer`, the commits and push through `git-writer`, asks `--ws-plan` whether a milestone just finished, reports where the project stands in the reply (backlog left, decisions nobody has made, the next milestone), and says when it is safe to clear |
@@ -157,9 +155,9 @@ be here; they are the table after this one.
 
 In `workflow/writers/`, **not** in `skills/`. A caller reaches one by reading
 the file — there is nothing to invoke, and nothing loads unless a caller opens
-it. They moved out of `skills/` on 2026-08-02: a description costs every
-session whether or not the skill is used, and each of these said in its own
-description that only other skills invoked it. Ownership did not change —
+it. A description costs every session whether or not the skill is used, and
+each of these is invoked only by other skills — so they are procedure files
+rather than skills. Ownership is unaffected by the location —
 `workflow/ownership.md` is still the authority, and `workflow/writers/README.md`
 is their index.
 
@@ -183,11 +181,10 @@ In `workflow/checks/`, **not** in the skills that wrote them. Each is one way of
 finding inconsistency in something the project has written down; the skill that
 runs one supplies the scope and decides what happens to a finding.
 
-They were extracted on 2026-08-02. Every one was already single-sourced —
-`--ws-full-check` and `--ws-stocktake` borrowed rather than copied — but they did it by
-**citing another skill's headings**, which breaks silently on a rename and leaves
-the borrower reporting success over checks it never ran. `doctor.sh` policed that
-class and now has nothing to police: "no cross-skill section citations to check".
+Each is single-sourced here because a method borrowed by **citing another
+skill's headings** breaks silently on a rename, leaving the borrower reporting
+success over checks it never ran; `doctor.sh`'s section-citation check polices
+the citations that remain.
 
 | Method | What it finds | Run by |
 |---|---|---|
@@ -198,12 +195,6 @@ class and now has nothing to police: "no cross-skill section citations to check"
 **A method says what counts as a finding; a runner decides scope, disposition
 and owner.** `workflow/checks/README.md` holds that line and why it matters —
 material that drifts to the wrong side of it stops being borrowable.
-
-**It also made the runners honest about their size.** Before the extraction
-`--ws-check` was nearly the size of `--ws-full-check`, which reads as absurd for the
-*incremental* sweep; nearly half of it was the taxonomy the other two borrowed.
-The extraction roughly halved it, and it is now what its name says.
-
 
 ---
 
@@ -224,19 +215,18 @@ and write nothing.
 | GitHub Issues | `{ "provider": "github-issues", "repo": "owner/name", "label": "backlog" }` | [`github-issues.md`](../workflow/providers/github-issues.md) |
 
 **A declared provider is never a silent fallback to a file.** `doctor.sh` fails
-on one nothing implements, on a missing `repo`, and on a repo that does not
-resolve; it warns when `gh` is absent or unauthorized, which is a fault of the
-machine rather than the manifest. The reasoning behind an item still goes to
+on one nothing implements, on a missing `repo`, on a repo that does not
+resolve, and on a declared `label` no label on the repo matches; it warns when
+`gh` is absent or unauthorized, which is a fault of the machine rather than the
+manifest. The reasoning behind an item still goes to
 `record.decisions` — a file — because an issue thread is a conversation and a
 decision log is read months later.
 
 ## Skills scoped to this repo
 
 None. The workflow supports them — a project ships a skill under
-`.claude/skills/` and the flag hook resolves it there before the global suite —
-and this repo used to have two. The prune skill (now `ws-tools` Job 3) and then `repo-health` both proved
-general enough to be worth every project having, the second by being merged into
-`--ws-full-check` rather than moved beside it. What is left here is global.
+`.claude/skills/` and the flag hook resolves it there before the global suite.
+Everything here is global.
 
 ## Agents
 
@@ -250,7 +240,7 @@ would route a lane to an agent does that work inline and says so.
 |---|---|
 | `doctor.sh` | Read-only health check of this config and the project in the working directory. Prints what it checks, so the list cannot go stale |
 | `hooks/shorthand-flags.sh` | The `UserPromptSubmit` hook that turns a `--flag` into a deterministic skill invocation rather than a judgement call |
-| `hooks/session-check.sh` | The `SessionStart` hook, and the only thing here that speaks without being asked — so it is built to stay silent unless it has something worth a session's attention: a doctor failure, a sweep or a record gone stale, a filed bug report, or a handoff the harness would not otherwise load |
+| `hooks/session-check.sh` | The `SessionStart` hook, and the only thing here that speaks without being asked — so it is built to stay silent unless it has something worth a session's attention: a doctor failure, a sweep or a record gone stale, a filed bug report, an unread upstream filing (counted only in the suite's own checkout, where triage can act), or a handoff the harness would not otherwise load |
 | `hooks/alert.sh` | A sound cue when a session waits for input — permission prompts, option pickers, idle, turn end. Ships silent and opts in per machine: `--ws-alerts on\|off` (served by the flag hook, no skill) toggles a state file in the config directory that this hook gates on. Sound only, cross-platform, one cue per burst |
 | `hooks/hooks.json` | Declares the same events for a **plugin** install, where `settings.json` is the user's and a plugin never owns it. Plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The manifest that makes this directory installable. `claude plugin validate` reads it |
@@ -260,9 +250,28 @@ would route a lane to an agent does that work inline and says so.
 | `publish.sh` | Assembles the public tree from `HEAD` and gates it — copies only what it admits, empties the records on the copy, then asserts no ancestry, no private identifier, a whitelist of tracked paths, the credential rules, and the doctor and tests from inside the result. Never pushes. Does not travel with what it copies |
 | `.claude-plugin/marketplace.json` | Makes the same directory its own marketplace, listing one plugin whose `source` is `"./"` — so there is no second repository to keep in step. Handed a directory holding both, `claude plugin validate` checks this one and not the other; name the file to check the other |
 | `skills/ws-docs/assets/scaffold.sh` | Creates a docsify site shell and only the shell, never content. Refuses to touch an existing directory, and prints the steps it deliberately leaves to its caller. Invoked by `--ws-docs` in Scaffold mode |
+| `skills/ws-record/assets/index-decisions.sh` | Generates `record.decisionsIndex` from the decision log — one row per entry, line number and heading — and verifies it without writing under `--check`. Declared as `commands.indexRegen` / `commands.indexCheck` in this repo's manifest; refuses to run where the index key is undeclared |
+| `skills/ws-overview/assets/probe.sh` | Emits `--ws-overview`'s whole mechanical block in one read-only call — tree, record counts, doctor result, sweep freshness, roadmap position — so the report costs seconds instead of a model read of every record. Offline by design: external state is reported as not counted, never as zero. Invoked by `--ws-overview` |
 | `tests/hook-contract.sh` | The contract tests for the hook, whose breakage is total and silent |
 | `.github/workflows/publish.yml` | Fires on a release-tag push: runs `publish.sh`, and stages the gated assembly as a PR on the public repository — never a merge. Needs the `PUBLISH_TOKEN` secret; removed from the assembly so it never ships |
-| `.github/workflows/verify.yml` | CI. Runs `doctor.sh` (twice, from both scopes) and the hook contract tests, plus shell syntax, Shellcheck, JSON validity, credential scans, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, and on every pull request — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
+| `.github/workflows/verify.yml` | CI. Runs `doctor.sh` (twice, from both scopes) and the hook contract tests, plus shell syntax, Shellcheck, JSON validity, credential scans, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, on every pull request, and on manual dispatch — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
+
+## Command wrappers
+
+In `commands/`, one file per verb flag of a multi-verb skill — a flag whose
+name differs from its skill's for a reason other than a scope-variant prefix
+(`--ws-full-stocktake` gets none). The wrapper's filename **is** the flag, so
+the `/` menu autocompletes it and its body fires the flag with `$ARGUMENTS`
+appended. The `UserPromptSubmit` hook
+does not fire on a wrapper's expanded body — routing rides the flag token plus
+the owning skill's own rules — which is why only skill-backed flags get
+wrappers and the hook-served ones (`--ws-flags`, `--ws-help`, `--ws-alerts`)
+never do. `doctor.sh` asserts every wrapper fires the flag its name promises.
+
+| Wrapper | Fires | Routes to |
+|---|---|---|
+| `commands/ws-todo.md` | `--ws-todo` | `ws-record` |
+| `commands/ws-log.md` | `--ws-log` | `ws-record` |
 
 ## Files that are not tools
 
@@ -271,6 +280,6 @@ Worth naming, because they are most of what a reader will otherwise open:
 | File | What it is |
 |---|---|
 | `workflow/*.md` | The contracts every skill links to instead of carrying its own copy — ownership, record contract, manifest keys, sweep checkpoint, audit coverage, project shape |
-| `CLAUDE.md` | Loaded into every session in every project — the checkout form only, because a plugin root's is never read as project context. Now the three contract paths, the doctor line and a pointer: what each contract governs moved to `ws-contracts`, which owns it |
+| `CLAUDE.md` | Loaded into every session in every project — the checkout form only, because a plugin root's is never read as project context. The three contract paths, the doctor line and a pointer: what each contract governs is `ws-contracts`', which owns it |
 | `README.md` | How the repo is adopted on a new machine, and how the flags work |
 | `bug-reports.md` | Gitignored inbox for defects found in these files by sessions working in other projects |

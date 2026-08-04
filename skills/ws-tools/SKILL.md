@@ -16,8 +16,7 @@ Three jobs, all about the files that describe and drive the tooling:
 3. **The prose prune** — the same files, for text that is verbose and *true*.
    Job 2 deletes claims that have gone false and is silent on everything else;
    Job 3 is the deliberate sweep for prose whose removal changes nothing about
-   what Claude does. Absorbed from the separate `ws-trim` skill on 2026-08-03 —
-   it read the same file set and dispatched every cut here anyway.
+   what Claude does.
 
 **Project facts come from `.claude/workflow.json`**: `record.tooling.catalog` and
 `record.tooling.sources`. Without a manifest, fall back to `.claude/TOOLING.md`,
@@ -150,7 +149,9 @@ it literally, paragraph by paragraph. Three things pass: **behaviour** (a rule,
 threshold, ordering, boundary, path, command, or the name of a file or skill to
 hand something to); **defence of a counterintuitive rule** — kept as **one
 clause**, not a paragraph and not a story, because a rule that looks wrong gets
-reverted by the next session unless the why survives; and **routing** — the
+reverted by the next session unless the why survives — and the clause is the
+**mechanism**, never the incident: "it has happened here" is history, not
+defence, however recent the scar; and **routing** — the
 frontmatter `description`, the most expensive text here and the one whose
 removal breaks the skill outright. Everything else is a candidate: the second
 illustration, the history of how a rule was arrived at, the reassurance, the

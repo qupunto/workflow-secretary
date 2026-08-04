@@ -39,6 +39,7 @@ before a single skill runs.
 │   └── hooks.json           read only when installed as a plugin
 ├── .claude-plugin/        plugin.json and marketplace.json — installable, and its own marketplace
 │
+├── commands/              slash-command wrappers: the filename is the flag it fires
 ├── skills/                the global suite; available in every project
 ├── workflow/              the contracts every skill links to instead of copying
 │
@@ -184,8 +185,9 @@ replacing them, so an adopter's own hooks keep firing.
 - **`UserPromptSubmit` → `hooks/shorthand-flags.sh`.** Turns a `--flag` into an
   explicit instruction to invoke a skill. Without it, every flag falls back to
   being matched from a skill description, which is reliable in practice but not
-  guaranteed. Flags are read only from a run at the very start or very end of a
-  message, so a pasted `git branch --track origin/dev` does not fire anything.
+  guaranteed. A flag counts anywhere in the message; what gates it is exact
+  decomposition — a token must split entirely into flags, so a pasted
+  `git branch --track origin/dev` or a `--ws-wrapper` fires nothing.
 - **`SessionStart` → `hooks/session-check.sh`.** Silent when there is nothing worth a
   session's attention, because its output is injected into every session's
   context — a chatty version would be both a permanent token cost and a warning

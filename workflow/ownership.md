@@ -26,10 +26,10 @@ all: they decide, and hand every write to the primitive that owns the file.
 `--ws-start` is the one that writes source code, and it is the exception rather
 than the shape.
 
-**There are no longer any carve-outs.** `--ws-adopt`, `--ws-docs` and `--ws-stocktake`
-each used to write a record of their own; those became `manifest-writer`,
-`behaviour-writer`, `reference-writer` and `audit-writer` on 2026-08-01. The
-matrix is now the whole rule.
+**There are no carve-outs.** The matrix is the whole rule: no orchestrator owns
+a record, and every record reaches its file through the primitive that owns it.
+A carve-out is a second writer wearing a justification, and the matrix must not
+carry one.
 
 Apply the SPLIT test below against *owns the session*, never against *writes
 code*; read the matrix's "Sole writer of" column for what any given row actually
@@ -44,8 +44,8 @@ not who is allowed to call it.
 **Orchestrator-to-orchestrator dispatch is the shape to audit**, because the
 callee arrives carrying its own flag's authorization unless the reader applies
 the inheritance rule below. Do not read this table as saying it cannot happen —
-that reading is what let one such dispatch sit unnoticed in this suite. Read it
-as: when it happens, the grant is still the *user's* flag, and a callee whose
+an unnoticed dispatch of that shape is exactly how a callee runs on authorization
+the user never gave. Read it as: when it happens, the grant is still the *user's* flag, and a callee whose
 own procedure would exceed that must be given a narrower scope explicitly.
 
 **The git history is a record for this purpose**, and `git-writer` is its writer.
@@ -54,9 +54,9 @@ tags are a durable statement about the project that several skills need written
 and none of them should each be writing their own way.
 
 **A skill that produces content for a file it does not own hands that content
-to the owner.** Stated directly and applying to any skill — a third,
-craft-primitive tier existed once for the single skill shaped that way, and a
-tier with one member bought nothing the rule itself does not.
+to the owner.** Stated directly and applying to any skill — no third tier
+exists for that shape, because a tier with one member buys nothing the rule
+itself does not.
 
 **Which skill is in which tier is the matrix below**, and deliberately not a
 second list here. A membership list beside the definition is an inventory: it
@@ -72,9 +72,10 @@ other skills.
 
 **Those eight are not skills — they are procedure files under
 [`writers/`](writers/README.md), read by the skill that needs one.** A skill's
-description is a standing per-session cost for a trigger these disclaimed, so
-they moved out of `skills/` on 2026-08-02. **Nothing about ownership changed** —
-one procedure, one record, and this matrix is still where you look it up. The
+description is a standing per-session cost, and these are invoked only by other
+skills — a trigger a description cannot serve — so they live outside `skills/`.
+**The location changes nothing about ownership** — one procedure, one record,
+and this matrix is still where you look it up. The
 rows carry a path now instead of a skill name, and that path is how you reach
 them: follow the link and do what it says.
 
@@ -106,9 +107,11 @@ while it stays easy to state.
 | defer | `--ws-todo` | `ws-record` | primitive | `record.todo`, `record.openDecisions`, `record.decisions` + index | — |
 | record | `--ws-log` | `ws-record` *(same skill as `--ws-todo`)* | primitive | `record.decisions` + index — **and the delete from `record.openDecisions`** that settling an entry entails, which is the same skill's file and so not a second writer | — |
 | order | `--ws-plan` | `ws-plan` | primitive | `record.roadmap` | — |
+| scout | `--ws-scout` | `ws-scout` | primitive | `record.toolbelt` — the registry of adopted capabilities; the reasoning behind each row goes through `--ws-log`, which is `ws-record`'s file | — |
 | catalog | `--ws-tools` | `ws-tools` | primitive | `record.tooling.catalog`, plus stale claims and the prose prune inside `record.tooling.sources` | commit, **not** push |
 | build | `--ws-start` | `ws-start` | orchestrator | source code | commit, **not** push |
 | document | `--ws-docs` | `ws-docs` | orchestrator | the docs site | — |
+| state the wiring | — | `ws-contracts` | primitive | **nothing** — it says where the contracts resolve and which file settles a disagreement | — |
 | stamp | — | [`writers/sweep-tracker.md`](writers/sweep-tracker.md) | primitive | `sweeps` — the checkpoint cache | — |
 | hand over | — | [`writers/handoff-writer.md`](writers/handoff-writer.md) | primitive | `record.handoff` | — |
 | note | — | [`writers/changelog-writer.md`](writers/changelog-writer.md) | primitive | `record.changelog` | — |
@@ -118,6 +121,7 @@ while it stays easy to state.
 | log an audit | — | [`writers/audit-writer.md`](writers/audit-writer.md) | primitive | `record.audits` | — |
 | commit | — | [`writers/git-writer.md`](writers/git-writer.md) | primitive | commits and tags | — |
 | inspect | `--ws-check` | `ws-check` | orchestrator | **nothing** — dispatches to the owner | — |
+| overview | `--ws-overview` | `ws-overview` | orchestrator | **nothing** — a read-only report; its counts go in the reply, which is not a record | — |
 | health-check | `--ws-full-check` | `ws-full-check` | orchestrator | **nothing with an owner** — every write goes through the owner it invokes: the skill files and the catalog through `--ws-tools`, the checkpoints through `sweep-tracker`. It edits the project's unowned files directly, the same as any ordinary work there | — |
 | take stock | `--ws-stocktake` `--ws-full-stocktake` | `ws-stocktake` | orchestrator | **nothing** — the entry goes through `audit-writer` | commit **and** push, **its own record only** |
 | merge | `--ws-pr` | `ws-pr` | orchestrator | **nothing** — the merge goes through `git-writer` | commit; push needs a fresh OK |
@@ -318,10 +322,9 @@ was reported.
 
 **A grant is authorization, not the act.** Every skill in the matrix that may
 commit does so by invoking `git-writer`, which inherits that grant and confers
-none of its own. This is the rule that used to be missing: the commit *rules* —
-coherent grouping, staging by name, the session trailer, checking whose work a
-push would publish — lived in `--ws-wrap`'s file while six flags granted COMMIT, so
-five callers were authorized with no discipline attached.
+none of its own — so the commit *rules* (coherent grouping, staging by name, the
+session trailer, checking whose work a push would publish) bind every authorized
+caller, rather than only the one whose file happens to state them.
 
 Three grants recur, and the distinction between them is deliberate:
 
@@ -334,6 +337,30 @@ Three grants recur, and the distinction between them is deliberate:
   permanent, or anything that moves work onto `branch.publish`. A tag another
   checkout has fetched cannot be recalled, and a merge another checkout has
   pulled is reverted rather than undone. (`--ws-release`, `--ws-pr`)
+
+## Work scoped to another lane is announced first, then routed to that lane
+
+The second which-session-may-act rule, for projects worked on in worktree
+lanes. Where the manifest declares `lanes.named` and a `.claude/lane` selector
+names this session's lane, a request whose scope falls under a *different*
+lane's `scope` globs is another worktree's work, and two things hold — both
+**before any file is touched**:
+
+- **Warn up front.** Name the session's lane, the owning lane, and where the
+  work will happen. The scope globs sit in the shared manifest, so the
+  mismatch is detectable the moment the request arrives — detect it then, not
+  at commit time, when the only remaining options are both wrong.
+- **The work happens in the owning lane's home.** Its worktree, its branch,
+  its records. Interactively, offer the switch to a session in that worktree;
+  where the user has the work proceed from here anyway, it proceeds *into*
+  the owning lane's worktree and branch — absolute paths — and its record
+  writes resolve through that lane's `records`, not this one's.
+  **Lane-foreign files are never committed to the current worktree's
+  branch**: a commit that mixes lanes undoes the partition the lanes exist to
+  provide, and the conflict it defers lands on whoever merges next.
+
+A request that straddles two lanes is a partition question, not a licence —
+split it, do this lane's share here, and route the rest.
 
 ## Decide here, delegate the writing
 
@@ -360,10 +387,9 @@ Either of these is enough:
   milestone completed is a question for the user; writing the mark is not.
 - **The record has callers wanting different amounts of work.** A one-line
   correction dispatched by `--ws-check` should not have to invoke a full release,
-  audit or documentation procedure to get written. `record.handoff` moved to its
-  own primitive once several skills wanted it written at different scopes —
-  `--ws-wrap`'s full currency pass and `--ws-check`'s dispatched one-line correction
-  are the two ends of that range, and the set has grown since.
+  audit or documentation procedure to get written. `record.handoff` is the
+  worked example: `--ws-wrap`'s full currency pass and `--ws-check`'s dispatched
+  one-line correction are the two ends of the range one primitive serves.
 
 ### When not to split
 
@@ -392,6 +418,14 @@ independently.
    reference documentation — **through whichever skill owns that file.** Where
    the manifest maps a README into `record.reference`, editing it directly makes
    you its second writer, and this step is where that happens most often.
+   **The flag's name equals the skill's name** — a scope-variant prefix
+   (`--ws-full-stocktake` over `ws-stocktake`) is the one sanctioned divergence.
+   Where one skill serves several verbs, each verb's flag gets a same-named
+   wrapper in `commands/`, so the menu entry, the flag and the route stay one
+   token; `doctor.sh` asserts every wrapper fires the flag its name promises.
+   Wrappers exist only for flags whose skill carries its own rules — never for
+   hook-served flags, whose whole behavior lives in the hook and would be
+   improvised from memory if reached without it.
 5. Run `doctor.sh`, which checks that every flag resolves and that no project
    skill silently shadows a global one.
 

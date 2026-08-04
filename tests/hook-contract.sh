@@ -119,17 +119,20 @@ for f in $FLAGS; do
   esac
 done
 
-# ------------------------------------------------------------------ position
+# ------------------------------------------------------------------ matching
 
-head_ "Position is the whole signal"
+head_ "Exact decomposition is the whole signal; position is none of it"
 
+# Position stopped being the signal when the flags gained the ws- prefix: no
+# real command carries a --ws-* option, so an exact token is intent wherever
+# it sits. What still gates firing is decomposition with nothing left over.
 fires  "--ws-wrap" "--ws-wrap"
 fires  "--ws-wrap the purge work is done" "--ws-wrap"
 fires  "that is everything for today --ws-wrap" "--ws-wrap"
-silent "remind me what --ws-wrap does" "mid-sentence: discussed, not invoked"
-silent "should --ws-wrap also update the changelog?" "a question about the flag"
-silent "git branch --track origin/dev" "pasted command"
-silent "see the --ws-wrapper module" "glued to a word"
+fires  "remind me what --ws-wrap does" "--ws-wrap"
+fires  "commit that, then --ws-todo the rest as one entry" "--ws-todo"
+silent "git branch --track origin/dev" "pasted command: --track is not a ws- flag"
+silent "see the --ws-wrapper module" "glued to a word: does not decompose"
 silent "no flags here at all" "nothing to fire"
 
 head_ "Runs fire every flag they name, in typed order"
@@ -892,6 +895,49 @@ Nothing pending.'
     *"1 open bug report"*) ok "an entry below the marker counts; the template above does not" ;;
     *) bad "a marked inbox miscounted its entries: $out" ;;
   esac
+
+  # ---------------------------------------------------- upstream issue nudge
+  head_ "The upstream check reports counts and unreachability, never silence"
+
+  # Fires only in a session standing in the suite's own checkout (PWD is the
+  # config dir and it carries the plugin manifest), and its failure mode is the
+  # contract: gh unreachable must SAY not-checked, because silence there renders
+  # "unreachable" identical to "zero". gh is stubbed on PATH both ways.
+  upc="$TMP/upstream-conf"
+  rm -rf "$upc"; mkdir -p "$upc/.claude-plugin" "$upc/stubs"
+  printf '{"name":"workflow-secretary","version":"0.0.1","description":"d"}\n' \
+    > "$upc/.claude-plugin/plugin.json"
+  printf '#!/usr/bin/env bash\necho 3\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"3 open issue(s) on qupunto/workflow-secretary"*) ok "open upstream issues are counted in the nudge" ;;
+    *) bad "3 open upstream issues went unmentioned: $out" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"NOT checked"*) ok "an unreachable upstream repo says so rather than nothing" ;;
+    *) bad "gh failing rendered as silence — unreachable reads as zero: $out" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\necho 0\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"qupunto/workflow-secretary"*) bad "zero upstream issues still produced a nudge: $out" ;;
+    *) ok "zero upstream issues stay silent" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\necho 3\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"workflow-secretary"*) bad "the upstream check fired outside the suite checkout" ;;
+    *) ok "no upstream check outside the suite's own checkout" ;;
+  esac
 fi
 
 # ------------------------------------------------------------------- doctor.sh
@@ -988,6 +1034,8 @@ OWNFIX
 
     printf '# alpha-skill\n\nDoes the alpha thing.\n' > "$d/skills/alpha-skill/SKILL.md"
     printf '# beta-skill\n\nDoes the beta thing.\n'   > "$d/skills/beta-skill/SKILL.md"
+    mkdir -p "$d/commands"
+    printf -- '---\ndescription: alpha wrapper\n---\n--alpha $ARGUMENTS\n' > "$d/commands/alpha.md"
     printf '# Fixture\n\nSee [the matrix](workflow/ownership.md#the-matrix).\n' > "$d/README.md"
 
     # A checkout, because three checks below only run in one: the credentials
@@ -1041,6 +1089,42 @@ OWNFIX
   printf '%s' "$out" | grep -q "every flag's grant matches between the hook and ownership.md (2 checked)" \
     && ok "the grant comparison reached a verdict on both flags" \
     || bad "grant comparison reached no verdict, or claimed one over fewer than 2 flags"
+  printf '%s' "$out" | grep -q "no date-shaped prose in any rule file" \
+    && ok "the prose-date check reached a verdict on the rule files" \
+    || bad "prose-date check reached no verdict on a clean fixture"
+
+  # History stays in the log: a date in a rule file's prose is named as
+  # history; the same date inside a fenced block is exempt.
+  hist="$TMP/doc-history"
+  docfix "$hist"
+  printf '# alpha-skill\n\nDoes the alpha thing. Fixed on 2026-08-01 after an incident.\n' \
+    > "$hist/skills/alpha-skill/SKILL.md"
+  printf '# beta-skill\n\nDoes the beta thing.\n\n```\nat: 2026-08-01\n```\n' \
+    > "$hist/skills/beta-skill/SKILL.md"
+  docommit "$hist"
+  says "$hist" "history in a rule file: skills/alpha-skill/SKILL.md" \
+    "a prose date in a rule file is named as history"
+  printf '%s' "$(doc "$hist")" | grep -q "history in a rule file: skills/beta-skill" \
+    && bad "a fenced date was flagged — the fence exemption is broken" \
+    || ok "a date inside a fenced block stays exempt"
+
+  # A wrapper's name is its contract: the body must fire the flag the filename
+  # promises, and that flag must exist in the hook's FLAGS array.
+  printf '%s' "$out" | grep -q "every command wrapper fires the flag its name promises (1 checked)" \
+    && ok "the wrapper check reached a verdict on the clean fixture" \
+    || bad "wrapper check reached no verdict, or checked a different count"
+  wmis="$TMP/doc-wrapper-mismatch"
+  docfix "$wmis"
+  printf -- '---\ndescription: alpha wrapper\n---\n--beta $ARGUMENTS\n' > "$wmis/commands/alpha.md"
+  docommit "$wmis"
+  says "$wmis" "a wrapper's body must fire" \
+    "a wrapper firing a different flag than its name is a FAILURE"
+  wgone="$TMP/doc-wrapper-unserved"
+  docfix "$wgone"
+  printf -- '---\ndescription: gamma wrapper\n---\n--gamma $ARGUMENTS\n' > "$wgone/commands/gamma.md"
+  docommit "$wgone"
+  says "$wgone" "not in the hook's FLAGS" \
+    "a wrapper naming a flag the hook does not serve is a FAILURE"
 
   # --strict's entire job is an exit code, so nothing but an exit code tests it.
   # Both directions: a clean run must stay 0 under it, or it is just `exit 1`.
@@ -1436,6 +1520,57 @@ case $out in
     ok "CLAUDE_CONFIG_DIR still redirects the installation for a checkout doctor" ;;
   *) bad "CLAUDE_CONFIG_DIR no longer reaches the installation: $(printf '%s' "$out" | grep -a FAIL | head -2)" ;;
 esac
+
+# ------------------------------------------------- plugin/checkout coexistence
+#
+# Both install forms on one machine double-fire the hooks. The doctor must FAIL
+# on the combination through either evidence route (cache directory, or
+# enabledPlugins naming the suite), stay quiet on either form alone, and warn
+# on the residue an uninstall leaves behind in a tracked settings.json.
+
+co="$TMP/doc-coexist"
+docfix "$co"
+mkdir -p "$co/.claude-plugin"
+printf '{"name":"workflow-secretary","version":"0.0.1","description":"d"}\n' \
+  > "$co/.claude-plugin/plugin.json"
+docommit "$co"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed at most once' \
+  && ok "the checkout form alone is not coexistence" \
+  || bad "checkout form alone: the coexistence check reached no verdict"
+
+mkdir -p "$co/plugins/cache/mk/workflow-secretary/0.0.1"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && ok "a cached plugin install beside the checkout FAILs as coexistence" \
+  || bad "a cached workflow-secretary install beside the checkout passed silently"
+
+rm -rf "$co/plugins"
+edit_ "$co/settings.json" 's/{"hooks"/{"enabledPlugins":{"workflow-secretary@mk":true},"hooks"/'
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && ok "enabledPlugins naming the suite FAILs as coexistence" \
+  || bad "enabledPlugins naming workflow-secretary passed silently"
+
+edit_ "$co/settings.json" 's/"enabledPlugins":{"workflow-secretary@mk":true}/"enabledPlugins":{}/'
+docommit "$co"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'uninstall residue' \
+  && ok "empty enabledPlugins in tracked settings.json warns as residue" \
+  || bad "uninstall residue in tracked settings.json went unmentioned"
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && bad "residue alone was reported as coexistence" \
+  || ok "residue alone is not coexistence"
+
+# An adopter's machine: a cached install present, config dir NOT the suite's
+# checkout. The normal plugin case must not be reported as coexistence.
+ad=$(mktemp -d)
+printf '{"permissions":{"defaultMode":"auto"}}\n' > "$ad/settings.json"
+mkdir -p "$ad/plugins/cache/mk/workflow-secretary/0.0.1"
+out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$ad" CLAUDE_DIR="$pdir" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && bad "a plain plugin install with no checkout was reported as coexistence" \
+  || ok "a plugin install alone is not coexistence"
 
 # A cached doctor pointed at ANOTHER installation must judge that one, not
 # itself. Before this, running the shipped tests from a plugin cache failed 21
@@ -1908,6 +2043,55 @@ else
   [ "$cue" -eq 1 ] && ok "WS_ALERTS_CMD runs in place of the built-in chime" \
                    || bad "WS_ALERTS_CMD was set and never ran"
   rm -f "$acfg/alerts-on"
+fi
+
+head_ "The decisions index is generated, checked, and refuses to guess"
+
+# index-decisions.sh resolves both paths from the manifest; decisionsIndex has
+# deliberately no fallback, so undeclared must be an error, not a default name.
+IDX="$_root/skills/ws-record/assets/index-decisions.sh"
+if [ ! -f "$IDX" ]; then
+  bad "index-decisions.sh missing at $IDX"
+else
+  itmp="$TMP/index-proj"; mkdir -p "$itmp/.claude" "$itmp/docs"
+  printf '# Log\n\n## 2026-01-01 — first\n\nbody\n\n## 2026-01-02 — second\n\nbody\n' \
+    > "$itmp/docs/decisions.md"
+  cat > "$itmp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "decisions": "docs/decisions.md",
+              "decisionsIndex": "docs/decisions-index.md" } }
+JSON
+
+  # Regen writes one row per `## ` entry, with its line number.
+  (cd "$itmp" && bash "$IDX" >/dev/null 2>&1) \
+    && grep -q '^- L3 — 2026-01-01 — first$' "$itmp/docs/decisions-index.md" \
+    && grep -q '^- L7 — 2026-01-02 — second$' "$itmp/docs/decisions-index.md" \
+    && ok "regen writes a row per entry with its line number" \
+    || bad "regen did not produce the expected rows"
+
+  # Check passes on a current index, fails on a stale one, and writes nothing.
+  (cd "$itmp" && bash "$IDX" --check >/dev/null 2>&1) \
+    && ok "check passes on a current index" \
+    || bad "check failed on an index regen just wrote"
+  printf '\n## 2026-01-03 — third\n\nbody\n' >> "$itmp/docs/decisions.md"
+  before=$(cat "$itmp/docs/decisions-index.md")
+  if (cd "$itmp" && bash "$IDX" --check >/dev/null 2>&1); then
+    bad "check passed against a log with an unindexed entry"
+  else
+    ok "check fails once the log has an unindexed entry"
+  fi
+  [ "$before" = "$(cat "$itmp/docs/decisions-index.md")" ] \
+    && ok "check wrote nothing" \
+    || bad "check modified the index"
+
+  # Undeclared index: refuse rather than invent a filename.
+  jq 'del(.record.decisionsIndex)' "$itmp/.claude/workflow.json" > "$itmp/.claude/wf2" \
+    && mv "$itmp/.claude/wf2" "$itmp/.claude/workflow.json"
+  if (cd "$itmp" && bash "$IDX" >/dev/null 2>&1); then
+    bad "regen ran with record.decisionsIndex undeclared"
+  else
+    ok "regen refuses when record.decisionsIndex is undeclared"
+  fi
 fi
 
 head_ "Result"

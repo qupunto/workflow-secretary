@@ -271,6 +271,36 @@ if [ -f "$inbox" ]; then
 Read $inbox; triage them from a session in $CLAUDE_DIR."
 fi
 
+# --------------------------------------------------------- upstream issues
+# Findings also travel upstream, as issues on the suite's public repository,
+# and until this block nothing on this machine ever read them back — an
+# adopter's filing sat unseen while the local inbox stayed empty. Gated to a
+# session standing in the suite's own checkout: that is the one place triage
+# can act, and the gate keeps a network call out of every other project's
+# session start. The read degrades to saying the repo was NOT checked — never
+# to silence, which would render "unreachable" identical to "zero".
+if [ "$PWD" = "$CLAUDE_DIR" ] && [ -f "$CLAUDE_DIR/.claude-plugin/plugin.json" ] &&
+   [ -z "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  up=""
+  if command -v gh >/dev/null 2>&1; then
+    up=$(gh issue list -R qupunto/workflow-secretary --state open \
+           --json number --jq length 2>/dev/null) || up=""
+  fi
+  case $up in
+    0) : ;;
+    ''|*[!0-9]*) out="${out}${out:+
+
+}Upstream issues on qupunto/workflow-secretary were NOT checked (gh missing,
+offline, or unauthenticated) — not checked is not zero. Run:
+gh issue list -R qupunto/workflow-secretary" ;;
+    *) out="${out}${out:+
+
+}$up open issue(s) on qupunto/workflow-secretary await triage — findings filed
+upstream by adopters. gh issue list -R qupunto/workflow-secretary;
+--ws-full-check's triage reads these alongside the local inbox." ;;
+  esac
+fi
+
 # --------------------------------------------------------- first session
 # A plugin has no channel to speak at install time — measured against the
 # docs: no post-install message field or event exists, and SessionStart is

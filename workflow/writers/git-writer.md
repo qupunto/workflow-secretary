@@ -32,12 +32,10 @@ commits along with yours, and reports success.
 ## The grant is the caller's, always
 
 **Read the grant out of the matrix in
-[`ownership.md`](../ownership.md)**, "Authorization the flag grants".
-This file used to restate it as a table of its own — a third hand-maintained copy
-of a grant list, next to the matrix and the block `shorthand-flags.sh` injects.
-`doctor.sh` compares exactly those two and would never have caught this one
-drifting, which is the reason `README.md` gives for refusing a third copy there.
-It was in sync when deleted; nothing kept it so.
+[`ownership.md`](../ownership.md)**, "Authorization the flag grants" — and never
+restate it as a table here. `doctor.sh` compares exactly two copies of the
+grants, the matrix and the block `shorthand-flags.sh` injects; any third copy
+is compared against nothing and drifts silently while reading as authoritative.
 
 Two grants the matrix's row does not spell out, because they belong to the step
 rather than to the flag: under `--ws-pr` **the merge** needs a fresh OK of

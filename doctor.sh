@@ -242,6 +242,50 @@ else
         sync with any other machine. See README.md."
 fi
 
+# ------------------------------------------------- plugin/checkout coexistence
+
+# Both install forms on one machine means both copies of the hooks fire on every
+# prompt — measured on a real install, not predicted. The checkout half of the
+# evidence is the config directory itself carrying the suite's plugin manifest
+# at its root, which is the source repository's own shape; the plugin half is a
+# cached workflow-secretary install, or enabledPlugins naming one. Keyed on
+# CONFIG_DIR throughout: coexistence is a property of the MACHINE, never of
+# whichever installation this particular run was pointed at.
+coexist_checkout=0
+if [ -f "$CONFIG_DIR/.claude-plugin/plugin.json" ] && ! is_plugin_root "$CONFIG_DIR" &&
+   git -C "$CONFIG_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  coexist_checkout=1
+fi
+coexist_plugin=0
+if ls -d "$CONFIG_DIR"/plugins/cache/*/workflow-secretary/ >/dev/null 2>&1; then
+  coexist_plugin=1
+elif jq -c '.enabledPlugins // empty' "$CONFIG_DIR/settings.json" 2>/dev/null | grep -q 'workflow-secretary'; then
+  coexist_plugin=1
+fi
+if [ $coexist_checkout -eq 1 ] && [ $coexist_plugin -eq 1 ]; then
+  fail "the suite is installed TWICE — this config directory is the checkout
+        form, and a workflow-secretary plugin is installed beside it. The hooks
+        double-fire, once from each form, on every prompt.
+        \`claude plugin uninstall workflow-secretary\` or retire the checkout;
+        keeping both is never right."
+else
+  pass "the suite is installed at most once — no plugin/checkout coexistence"
+fi
+
+# What an uninstall leaves behind: empty enabledPlugins / extraKnownMarketplaces
+# in settings.json. In the checkout form that file is TRACKED, so the residue
+# does not stay local — it becomes a commit every other machine pulls.
+if [ $PLUGIN_MODE -eq 0 ] &&
+   git -C "$CLAUDE_DIR" ls-files --error-unmatch settings.json >/dev/null 2>&1; then
+  residue=$(jq -r '[to_entries[]
+      | select(.key == "enabledPlugins" or .key == "extraKnownMarketplaces")
+      | select(.value | length == 0) | .key] | join(", ")' \
+    "$CLAUDE_DIR/settings.json" 2>/dev/null)
+  [ -n "$residue" ] &&
+    warn "uninstall residue in tracked settings.json: empty $residue — a plugin
+        teardown left them; delete the keys rather than committing them"
+fi
+
 # ------------------------------------------------------------------ credentials
 
 # The whole premise of publishing this directory is that ONE file never leaves
@@ -1096,6 +1140,89 @@ while IFS=$'\t' read -r kind f ln body; do
 done < <(home_in_fences_)
 [ $n -eq 0 ] && pass "no runnable block hard-codes an installation path"
 
+# ----------------------------------------------- history in the rule files
+
+head_ "History stays in the log"
+
+# A rule file states behavior; the decision log explains it — the pattern rule
+# in workflow/record-contract.md. A date-shaped string in prose is the
+# greppable proxy for history (an incident, a measurement, a
+# what-this-file-used-to-say) that belongs in the log instead. Fenced blocks
+# and inline code spans are exempt: examples and templates legitimately carry
+# timestamps. Warn rather than fail so a local run stays navigable; CI passes
+# --strict, which is what makes the warning binding.
+rule_files_() {
+  if git -C "$CLAUDE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$CLAUDE_DIR" ls-files -z 'skills/*/SKILL.md' 'skills/*/references/*.md' \
+      'workflow/*.md' 'workflow/writers/*.md' 'workflow/checks/*.md' \
+      'workflow/providers/*.md' |
+      while IFS= read -r -d '' p; do printf '%s\0' "$CLAUDE_DIR/$p"; done
+  else
+    find "$CLAUDE_DIR/skills" "$CLAUDE_DIR/workflow" -name '*.md' \
+      -not -path '*/.git/*' -print0 2>/dev/null
+  fi
+}
+prose_dates_() {
+  rule_files_ | xargs -0 -r awk '
+    FNR == 1 { fence = 0 }
+    /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    {
+      line = $0
+      while (match(line, /`[^`]*`/))
+        line = substr(line, 1, RSTART - 1) substr(line, RSTART + RLENGTH)
+      if (line ~ /20[0-9][0-9]-[01][0-9](-[0-3][0-9])?/)
+        printf "%s:%d\n", FILENAME, FNR
+    }'
+}
+dh=0
+while IFS= read -r hit; do
+  [ -n "$hit" ] || continue
+  warn "history in a rule file: ${hit#"$CLAUDE_DIR"/}
+        A date in prose is an incident citation or a measurement — it belongs
+        in the decision log; the file keeps the rule and its mechanism.
+        record-contract.md, the pattern rule."
+  dh=$((dh + 1))
+done < <(prose_dates_)
+[ $dh -eq 0 ] && pass "no date-shaped prose in any rule file"
+
+# ------------------------------------------------ command wrappers match flags
+
+head_ "Command wrappers"
+
+# A wrapper's name is its contract: commands/<name>.md autocompletes as /<name>
+# and its body fires a flag, so the name and the flag must be the same token and
+# the flag must exist in the hook — a mismatch routes a menu entry somewhere its
+# name does not say, silently. The hook does not fire on a wrapper's expanded
+# body, so the body's flag token is the only routing signal there is; that is
+# why the wrapper set stays limited to flags whose skill carries its own rules.
+if [ -d "$CLAUDE_DIR/commands" ]; then
+  wflags=$(sed -n 's/^FLAGS=(\(.*\))$/\1/p' "$hook" 2>/dev/null)
+  wn=0; wbad=0
+  for c in "$CLAUDE_DIR"/commands/*.md; do
+    [ -f "$c" ] || continue
+    wn=$((wn + 1))
+    wbase=$(basename "$c" .md)
+    wbody=$(awk 'c == 2 && /^--[a-z]/ { print $1; exit } /^---$/ { c++ }' "$c")
+    if [ "$wbody" != "--$wbase" ]; then
+      fail "commands/$wbase.md fires '${wbody:-nothing}' — a wrapper's body must fire
+        the flag its own name promises: --$wbase"
+      wbad=$((wbad + 1))
+    elif ! printf '%s\n' $wflags | grep -qx -- "--$wbase"; then
+      fail "commands/$wbase.md fires --$wbase, which is not in the hook's FLAGS —
+        the menu offers a flag the hook does not serve"
+      wbad=$((wbad + 1))
+    fi
+  done
+  if [ $wn -eq 0 ]; then
+    pass "commands/ exists and holds no wrappers"
+  elif [ $wbad -eq 0 ]; then
+    pass "every command wrapper fires the flag its name promises ($wn checked)"
+  fi
+else
+  pass "no commands/ directory — nothing to check"
+fi
+
 # --------------------------------------------------------------- audit reports
 
 head_ "Audit reports"
@@ -1200,7 +1327,7 @@ onSchemaChange hazards commitTrailer
 branch.integration branch.publish branch.mergeMethod
 record.todo record.roadmap record.changelog record.handoff record.decisions
 record.decisionsIndex record.openDecisions record.behaviour record.reference
-record.audits record.tooling
+record.audits record.toolbelt record.tooling
 record.tooling.catalog record.tooling.sources
 commands.typecheck commands.test commands.indexRegen commands.indexCheck
 commands.testConsentEnv commands.ci

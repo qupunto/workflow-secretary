@@ -219,6 +219,17 @@ integration branch, and say in the summary that it still needs merging —
 otherwise the work is pushed but invisible to the deploy path, which is worse
 than uncommitted because it looks finished.
 
+**Then sync the worktree back from `branch.integration`, after the push.**
+`git fetch`, then `git merge --ff-only` the integration branch into the
+worktree's branch: where the worktree's work has already been merged there —
+this session or an earlier one — that fast-forwards and costs nothing. Where it
+cannot fast-forward, **report the divergence plainly and stop**; a merge with
+real deltas is a decision, not a wrap step. The lane records are why: an at-merge
+obligation already executed on the integration branch but surviving in the
+lane's copy reads as an instruction to execute it again. The start-side twin
+lives in `--ws-start`'s Phase 0:
+a lane worktree also syncs forward before a batch runs.
+
 ## What this skill does not do
 
 **It writes no record file.** It owns the session: the closing pass, the commits,

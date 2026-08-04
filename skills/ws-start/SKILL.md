@@ -64,6 +64,16 @@ what the lanes are for.
    top of another session's half-finished edits is the failure this phase exists
    to catch. If the dirt is not this session's, stop and say so rather than
    building on it.
+
+   **A lane worktree syncs forward before anything reads a record.** Where a
+   `.claude/lane` selector is present and the worktree's branch is behind
+   `branch.integration`, `git fetch` and `git merge --ff-only` it up to date
+   before Phase 0 reads anything — a batch run against records the integration
+   branch has already moved past re-executes obligations that were already
+   executed there, the lane handoff being the copy that bites. Where the two
+   branches have genuinely diverged, stop and report: reconciling them is a
+   merge decision, not a batch's first step. The wrap-side twin lives in
+   `--ws-wrap`'s worktree section: a lane wrap syncs back after its push.
 2. **Check the pipeline before adding to it.** Where the manifest names a CI
    workflow, query it. A pipeline can sit red for days before anyone notices, and
    a batch merged onto a red one hides which change broke it. If it is red,
@@ -170,10 +180,8 @@ write anything outside that list — if it needs to, it stops and reports rather
 than reaching.
 
 **Disjoint write sets are not enough. Count what each lane *reads* as well.** Two
-lanes must not run concurrently when one reads a file the other writes, and it is
-not theoretical — it has happened here, between two lanes whose write sets were
-genuinely disjoint. **A read/write race corrupts nothing, so nothing looks
-broken**: what it produces is a confident, well-cited, wrong report, citing a file
+lanes must not run concurrently when one reads a file the other writes. **A
+read/write race corrupts nothing, so nothing looks broken**: what it produces is a confident, well-cited, wrong report, citing a file
 where the evidence genuinely was a moment ago.
 
 So the brief for each lane carries **two** lists — the files it may write, and the
@@ -350,8 +358,7 @@ This skill writes no record file. Each of these is a handoff:
 one primitive per record — which is exactly what makes parallelising them
 tempting, and it is wrong. **Every record writer re-verifies its claims against
 the *other* records before writing**, so each one's read set is all of them. That
-is the read/write race Phase 3 describes, and this is the place it has actually
-happened.
+is the read/write race Phase 3 describes.
 
 1. **`--ws-todo`** — remove what shipped, and rewrite anything that turned out
    bigger than its checkbox with what was actually learned. Completed items

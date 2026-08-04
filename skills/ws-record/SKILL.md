@@ -60,8 +60,7 @@ prevent.
 tradeoffs, recommendation and what it blocks in the body below. The shape is
 [`record-contract.md`](../../workflow/record-contract.md)'s, not a style
 choice: the SessionStart staleness nudge counts entries by `## ` heading, and
-an entry written as a bold paragraph is invisible to it — this suite's own
-record was, until audit pass 9 caught it.
+an entry written as a bold paragraph is invisible to it.
 
 ## Intake: a block of notes, rather than one item
 
@@ -164,8 +163,13 @@ Append-only, chronological. Lead with a `**Decided:** …` line stating the
 outcome, then what was proposed, what was chosen instead, and *why now is or is
 not the time* — what complexity it avoids, or what it depends on to make sense.
 
-Three rules that are not stylistic:
+Four rules that are not stylistic:
 
+- **A deferral names its authority.** The owner's words, or the session's own
+  judgment — which stands only until the owner's next gate. The entries that
+  omit this read as settled while hiding who settled them, and "I don't recall
+  ordering this" must be answerable from the record —
+  [`record-contract.md`](../../workflow/record-contract.md)'s rule 2.
 - **Record when the decision is made, not when it is built.** The opposite rule
   fails concretely: real design commitments end up in the backlog mixed with
   unbuilt sketches, and nothing distinguishes them.
@@ -184,8 +188,7 @@ it silently stale.
 ## When a deferred item is later done
 
 **Delete it from `record.todo`.** Don't strike it through — that record is
-forward-looking only, and strike-through is what made one project's backlog
-unreadable. What was built is recorded in `record.decisions`, `record.changelog`
+forward-looking only, and struck-through items bury the live ones. What was built is recorded in `record.decisions`, `record.changelog`
 and `record.reference`.
 
 ## What this skill does not do

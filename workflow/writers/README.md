@@ -7,14 +7,10 @@ there is nothing to invoke.
 ## Why they are not skills
 
 A skill's `description` loads into every session whether or not the skill is
-ever used. These eight always said, in that description, *"Invoked BY other
-skills rather than by the user"* — paying a standing per-session cost for a
-trigger they explicitly disclaimed. In checkout form `skillOverrides` could
-suppress it; in plugin form nothing can, so the cost was unavoidable and
-permanent for anyone who installed the suite.
-
-They moved out of `skills/` on 2026-08-02. Together their descriptions were
-2,761 B of every session.
+ever used. A procedure invoked only by other skills pays that standing
+per-session cost for a trigger it explicitly disclaims — and in plugin form
+nothing can suppress it, since `skillOverrides` does not reach plugin skills.
+So these are files to read, not skills to invoke.
 
 **Reading a procedure is more reliable than dispatching to one, not less.** A
 skill fires when the model judges a description to match; a link is followed
@@ -22,12 +18,11 @@ because the caller was told to follow it. The mechanism is the same one every
 skill already uses to reach [`ownership.md`](../ownership.md) and the other
 contracts in this directory.
 
-## What did not change
+## Location does not change ownership
 
-**One writer per record.** The procedure is still one file, still the sole
-writer of its record, and [`ownership.md`](../ownership.md)'s matrix is still
-the authority on which. Moving a procedure out of `skills/` changed where it
-lives and nothing about who may write what.
+**One writer per record.** A procedure is one file, the sole writer of its
+record, and [`ownership.md`](../ownership.md)'s matrix is the authority on
+which. Where a procedure lives says nothing about who may write what.
 
 **The authorization rule.** A procedure inherits the grant of the flag the
 *user* typed, however many hops away. It confers nothing of its own — that is

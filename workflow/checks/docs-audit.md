@@ -206,9 +206,8 @@ grep -rhoE '`[A-Za-z_][A-Za-z0-9_]* *[:=] *[^`]+`' "$DOCS" --include='*.md' | tr
     done
 ```
 
-Calibration: on a real 2,000-line bilingual corpus this produced **3 findings, all false
-positives**, and zero symbol errors. Expect a low single-digit baseline, and treat a spike as
-the signal.
+Expect a low single-digit false-positive baseline from these two passes, and
+treat a spike as the signal — the baseline is not a failure to silence.
 
 **Three false-positive classes, all structural — do not "fix" the docs to silence them:**
 

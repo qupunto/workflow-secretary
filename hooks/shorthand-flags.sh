@@ -14,18 +14,19 @@
 # reliable in practice but not guaranteed. This hook is the deterministic
 # path: the instruction is injected whether or not Claude would have noticed.
 #
-# WHERE A FLAG COUNTS. Flags are read from a *run* at the very START or the
-# very END of the message. A run is one or more whitespace-separated tokens,
-# each of which decomposes entirely into flags — so `--ws-stocktake --ws-release`,
-# `--ws-stocktake--ws-release` and `--ws-stocktake --ws-release --ws-wrap` all fire every flag they
-# name, and a message made of nothing but flags is covered end to end by the
-# two runs meeting in the middle.
+# WHERE A FLAG COUNTS: anywhere in the message. A token counts when it
+# decomposes ENTIRELY into flags — `--ws-stocktake --ws-release` and
+# `--ws-stocktake--ws-release` fire both, mid-sentence as readily as at either
+# end — and a token that decomposes with anything left over stays inert, so
+# `--ws-wrapper` and `origin/dev` never fire.
 #
-# Matching anywhere in the message would fire on a pasted command that happens
-# to contain a flag (`git branch --track origin/dev` being the realistic case)
-# and on any message that merely *discusses* a flag. A token must decompose
-# with nothing left over, so `--ws-wrapper` and `origin/dev` end a run rather than
-# extending it.
+# Position used to be the signal: flags were read only from a run at the very
+# start or very end, because unprefixed flags collided with pasted commands
+# (`git branch --track origin/dev` was the realistic case). The `ws-` prefix
+# removed that collision — no real command carries a `--ws-*` option — so the
+# positional filter only cost missed invocations mid-sentence. What remains
+# deliberate: a message that QUOTES a flag as its own bare token fires it.
+# With the prefix, an exact token is taken as intent, wherever it sits.
 #
 # Wired up from ~/.claude/settings.json. Silent (exit 0, no output) when no
 # flag is present, so it costs nothing on ordinary turns.
@@ -62,7 +63,7 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 # below does not matter. `--ws-stocktake` and `--ws-full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts)
+FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts --ws-overview --ws-scout)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -89,20 +90,10 @@ decompose() {
   printf '%s\n' "${out[@]}"
 }
 
-# The leading run, then the trailing run — the second never reaching back past
-# where the first stopped, so an all-flags message counts each flag once.
-lead_end=0
-while [ $lead_end -lt $n ] && decompose "${tokens[$lead_end]}" >/dev/null; do
-  lead_end=$((lead_end + 1))
-done
-tail_start=$n
-while [ $tail_start -gt $lead_end ] && decompose "${tokens[$((tail_start - 1))]}" >/dev/null; do
-  tail_start=$((tail_start - 1))
-done
-
-# Collect in the order the user typed them, deduplicated: multiple flags now
-# fire together, and the order they run in should be the order they were asked
-# for.
+# Collect in the order the user typed them, deduplicated: multiple flags fire
+# together, and the order they run in should be the order they were asked for.
+# Every token is scanned; collect() is a no-op on one that does not decompose,
+# which is what keeps prose and pasted commands inert.
 declare -A seen=()
 ordered=()
 collect() {
@@ -113,8 +104,7 @@ collect() {
     ordered+=("$f")
   done < <(decompose "$1")
 }
-for ((i = 0; i < lead_end; i++)); do collect "${tokens[$i]}"; done
-for ((i = tail_start; i < n; i++)); do collect "${tokens[$i]}"; done
+for ((i = 0; i < n; i++)); do collect "${tokens[$i]}"; done
 
 [ ${#ordered[@]} -eq 0 ] && exit 0
 
@@ -236,6 +226,8 @@ skill_for() {
     --ws-report) echo ws-report ;;
     --ws-full-check) echo ws-full-check ;;
     --ws-plan) echo ws-plan ;;
+    --ws-overview) echo ws-overview ;;
+    --ws-scout) echo ws-scout ;;
   esac
 }
 
@@ -319,8 +311,8 @@ flags_block_() {
   printf '\nA flag marked **no** is INERT here: its skill resolves in neither this\n'
   printf 'project nor the user configuration, so typing it does nothing at all\n'
   printf 'rather than failing. `disabled` means settings block model invocation.\n\n'
-  printf 'Flags are read only from a run at the very START or very END of a\n'
-  printf 'message, so a pasted command containing one does not fire it. Several\n'
+  printf 'A flag counts anywhere in the message, as its own token or a glued run\n'
+  printf 'of flags with nothing else attached (`--ws-wrapper` stays inert). Several\n'
   printf 'may be combined and run in the order typed.\n'
 }
 
@@ -361,7 +353,9 @@ Irreversible, in force before the skill loads: a deferral is a decision, so it
 produces TWO entries — the task in the project's backlog record, and the
 reasoning in its decision record. Never write the reasoning into the backlog.
 If the real blocker is an unmade choice rather than bad timing it belongs in the
-open-decisions record instead, and never in both.
+open-decisions record instead, and never in both. The decision entry NAMES WHOSE
+CALL the deferral was — the owner's words, or the session's own judgment, which
+stands only until the owner's next gate.
 EOF
     ;;
   --ws-plan)
@@ -764,6 +758,50 @@ Irreversible, in force before the skill loads:
 - Close out through the `ws-wrap` skill rather than pushing by hand, so its
   rails apply — a push publishes a ref, so check what rides along, and never
   force-push or resolve a rejection by force.
+EOF
+    ;;
+  --ws-overview)
+    cat <<'EOF'
+The user included the `--ws-overview` flag. That is an explicit, unconditional
+instruction to invoke the `ws-overview` skill now — report where the project
+stands, read fresh from its records, changing nothing.
+
+The rest of the message is scope or emphasis, not a question to answer first.
+
+Authorization: none — and this skill writes NOTHING: no record, no checkpoint,
+no commit. It reads and reports.
+
+Irreversible, in force before the skill loads:
+- Every number is read NOW, from the record or command that owns it — never
+  carried forward from memory, a handoff card, or an earlier session.
+- A record the manifest does not declare is reported as UNDECLARED, never as
+  zero. "No backlog is declared" and "the backlog is empty" are different
+  facts, and a bare 0 renders them identically.
+- A read that needs an unreachable tool or network is reported as NOT CHECKED,
+  never omitted — an absent line reads as clean.
+- The counts go in the reply and never into a file. A count written into a
+  record is a mutable claim, which record-contract.md forbids.
+EOF
+    ;;
+  --ws-scout)
+    cat <<'EOF'
+The user included the `--ws-scout` flag. That is an explicit, unconditional
+instruction to invoke the `ws-scout` skill now — consult the project's toolbelt
+registry, and where it has no answer, search the stack's public registries for
+existing libraries that do or broadly resemble what the rest of the message
+describes, and explain the candidates. The rest of the message is the task to
+scout for, not a question to answer first.
+
+Authorization: none.
+
+Irreversible, in force before the skill loads:
+- ADVISE, do not implement. The deliverable is candidates and an explanation;
+  building with the chosen tool is ordinary session work, after.
+- Read the toolbelt registry FIRST. A row that matches the task shape answers
+  the search before it starts, and skipping the lookup is how a project adopts
+  two tools for one job.
+- An adoption is a decision: the registry row is written only on the user's
+  word, and the reasoning goes through --ws-log, never into the row.
 EOF
     ;;
   --ws-alerts)
