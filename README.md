@@ -59,6 +59,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 | `reset-records.sh` | Blanks every record the manifest declares back to its heading. Dry-run by default; `--write` to do it. What makes a fork yours rather than an inheritance — see below |
 | `bug-reports.md` | Inbox for defects in this config found from *other* projects. Gitignored, so it is not in the repo — `doctor.sh` surfaces open entries |
 | `skills/` | User-level skills, available in every project |
+| `commands/` | Slash-command wrappers for the flags whose skill carries a different name — the filename is the flag, so `/ws-todo` autocompletes and fires `--ws-todo`. `doctor.sh` asserts every wrapper fires the flag its name promises |
 | `.claude/skills/` | Where a project's own skills go, resolved before the global suite. This repo keeps none — see the annex for why both of the ones it had turned out to be global concerns with local paths baked in |
 | `workflow/` | The authority files every skill links to instead of carrying its own copy — who may write what, what each record holds, which manifest keys exist, and how a sweep narrows itself — plus the record-writer procedures under `workflow/writers/` and the shared check methods under `workflow/checks/` |
 | `workflow/providers/` | Where a record lives somewhere that is not a file. Only `record.todo` takes one, and `github-issues.md` is the only one that exists — see below |
@@ -343,6 +344,7 @@ behind.
 | When | Flag | Why then |
 |---|---|---|
 | Starting anything non-trivial | `--ws-track` | before the work, so the list is the plan rather than a summary |
+| Facing a capability-shaped task | `--ws-scout` | the toolbelt registry answers before anything is hand-built, and the search runs before the first failed attempt rather than after the third |
 | The moment you decide *not* to build something | `--ws-todo` | the reasoning is perishable; it is gone by tomorrow |
 | A decision made with no task attached | `--ws-log` | the same, minus the backlog entry |
 | Finishing a unit of work, or before `/clear` | `--ws-wrap` | the handoff is what the next session inherits |
@@ -409,6 +411,8 @@ Current flags:
 | `--ws-release` | `ws-release` | orchestrator |
 | `--ws-wrap` | `ws-wrap` | orchestrator |
 | `--ws-report` | `ws-report` | orchestrator — appends to the machine-local inbox, then opens an upstream issue on a fresh OK |
+| `--ws-overview` | `ws-overview` | orchestrator — reads and reports, writes nothing at all |
+| `--ws-scout` | `ws-scout` | primitive |
 
 **What each flag authorizes is deliberately not a column here.** A grant is
 written by hand in two places — the block `shorthand-flags.sh` injects, and the

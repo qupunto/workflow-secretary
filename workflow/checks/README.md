@@ -6,22 +6,15 @@ the file and applies it** over a scope the skill itself resolves.
 
 ## Why they are not in the skills that own them
 
-Every one of these was borrowed. `--ws-full-check` and `--ws-stocktake` run the same
+Every one of these is borrowed. `--ws-full-check` and `--ws-stocktake` run the same
 record taxonomy `--ws-check` does; `--ws-full-check` runs `--ws-docs`' audit and `--ws-tools`'
-claim rule. Before 2026-08-02 they reached those by **citing another skill's
-headings** — "hand the reader `--ws-check`'s *What to look for* section". That works
-until someone renames a heading, at which point it breaks silently and the
-borrower checks nothing while reporting success. `doctor.sh` grew a whole
-section-citation check to police exactly that class.
+claim rule. A method borrowed by **citing another skill's headings** breaks
+silently on a rename — the borrower checks nothing while reporting success — so
+each method is its own file, and `doctor.sh`'s section-citation check polices
+the citations that remain.
 
-A method in its own file cannot break that way, and the runner that borrows it
-no longer has to load the borrowing skill to get at it.
-
-**It also made the runners honest about their size.** Before the extraction
-`--ws-check` was nearly the size of `--ws-full-check`, which reads as absurd for the
-*incremental* sweep — almost half of it was this taxonomy, sitting in the skill
-that happened to have written it first. Extracting it roughly halved that file,
-which is now what its name says: a thin runner.
+A method in its own file also keeps every runner thin: the taxonomy lives here
+once, instead of swelling whichever skill happened to write it first.
 
 ## Method and runner
 

@@ -83,10 +83,9 @@ ceiling.
 ### After writing, in the same session, do not read with `--label`
 
 `--label` is served from GitHub's search index, which lags writes by seconds to
-tens of seconds. **Measured 2026-08-02** against a scratch repository: an issue
-closed a moment earlier was still returned as open, and an issue *created* a
-moment earlier was not returned at all. Re-take it by creating an issue and
-immediately running both commands below.
+tens of seconds: an issue closed a moment earlier is still returned as open,
+and an issue *created* a moment earlier is not returned at all. Re-take the
+measurement by creating an issue and immediately running both commands below.
 
 This is not a cosmetic lag. It defeats the two rules on this page that matter
 most, and it defeats them silently:
@@ -112,8 +111,7 @@ gh issue list --repo "$REPO" --state open --limit 500 --json number,title,body,u
 **nothing** for the same manifest, so the two reads would disagree in the worst
 possible direction: the cheap read looks healthy while every correctness-critical
 read silently sees an empty backlog, which reads as "no duplicate, file it again"
-and "0 items remaining". Measured 2026-08-02: 9 issues via `--label Backlog`,
-0 via the case-exact filter, on the same repository.
+and "0 items remaining".
 
 **Raise `--limit` when you do**, and mind that it now bounds *every* open issue
 rather than the labelled ones — a repository with 400 open bug reports and 20

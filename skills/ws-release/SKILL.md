@@ -115,8 +115,7 @@ before the tag is cut.** The plugin cache path keys on that field
 under one version overwrite one directory instead of sitting side by side —
 and the Publish action assembles from the tagged commit, so a bump landing
 after the tag ships a tree claiming the previous version. `doctor.sh` warns
-when the manifest trails the newest tag; audit pass 10 found it two tags
-behind with no owner (F2), which is why this step exists.
+when the manifest trails the newest tag.
 
 ## 5. Have the entry written, commit, then stop
 

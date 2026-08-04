@@ -142,8 +142,7 @@ Two failure modes, and the second is the reason to keep the split shallow:
 **A new overflow file is usually gitignored and will not ship.** Configurations
 that ignore `*` and re-include by name silently exclude it, and a whitelist of
 tracked paths in a publication check will fail on it or omit it. Check both when
-creating one — this happened on the very first split, caught only because a
-hazard about that exact behaviour had just been moved into the new file.
+creating one.
 
 Negative claims are the ones this file gets punished for, because it is read
 most often: [`record-contract.md`](../record-contract.md#negative-claims).

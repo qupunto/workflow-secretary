@@ -1034,6 +1034,8 @@ OWNFIX
 
     printf '# alpha-skill\n\nDoes the alpha thing.\n' > "$d/skills/alpha-skill/SKILL.md"
     printf '# beta-skill\n\nDoes the beta thing.\n'   > "$d/skills/beta-skill/SKILL.md"
+    mkdir -p "$d/commands"
+    printf -- '---\ndescription: alpha wrapper\n---\n--alpha $ARGUMENTS\n' > "$d/commands/alpha.md"
     printf '# Fixture\n\nSee [the matrix](workflow/ownership.md#the-matrix).\n' > "$d/README.md"
 
     # A checkout, because three checks below only run in one: the credentials
@@ -1087,6 +1089,42 @@ OWNFIX
   printf '%s' "$out" | grep -q "every flag's grant matches between the hook and ownership.md (2 checked)" \
     && ok "the grant comparison reached a verdict on both flags" \
     || bad "grant comparison reached no verdict, or claimed one over fewer than 2 flags"
+  printf '%s' "$out" | grep -q "no date-shaped prose in any rule file" \
+    && ok "the prose-date check reached a verdict on the rule files" \
+    || bad "prose-date check reached no verdict on a clean fixture"
+
+  # History stays in the log: a date in a rule file's prose is named as
+  # history; the same date inside a fenced block is exempt.
+  hist="$TMP/doc-history"
+  docfix "$hist"
+  printf '# alpha-skill\n\nDoes the alpha thing. Fixed on 2026-08-01 after an incident.\n' \
+    > "$hist/skills/alpha-skill/SKILL.md"
+  printf '# beta-skill\n\nDoes the beta thing.\n\n```\nat: 2026-08-01\n```\n' \
+    > "$hist/skills/beta-skill/SKILL.md"
+  docommit "$hist"
+  says "$hist" "history in a rule file: skills/alpha-skill/SKILL.md" \
+    "a prose date in a rule file is named as history"
+  printf '%s' "$(doc "$hist")" | grep -q "history in a rule file: skills/beta-skill" \
+    && bad "a fenced date was flagged — the fence exemption is broken" \
+    || ok "a date inside a fenced block stays exempt"
+
+  # A wrapper's name is its contract: the body must fire the flag the filename
+  # promises, and that flag must exist in the hook's FLAGS array.
+  printf '%s' "$out" | grep -q "every command wrapper fires the flag its name promises (1 checked)" \
+    && ok "the wrapper check reached a verdict on the clean fixture" \
+    || bad "wrapper check reached no verdict, or checked a different count"
+  wmis="$TMP/doc-wrapper-mismatch"
+  docfix "$wmis"
+  printf -- '---\ndescription: alpha wrapper\n---\n--beta $ARGUMENTS\n' > "$wmis/commands/alpha.md"
+  docommit "$wmis"
+  says "$wmis" "a wrapper's body must fire" \
+    "a wrapper firing a different flag than its name is a FAILURE"
+  wgone="$TMP/doc-wrapper-unserved"
+  docfix "$wgone"
+  printf -- '---\ndescription: gamma wrapper\n---\n--gamma $ARGUMENTS\n' > "$wgone/commands/gamma.md"
+  docommit "$wgone"
+  says "$wgone" "not in the hook's FLAGS" \
+    "a wrapper naming a flag the hook does not serve is a FAILURE"
 
   # --strict's entire job is an exit code, so nothing but an exit code tests it.
   # Both directions: a clean run must stay 0 under it, or it is just `exit 1`.
@@ -2005,6 +2043,55 @@ else
   [ "$cue" -eq 1 ] && ok "WS_ALERTS_CMD runs in place of the built-in chime" \
                    || bad "WS_ALERTS_CMD was set and never ran"
   rm -f "$acfg/alerts-on"
+fi
+
+head_ "The decisions index is generated, checked, and refuses to guess"
+
+# index-decisions.sh resolves both paths from the manifest; decisionsIndex has
+# deliberately no fallback, so undeclared must be an error, not a default name.
+IDX="$_root/skills/ws-record/assets/index-decisions.sh"
+if [ ! -f "$IDX" ]; then
+  bad "index-decisions.sh missing at $IDX"
+else
+  itmp="$TMP/index-proj"; mkdir -p "$itmp/.claude" "$itmp/docs"
+  printf '# Log\n\n## 2026-01-01 — first\n\nbody\n\n## 2026-01-02 — second\n\nbody\n' \
+    > "$itmp/docs/decisions.md"
+  cat > "$itmp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "decisions": "docs/decisions.md",
+              "decisionsIndex": "docs/decisions-index.md" } }
+JSON
+
+  # Regen writes one row per `## ` entry, with its line number.
+  (cd "$itmp" && bash "$IDX" >/dev/null 2>&1) \
+    && grep -q '^- L3 — 2026-01-01 — first$' "$itmp/docs/decisions-index.md" \
+    && grep -q '^- L7 — 2026-01-02 — second$' "$itmp/docs/decisions-index.md" \
+    && ok "regen writes a row per entry with its line number" \
+    || bad "regen did not produce the expected rows"
+
+  # Check passes on a current index, fails on a stale one, and writes nothing.
+  (cd "$itmp" && bash "$IDX" --check >/dev/null 2>&1) \
+    && ok "check passes on a current index" \
+    || bad "check failed on an index regen just wrote"
+  printf '\n## 2026-01-03 — third\n\nbody\n' >> "$itmp/docs/decisions.md"
+  before=$(cat "$itmp/docs/decisions-index.md")
+  if (cd "$itmp" && bash "$IDX" --check >/dev/null 2>&1); then
+    bad "check passed against a log with an unindexed entry"
+  else
+    ok "check fails once the log has an unindexed entry"
+  fi
+  [ "$before" = "$(cat "$itmp/docs/decisions-index.md")" ] \
+    && ok "check wrote nothing" \
+    || bad "check modified the index"
+
+  # Undeclared index: refuse rather than invent a filename.
+  jq 'del(.record.decisionsIndex)' "$itmp/.claude/workflow.json" > "$itmp/.claude/wf2" \
+    && mv "$itmp/.claude/wf2" "$itmp/.claude/workflow.json"
+  if (cd "$itmp" && bash "$IDX" >/dev/null 2>&1); then
+    bad "regen ran with record.decisionsIndex undeclared"
+  else
+    ok "regen refuses when record.decisionsIndex is undeclared"
+  fi
 fi
 
 head_ "Result"

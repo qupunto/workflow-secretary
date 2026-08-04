@@ -1,10 +1,10 @@
 # The project manifest — `<project>/.claude/workflow.json`
 
 **The one authority on what a manifest may contain.** The skills are global; this
-file is how a project tells them its own paths, commands and roles. Before it
-existed the shape was implied by whatever each skill happened to read, and the
-skills disagreed — two names for the same command, keys depended on but defined
-nowhere, one value documented as both a string and an array.
+file is how a project tells them its own paths, commands and roles. Without a
+single authority the shape is implied by whatever each skill happens to read,
+and the skills disagree — two names for one command, keys depended on but
+defined nowhere, one value read as both a string and an array.
 
 Who may write each record is [`ownership.md`](ownership.md); what each record
 holds is [`record-contract.md`](record-contract.md). This file is about **keys**.
@@ -51,6 +51,7 @@ Every key is optional. A skill that cannot resolve one says so and continues.
 | `record.behaviour` | path | `docs/behaviour.md` |
 | `record.reference` | **array of paths** | `README.md` |
 | `record.audits` | path | — (see below) |
+| `record.toolbelt` | path | `toolbelt.md` |
 | `record.tooling.catalog` | path | `.claude/TOOLING.md` |
 | `record.tooling.sources` | array of globs | `.claude/skills/*/SKILL.md`, `.claude/agents/*.md` |
 
@@ -96,6 +97,13 @@ they mean, not a `record.reference.overview` key. There is no such key.
 **`record.audits` has no conventional fallback**, because no filename for it is
 conventional. `--ws-stocktake` asks once on a first pass and then creates one; see that
 skill's no-manifest section.
+
+**`record.toolbelt` is the capability registry** — one row per adopted library
+or tool, read before building any capability. `ws-scout` is its sole writer and
+[`record-contract.md`](record-contract.md) holds the row shape. An absent file is
+an empty registry, not a failure: the file is created when the first adoption is
+made. It never appears under a lane's `records` — which tool does a job is a
+property of the project, not of a worktree.
 
 **`record.decisionsIndex` has no fallback, and that is not an oversight.** It is
 the one generated record, so its filename is only meaningful alongside a
@@ -215,12 +223,11 @@ into a failure report on every clean checkout.
 `.claude/settings.json`, not here — it configures the harness rather than the
 workflow. Skills that read it say so explicitly.
 
-**Nor is a project name.** `project` was a key until 2026-08-01 and no global
-skill ever read it, which is rule 1 below failing in the one direction it cannot
-catch by itself — the key was already there. It is named here because a manifest
-that ships carries its value into whatever repository it lands in, so a name is
-worse than useless: it is confidently wrong. A project that needs its own name
-has `README.md`.
+**Nor is a project name.** A manifest that ships carries its value into
+whatever repository it lands in, so a name is worse than useless: it is
+confidently wrong. The ban is written down because rule 1 below cannot catch a
+key that is already present — nothing reading it looks exactly like something
+reading it. A project that needs its own name has `README.md`.
 
 **Nor are permissions.** A stack's destructive commands — migration resets,
 force-syncs, anything that drops state — belong in the project's own

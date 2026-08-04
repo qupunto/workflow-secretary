@@ -39,6 +39,11 @@
 !agents/
 !agents/**
 
+# Slash-command wrappers for the flags whose skill carries a different name —
+# each file's name equals the flag its body fires, and doctor.sh asserts that.
+!commands/
+!commands/**
+
 # This repo is two things at once: a live config directory and a project with
 # its own documentation. The inverted rule above serves the first and would
 # block the second, so re-include them explicitly rather than loosening `*`,

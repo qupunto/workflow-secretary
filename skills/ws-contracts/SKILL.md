@@ -65,9 +65,8 @@ S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 Read-only, and it prints what it checks. Run it rather than believing any count
 or list written in a markdown file, this one included.
 
-**Two lines rather than one, because `$CLAUDE_PLUGIN_ROOT` cannot be used here
-and that is measured, not assumed** — it reaches hook processes, not the Bash
-tool.
+**Two lines rather than one, because `$CLAUDE_PLUGIN_ROOT` cannot be used
+here** — it reaches hook processes, not the Bash tool.
 
 The fallback is the versioned cache path, which is the only place a
 git-installed plugin's files exist. The order matters: **a checkout wins**, so a

@@ -9,7 +9,7 @@ Renders as a docsify site by default — plain markdown that also reads correctl
 
 ## Invocation
 
-`/docs` invokes this skill by name, and `--ws-docs` fires it through the hook — both are the same
+`/ws-docs` invokes this skill by name, and `--ws-docs` fires it through the hook — both are the same
 request. Bare, either means *document what we just worked on*: infer the target from
 the conversation — the files touched this session, the feature just built — and say what you
 picked before writing. With an argument (`--ws-docs auth`, `--ws-docs the map module`) that's the
@@ -89,12 +89,6 @@ anchors resolve, do enumerations and `## Key files` still match source. It is no
 a project's record *owes* an update: "a diff touched the routes and `behaviour.md` never changed"
 is `--ws-check`'s finding, not this skill's. Don't run both against the same request.
 
-**Audit mode is incremental by default.** The mechanical passes always run over the whole
-site; the expensive one — re-reading source to confirm a page's claims — runs only on pages
-whose own text or cited source paths have moved since the last sweep. The procedure is
-[Audit scope](#audit-scope) below, and `--ws-full-check` is how you force every page to be
-re-read.
-
 ### Audit scope
 
 Resolving it is this skill's job, not the method's — a method that picked its own scope
@@ -102,7 +96,8 @@ could not be borrowed by a caller that wants a different one.
 
 Sections 1–7 are shell. They run over the whole site in seconds and there is nothing to
 save by narrowing them — **always run them in full.** Section 8's second half is the
-expensive one: re-reading source files page by page. That is what the checkpoint is for.
+expensive one: re-reading source files page by page. That is what the checkpoint is for,
+and `--ws-full-check` is what forces every page to be re-read.
 
 Ask `sweep-tracker` to resolve the entry `docs`, with two scopes:
 

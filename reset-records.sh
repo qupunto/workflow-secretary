@@ -53,6 +53,7 @@ roadmap|# Roadmap
 changelog|# Changelog
 handoff|# Handoff
 decisions|# Decision log
+decisionsIndex|# Decisions index
 openDecisions|# Open decisions
 audits|# Audit log
 '

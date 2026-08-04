@@ -11,6 +11,7 @@
     "changelog": "CHANGELOG.md",
     "handoff": ".claude/HANDOFF.md",
     "decisions": "docs/decisions.md",
+    "decisionsIndex": "docs/decisions-index.md",
     "openDecisions": "docs/open-decisions.md",
     "audits": "docs/audits.md",
     "reference": [
@@ -28,6 +29,8 @@
   "commands": {
     "typecheck": "while read -r f; do bash -n \"$f\" || exit 1; done < <(git ls-files '*.sh')",
     "test": "bash tests/hook-contract.sh",
+    "indexRegen": "bash skills/ws-record/assets/index-decisions.sh",
+    "indexCheck": "bash skills/ws-record/assets/index-decisions.sh --check",
     "ci": {
       "tool": "gh",
       "workflow": "Verify"

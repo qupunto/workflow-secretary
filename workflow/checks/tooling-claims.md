@@ -21,6 +21,11 @@ What counts as one:
   hedge.
 - **The negative claim** — "nothing does Y", "no skill reads Z". True when
   written, and the first counterexample is silent.
+- **The incident citation** — a date, an "it has happened here", an audit-pass
+  number, a what-this-file-used-to-say. The mechanism clause defending the rule
+  stays; the event moves to the decision log —
+  [`record-contract.md`](../record-contract.md#the-mutable-claim-rule)'s
+  pattern rule, policed mechanically by `doctor.sh`'s prose-date check.
 
 What to do with one:
 
@@ -28,9 +33,10 @@ What to do with one:
   re-arms the same trap.
 - **Keep** the convention or the pointer that surrounded it, if there is one.
   The claim is what rots; the rule it illustrated usually does not.
-- **A dated measurement is not a mutable claim.** "Measured on <date>, X was X"
-  is correct as written history and stays, provided it carries its date and
-  says how to re-take the measurement.
+- **A dated measurement is history like any other incident.** Correct as
+  written — and relocated to the decision log with a pointer. The file keeps
+  the rule the measurement established and how to re-take it, never the
+  figure and its date.
 
 **Scope, disposition and authorization are the runner's** — see
 [`README.md`](README.md). This file says only what counts as a finding.

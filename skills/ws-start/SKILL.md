@@ -180,10 +180,8 @@ write anything outside that list — if it needs to, it stops and reports rather
 than reaching.
 
 **Disjoint write sets are not enough. Count what each lane *reads* as well.** Two
-lanes must not run concurrently when one reads a file the other writes, and it is
-not theoretical — it has happened here, between two lanes whose write sets were
-genuinely disjoint. **A read/write race corrupts nothing, so nothing looks
-broken**: what it produces is a confident, well-cited, wrong report, citing a file
+lanes must not run concurrently when one reads a file the other writes. **A
+read/write race corrupts nothing, so nothing looks broken**: what it produces is a confident, well-cited, wrong report, citing a file
 where the evidence genuinely was a moment ago.
 
 So the brief for each lane carries **two** lists — the files it may write, and the
@@ -360,8 +358,7 @@ This skill writes no record file. Each of these is a handoff:
 one primitive per record — which is exactly what makes parallelising them
 tempting, and it is wrong. **Every record writer re-verifies its claims against
 the *other* records before writing**, so each one's read set is all of them. That
-is the read/write race Phase 3 describes, and this is the place it has actually
-happened.
+is the read/write race Phase 3 describes.
 
 1. **`--ws-todo`** — remove what shipped, and rewrite anything that turned out
    bigger than its checkbox with what was actually learned. Completed items

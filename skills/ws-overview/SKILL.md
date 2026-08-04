@@ -5,65 +5,66 @@ description: "Report where a project stands at a glance — record counts per la
 
 # The project at a glance
 
-**Project facts come from `.claude/workflow.json`** — `record.*`, `lanes.*`,
-`sweeps`, `commands.ci`. Without a manifest, fall back to conventional names,
-and report every key that does not resolve as **undeclared** rather than
-skipping its line. Where a `.claude/lane` selector names a lane,
-`lanes.named.<lane>.records.X` overrides `record.X` for `todo`,
-`openDecisions` and `handoff` — [`manifest.md`](../../workflow/manifest.md)'s
-resolution rule.
-
 **This skill writes nothing.** No record, no checkpoint, no commit, no sweep.
-It is the read-only sibling of `--ws-check`: that flag asks *what has
-drifted*; this one asks *where do we stand*. Anything that looks wrong is
-reported with the flag that owns fixing it, in one line, and left alone.
+Anything that looks wrong is reported with the flag that owns fixing it, in
+one line, and left alone.
 
-## The report
+## Run the probe first
 
-One block in the reply, every number read at invocation time — never carried
-forward from a handoff card, memory, or an earlier session. A count is a
-mutable claim, so it lives in this reply and never lands in a file
+Every mechanical number in the report comes from one script, run from the
+project directory:
+
+```bash
+S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+[ -x "$S/doctor.sh" ] || S=$(ls -d "$S"/plugins/cache/*/workflow-secretary/*/ 2>/dev/null | tail -1)
+bash "$S"/skills/ws-overview/assets/probe.sh
+```
+
+The two resolution lines are [`ws-contracts`](../ws-contracts/SKILL.md)'
+canonical form.
+
+The probe is read-only and offline. It resolves `.claude/workflow.json`
+itself — conventional fallbacks, the `.claude/lane` selector, `lanes.named`
+overrides, all per [`manifest.md`](../../workflow/manifest.md) — counts every
+record, runs `doctor.sh`, computes each sweep baseline's distance from HEAD,
+and locates the roadmap's first heading not marked completed. **Quote its
+block rather than re-rendering it**: paste the probe's output as the report,
+then append the judgment lines below — one line each. Every number
+was read at this invocation: never carried forward from a handoff card,
+memory, or an earlier session. A count is a mutable claim, so it lives in
+the reply and never lands in a file
 ([`record-contract.md`](../../workflow/record-contract.md#the-mutable-claim-rule)).
 
-- **Tree** — current branch, short HEAD, dirty or clean, and the active lane
-  from `.claude/lane` ("no lane" where absent). One `git status --porcelain`
-  and one `rev-parse`; cheap and always first, because every other line is a
-  claim about this tree.
-- **Records** — the open-item count per record the manifest declares: `- [ ]`
-  entries in `record.todo`, `## ` entries in `record.openDecisions`, open
-  blocks per milestone in `record.roadmap`. Under `lanes.named`, count each
-  lane's `todo` and `openDecisions` separately and give the total. Where
-  `record.todo` is a provider object, count through the provider's contract
-  ([`providers/github-issues.md`](../../workflow/providers/github-issues.md))
-  and mind its read-after-write rule.
-- **Warnings pending** — `doctor.sh` FAILURES (it is read-only; run it), open
-  entries in the machine-local bug-report inbox, and `!important` blocks in
-  `record.handoff`.
-- **Sweeps** — for each entry in the `sweeps` checkpoint file (check,
-  full-check, stocktake, docs, tooling, test-run): its baseline commit and how
-  many commits HEAD is ahead of it — the same computation the session hook
-  makes, reused rather than reinvented. No checkpoint file means "no sweep has
-  ever run here", which is a line, not an omission.
-- **Roadmap** — the current milestone (the first not marked completed), its
-  next unchecked block, and the nearest milestone after it. Where versions
-  name the milestones, say which is the nearest minor and which the nearest
-  major.
+Where the probe cannot run at all, read and count by hand to the same
+contract, and say so in one line.
 
-Three rules carry the whole contract:
+## What the model adds — the judgment lines
 
-- **Undeclared is not zero.** "No backlog is declared" and "the backlog is
-  empty" are different facts; a bare `0` renders them identically.
-- **Not checked is not zero either.** A read that needs an unreachable tool —
-  `gh`, the network, a provider — is reported as *not checked*, never
-  dropped; an absent line reads as clean.
-- **Report, never repair.** Stale sweep → name `--ws-check`. Untriaged inbox →
-  name `--ws-full-check`. A milestone that looks complete → name `--ws-plan`.
-  One line each; acting on them is those flags' work, under their grants.
+The probe stops where mechanics stop. On top of its output:
+
+- **Finish the lines it marks "not counted here" or "not checked".** A
+  provider-backed backlog is counted through
+  [`providers/github-issues.md`](../../workflow/providers/github-issues.md)
+  — mind its read-after-write rule — or reported *not checked* when `gh`,
+  the network, or the provider is unreachable. Never dropped: an absent line
+  reads as clean.
+- **Interpret the roadmap position.** The probe names the first `## ` heading
+  not marked *completed*; say whether that is a real milestone or a
+  maintenance coda, and where versions name the milestones, which is the
+  nearest minor and which the nearest major.
+- **Keep the probe's distinct states distinct.** "Undeclared", "missing" and
+  "0 open" are three different facts — "no backlog is declared" and "the
+  backlog is empty" must never render as the same bare `0`.
+- **Report, never repair.** Stale sweep → name `--ws-check`. Untriaged inbox
+  → name `--ws-full-check`. A milestone that looks complete → name
+  `--ws-plan`. One line each; acting on them is those flags' work, under
+  their grants.
 
 ## What this skill does not do
 
 - **It does not stamp anything.** Reading records is not a sweep and earns no
-  checkpoint — `sweep-tracker` never hears from it.
+  checkpoint — `sweep-tracker` never hears from it, and the probe is as
+  read-only as the skill.
 - **It does not verify claims.** Drift detection is `--ws-check`'s method;
   this skill counts what the records say, not whether they are right.
 - **It does not rebuild or reorder anything** — backlog is `--ws-todo`'s,

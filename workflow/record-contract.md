@@ -1,9 +1,9 @@
 # The record contract
 
-**What each record file holds, and what it must never hold.** One copy. Before
-this file existed the same table lived in four places — a full version in one
-skill, a shortened one in a project's `CLAUDE.md`, and partial versions in two
-more — with one of them declaring itself the authority and nothing enforcing it.
+**What each record file holds, and what it must never hold.** One copy. A
+second copy of this table anywhere declares an authority nothing enforces, and
+the copies drift apart silently — partial versions in individual skills and
+project files are how that happens.
 
 Who may *write* each file is [`ownership.md`](ownership.md). Which path plays
 which role in a given project is that project's `.claude/workflow.json`, whose
@@ -24,16 +24,13 @@ belongs where, and why putting it elsewhere breaks something.
 | `record.roadmap` | Milestones and the blocks inside them, their order and dependencies, the version each milestone intends to ship as, and which milestones are completed. | Design arguments. The claim that a version *shipped* — a tag is the only proof of that. |
 | `record.changelog` | What someone *using* the project would notice, per released version. | Unreleased work. |
 | `record.handoff` | What a fresh session must know **before it touches code**, compressed, plus pointers to everything else. | Anything it can look up when the topic comes up. |
+| `record.toolbelt` | One row per **adopted capability**: task shape → package → pointer into the `record.decisions` entry that adopted it. Consulted before building any capability. | The reasoning — that goes to `record.decisions` via `--ws-log` at the moment of adoption, so the registry stays a lookup table rather than a second decision log. |
 | `record.tooling.catalog` | What skills and agents exist, what each is for in one human sentence, and a diagram of who invokes whom. It is the **source** for the docs site's Claude-tooling annex page, which `--ws-docs` derives and owns. | Anything that changes as the project changes — see the mutable-claim rule below, and the carve-out under this table, which is narrow and applies to this row only. |
 
 **The catalog row contradicts itself unless this carve-out is read with it.** Its
 "Holds" column requires an inventory of what skills and agents exist; its "Does
 not hold" column bars anything that changes as the project changes — and an
-inventory is exactly that. The reconciliation lived only in one repo-scoped skill
-file that no other project loads, which meant every adopter read a row that
-forbids the thing the row is for.
-
-So, stated here where every project reads it: **the inventory itself is
+inventory is exactly that. So, stated here where every project reads it: **the inventory itself is
 permitted in `record.tooling.catalog`, and nothing else mutable is.** Rows for
 what exists, yes. Counts of them, "currently", a status, a health verdict, a
 line about what some skill is in the middle of — no; those are ordinary mutable
@@ -54,7 +51,12 @@ If something is settled in conversation it gets an entry that day, even if no
 code follows for months. What *exists* is `record.reference`'s job.
 
 **2. A decision not to build something is still a decision.** It gets an entry.
-The task stays in `record.todo` as an unchecked item pointing at it.
+The task stays in `record.todo` as an unchecked item pointing at it. **And the
+entry names whose call the deferral was** — the owner's words, or the session's
+own judgment, which stands only until the owner's next gate. A parking written
+without attribution reads as settled while hiding who settled it, and "I don't
+recall ordering this" must be answerable from the record rather than by forensic
+reading of which entries *do* carry an owner's name.
 
 **3. An entry never lives in both `openDecisions` and `decisions`.** Settling one
 means deleting it from the first and appending the outcome — including the
@@ -71,7 +73,7 @@ is stale", and the exemption is the whole reason the file can be trusted as a lo
 | Mode | Files | Failure if done badly |
 |---|---|---|
 | **Append-only** | `decisions`, `audits`, `changelog` | Additive. A wrong entry is a wrong entry; nothing true was lost. |
-| **Rewritten in place** | `behaviour`, `reference`, `handoff`, `todo`, `roadmap` | Destroys the previous true statement. |
+| **Rewritten in place** | `behaviour`, `reference`, `handoff`, `todo`, `roadmap`, `toolbelt` | Destroys the previous true statement. |
 
 Appending a dated entry and rewriting a topic section have different blast radii.
 That is why `record.decisions` belongs to the append-record primitive and
@@ -114,7 +116,8 @@ and the three every concurrent session wants to write, which is exactly where
 the merge conflicts were. **Never: `decisions`, `audits`, `changelog`** — the
 append-only single timelines; three branches appending at EOF conflict
 trivially and resolve as "keep both" — **nor `roadmap`, `behaviour`,
-`reference`**, which describe one system. A lane-local decision log is the
+`reference`**, which describe one system, **nor `toolbelt`** — which tool does a
+job is a property of the project, not of a worktree. A lane-local decision log is the
 failure this rule exists to prevent: the why of a choice fragments across
 files nobody reads together.
 
@@ -138,6 +141,19 @@ triggers a re-read of the file that misled it.
 So when a stale claim is found in one of these files, **delete the claim rather
 than correcting it.** A corrected count is a claim that will go stale again; a
 deleted one cannot.
+
+**The pattern rule — this rule's general form: a rule file states behavior; the
+log explains it.** A skill, agent, procedure, check or contract file carries
+explicit behavioral patterns — trigger, action, boundary — plus at most one
+clause of *mechanism* per counterintuitive rule. History never appears: no
+dates, no incident citations, no what-a-file-used-to-say, no who-found-what.
+All of that belongs in `record.decisions` or the audit log, which exist to
+explain the pattern without being loaded beside it. The test is robustness: a
+rule a reader must infer from an anecdote is inferred differently by each
+reader, and variance in reading becomes variance in behavior — where stating
+the rule explicitly costs more words, the words are the cheaper side of that
+trade. `doctor.sh` polices the greppable proxy: a date-shaped string in prose,
+outside a fenced block, in any rule file.
 
 The same risk applies to `record.handoff`, which is loaded every session and
 therefore costs tokens forever. Prefer a one-line warning plus a pointer over a

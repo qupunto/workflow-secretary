@@ -89,8 +89,8 @@ report intelligible, that is the signal to stop and ask, not to paste.
 The inbox is machine-local, so its entries safely name the project the session
 was working in — that context is useful to triage and harmless on disk. The
 upstream repository is **public**. A private project's name, path or details in
-a public issue is a leak that outlives deletion, and this suite's own history
-carries exactly that lesson. So the `Found:` line **never travels by default**;
+a public issue is a leak that outlives deletion. So the `Found:` line **never
+travels by default**;
 include project context only when the user says to in words, after being shown
 what was withheld. When in doubt, the redacted form is always correct — the
 maintainer can ask.

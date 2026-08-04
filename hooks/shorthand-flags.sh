@@ -63,7 +63,7 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 # below does not matter. `--ws-stocktake` and `--ws-full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts --ws-overview)
+FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts --ws-overview --ws-scout)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -227,6 +227,7 @@ skill_for() {
     --ws-full-check) echo ws-full-check ;;
     --ws-plan) echo ws-plan ;;
     --ws-overview) echo ws-overview ;;
+    --ws-scout) echo ws-scout ;;
   esac
 }
 
@@ -352,7 +353,9 @@ Irreversible, in force before the skill loads: a deferral is a decision, so it
 produces TWO entries — the task in the project's backlog record, and the
 reasoning in its decision record. Never write the reasoning into the backlog.
 If the real blocker is an unmade choice rather than bad timing it belongs in the
-open-decisions record instead, and never in both.
+open-decisions record instead, and never in both. The decision entry NAMES WHOSE
+CALL the deferral was — the owner's words, or the session's own judgment, which
+stands only until the owner's next gate.
 EOF
     ;;
   --ws-plan)
@@ -778,6 +781,27 @@ Irreversible, in force before the skill loads:
   never omitted — an absent line reads as clean.
 - The counts go in the reply and never into a file. A count written into a
   record is a mutable claim, which record-contract.md forbids.
+EOF
+    ;;
+  --ws-scout)
+    cat <<'EOF'
+The user included the `--ws-scout` flag. That is an explicit, unconditional
+instruction to invoke the `ws-scout` skill now — consult the project's toolbelt
+registry, and where it has no answer, search the stack's public registries for
+existing libraries that do or broadly resemble what the rest of the message
+describes, and explain the candidates. The rest of the message is the task to
+scout for, not a question to answer first.
+
+Authorization: none.
+
+Irreversible, in force before the skill loads:
+- ADVISE, do not implement. The deliverable is candidates and an explanation;
+  building with the chosen tool is ordinary session work, after.
+- Read the toolbelt registry FIRST. A row that matches the task shape answers
+  the search before it starts, and skipping the lookup is how a project adopts
+  two tools for one job.
+- An adoption is a decision: the registry row is written only on the user's
+  word, and the reasoning goes through --ws-log, never into the row.
 EOF
     ;;
   --ws-alerts)
