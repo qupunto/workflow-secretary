@@ -119,17 +119,20 @@ for f in $FLAGS; do
   esac
 done
 
-# ------------------------------------------------------------------ position
+# ------------------------------------------------------------------ matching
 
-head_ "Position is the whole signal"
+head_ "Exact decomposition is the whole signal; position is none of it"
 
+# Position stopped being the signal when the flags gained the ws- prefix: no
+# real command carries a --ws-* option, so an exact token is intent wherever
+# it sits. What still gates firing is decomposition with nothing left over.
 fires  "--ws-wrap" "--ws-wrap"
 fires  "--ws-wrap the purge work is done" "--ws-wrap"
 fires  "that is everything for today --ws-wrap" "--ws-wrap"
-silent "remind me what --ws-wrap does" "mid-sentence: discussed, not invoked"
-silent "should --ws-wrap also update the changelog?" "a question about the flag"
-silent "git branch --track origin/dev" "pasted command"
-silent "see the --ws-wrapper module" "glued to a word"
+fires  "remind me what --ws-wrap does" "--ws-wrap"
+fires  "commit that, then --ws-todo the rest as one entry" "--ws-todo"
+silent "git branch --track origin/dev" "pasted command: --track is not a ws- flag"
+silent "see the --ws-wrapper module" "glued to a word: does not decompose"
 silent "no flags here at all" "nothing to fire"
 
 head_ "Runs fire every flag they name, in typed order"
@@ -892,6 +895,49 @@ Nothing pending.'
     *"1 open bug report"*) ok "an entry below the marker counts; the template above does not" ;;
     *) bad "a marked inbox miscounted its entries: $out" ;;
   esac
+
+  # ---------------------------------------------------- upstream issue nudge
+  head_ "The upstream check reports counts and unreachability, never silence"
+
+  # Fires only in a session standing in the suite's own checkout (PWD is the
+  # config dir and it carries the plugin manifest), and its failure mode is the
+  # contract: gh unreachable must SAY not-checked, because silence there renders
+  # "unreachable" identical to "zero". gh is stubbed on PATH both ways.
+  upc="$TMP/upstream-conf"
+  rm -rf "$upc"; mkdir -p "$upc/.claude-plugin" "$upc/stubs"
+  printf '{"name":"workflow-secretary","version":"0.0.1","description":"d"}\n' \
+    > "$upc/.claude-plugin/plugin.json"
+  printf '#!/usr/bin/env bash\necho 3\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"3 open issue(s) on qupunto/workflow-secretary"*) ok "open upstream issues are counted in the nudge" ;;
+    *) bad "3 open upstream issues went unmentioned: $out" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"NOT checked"*) ok "an unreachable upstream repo says so rather than nothing" ;;
+    *) bad "gh failing rendered as silence — unreachable reads as zero: $out" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\necho 0\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$upc" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"qupunto/workflow-secretary"*) bad "zero upstream issues still produced a nudge: $out" ;;
+    *) ok "zero upstream issues stay silent" ;;
+  esac
+
+  printf '#!/usr/bin/env bash\necho 3\n' > "$upc/stubs/gh"; chmod +x "$upc/stubs/gh"
+  out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$upc" PATH="$upc/stubs:$PATH" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in
+    *"workflow-secretary"*) bad "the upstream check fired outside the suite checkout" ;;
+    *) ok "no upstream check outside the suite's own checkout" ;;
+  esac
 fi
 
 # ------------------------------------------------------------------- doctor.sh
@@ -1436,6 +1482,57 @@ case $out in
     ok "CLAUDE_CONFIG_DIR still redirects the installation for a checkout doctor" ;;
   *) bad "CLAUDE_CONFIG_DIR no longer reaches the installation: $(printf '%s' "$out" | grep -a FAIL | head -2)" ;;
 esac
+
+# ------------------------------------------------- plugin/checkout coexistence
+#
+# Both install forms on one machine double-fire the hooks. The doctor must FAIL
+# on the combination through either evidence route (cache directory, or
+# enabledPlugins naming the suite), stay quiet on either form alone, and warn
+# on the residue an uninstall leaves behind in a tracked settings.json.
+
+co="$TMP/doc-coexist"
+docfix "$co"
+mkdir -p "$co/.claude-plugin"
+printf '{"name":"workflow-secretary","version":"0.0.1","description":"d"}\n' \
+  > "$co/.claude-plugin/plugin.json"
+docommit "$co"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed at most once' \
+  && ok "the checkout form alone is not coexistence" \
+  || bad "checkout form alone: the coexistence check reached no verdict"
+
+mkdir -p "$co/plugins/cache/mk/workflow-secretary/0.0.1"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && ok "a cached plugin install beside the checkout FAILs as coexistence" \
+  || bad "a cached workflow-secretary install beside the checkout passed silently"
+
+rm -rf "$co/plugins"
+edit_ "$co/settings.json" 's/{"hooks"/{"enabledPlugins":{"workflow-secretary@mk":true},"hooks"/'
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && ok "enabledPlugins naming the suite FAILs as coexistence" \
+  || bad "enabledPlugins naming workflow-secretary passed silently"
+
+edit_ "$co/settings.json" 's/"enabledPlugins":{"workflow-secretary@mk":true}/"enabledPlugins":{}/'
+docommit "$co"
+out=$(doc "$co")
+printf '%s' "$out" | grep -q 'uninstall residue' \
+  && ok "empty enabledPlugins in tracked settings.json warns as residue" \
+  || bad "uninstall residue in tracked settings.json went unmentioned"
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && bad "residue alone was reported as coexistence" \
+  || ok "residue alone is not coexistence"
+
+# An adopter's machine: a cached install present, config dir NOT the suite's
+# checkout. The normal plugin case must not be reported as coexistence.
+ad=$(mktemp -d)
+printf '{"permissions":{"defaultMode":"auto"}}\n' > "$ad/settings.json"
+mkdir -p "$ad/plugins/cache/mk/workflow-secretary/0.0.1"
+out=$(cd "$TMP/bare" && CLAUDE_CONFIG_DIR="$ad" CLAUDE_DIR="$pdir" bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+printf '%s' "$out" | grep -q 'installed TWICE' \
+  && bad "a plain plugin install with no checkout was reported as coexistence" \
+  || ok "a plugin install alone is not coexistence"
 
 # A cached doctor pointed at ANOTHER installation must judge that one, not
 # itself. Before this, running the shipped tests from a plugin cache failed 21

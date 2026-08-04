@@ -51,7 +51,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 |---|---|
 | `settings.json` | Permissions and hook wiring |
 | `hooks/shorthand-flags.sh` | `UserPromptSubmit` hook — the `--flag` shorthands |
-| `hooks/session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `doctor.sh` failure, a sweep or a record gone stale, an open bug report. It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
+| `hooks/session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `doctor.sh` failure, a sweep or a record gone stale, an open bug report, an unread upstream filing (counted only in the suite's own checkout). It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
 | `hooks/alert.sh` | `Notification`/`Stop`/`PreToolUse(AskUserQuestion)` hook — a sound cue when a session waits for input. Ships silent; `--ws-alerts on\|off` toggles it per machine via a state file in the config directory |
 | `hooks/hooks.json` | Wires those same events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The plugin manifest. `claude plugin validate` reads it |
@@ -312,11 +312,12 @@ often — and it is the only part of this section that a machine does not genera
 
 ### Which flag do I want?
 
-Four of them ask a similar-sounding question and are routinely confused. The
+Five of them ask a similar-sounding question and are routinely confused. The
 difference is **what they read**, not how hard they try:
 
 | You want to know | Flag | Reads | Writes |
 |---|---|---|---|
+| Where do we stand, at a glance? | `--ws-overview` | branch and lane, record counts, sweep freshness, nearest milestones — fresh, never from memory | nothing at all — the report is the reply |
 | Is what we wrote down still true? | `--ws-check` | the records only, and only those whose code moved | nothing — dispatches to each record's owner |
 | Is the whole configuration sound? | `--ws-full-check` | records + the docs site + the tooling files, every one, ignoring checkpoints | nothing with an owner; fixes unowned files directly |
 | Where is this project? | `--ws-stocktake` | all of the above plus conventions, public surface, safety nets, and the code via the project's own analysis skill | rebuilds the backlog, writes an audit entry |
@@ -353,21 +354,24 @@ behind.
 **If you only ever use three, use `--ws-track`, `--ws-todo` and `--ws-wrap`.** They are
 the ones that pay on the first day; everything else pays back over weeks.
 
-**Position is the whole signal.** Flags are read from a *run* at the very start
-or the very end of a message, where a run is one or more whitespace-separated
-tokens that each decompose entirely into flags:
+**Exact decomposition is the whole signal.** A flag counts anywhere in the
+message; what gates it is that the token decomposes entirely into flags, with
+nothing left over:
 
 ```
 --ws-wrap                            invoke
 --ws-stocktake--ws-release--ws-wrap            invoke all three, in that order
 that's everything --ws-docs          invoke
-remind me what --ws-docs does        does NOT invoke — this is a question
-git branch --track origin/dev     does NOT invoke — pasted command
+commit it, then --ws-todo the rest    invoke — position does not matter
+git branch --track origin/dev     does NOT invoke — --track is not a ws- flag
+see the --ws-wrapper module          does NOT invoke — does not decompose
 ```
 
-Matching anywhere in a message would fire on any message that merely *discusses*
-a flag, and on pasted shell commands. A token must decompose with nothing left
-over, so `--ws-wrapper` and `origin/dev` end a run rather than extending it.
+Position used to matter — flags were read only from the start or end of a
+message — because unprefixed flags collided with pasted commands. The `ws-`
+prefix removed that collision: no real command carries a `--ws-*` option. The
+one consequence to know: a message that *quotes* a flag as its own bare token
+fires it. With the prefix, an exact token is taken as intent, wherever it sits.
 
 A flag whose skill does not resolve in the current project is **inert, not
 broken** — `skill_exists()` declines to inject an instruction that cannot be

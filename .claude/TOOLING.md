@@ -55,7 +55,7 @@ it stops being readable.
    │                                                              │
    │    --ws-start    --ws-check    --ws-full-check   --ws-release│
    │    --ws-wrap     --ws-pr       --ws-stocktake    --ws-report │
-   │    --ws-docs     --ws-adopt                                  │
+   │    --ws-docs     --ws-adopt    --ws-overview                 │
    └───────────────────────────┬──────────────────────────────────┘
                                │
                                │  invokes, passing its grant down
@@ -145,6 +145,7 @@ be here; they are the table after this one.
 | `ws-report` | `--ws-report` | Files a finding about this suite upstream — appends it to the machine-local inbox, then opens a GitHub issue on the public repository behind a preview, a redaction of the project context, and a fresh OK. Can bundle every open inbox entry under the same rules; hazards are referenced by group name, never quoted |
 | `ws-release` | `--ws-release` | Decides that a version ships, once the roadmap marks a milestone done, and asks before anything is published. The entry and the tag are written by the two primitives above |
 | `ws-plan` | `--ws-plan` | Keeps milestones and blocks in order, and marks a milestone complete |
+| `ws-overview` | `--ws-overview` | Reports where a project stands at a glance — branch and lane, per-record counts, sweep freshness, pending warnings, the nearest milestones — read fresh at invocation, writing nothing at all. The read-only sibling of `--ws-check`: it counts what the records say and never verifies them |
 | `ws-start` | `--ws-start` | Picks up pending work and does it, in parallel lanes partitioned so they cannot collide |
 | `ws-tools` | `--ws-tools` | Keeps this catalog current, hands it to `--ws-docs` where a site exists, deletes stale claims from skill and agent files, and runs the prose prune over the same set — absorbed from the separate trim skill on 2026-08-03 |
 | `ws-track` | `--ws-track` | Builds the visible task list for multi-step work and keeps it honest as the work moves |
@@ -250,7 +251,7 @@ would route a lane to an agent does that work inline and says so.
 |---|---|
 | `doctor.sh` | Read-only health check of this config and the project in the working directory. Prints what it checks, so the list cannot go stale |
 | `hooks/shorthand-flags.sh` | The `UserPromptSubmit` hook that turns a `--flag` into a deterministic skill invocation rather than a judgement call |
-| `hooks/session-check.sh` | The `SessionStart` hook, and the only thing here that speaks without being asked — so it is built to stay silent unless it has something worth a session's attention: a doctor failure, a sweep or a record gone stale, a filed bug report, or a handoff the harness would not otherwise load |
+| `hooks/session-check.sh` | The `SessionStart` hook, and the only thing here that speaks without being asked — so it is built to stay silent unless it has something worth a session's attention: a doctor failure, a sweep or a record gone stale, a filed bug report, an unread upstream filing (counted only in the suite's own checkout, where triage can act), or a handoff the harness would not otherwise load |
 | `hooks/alert.sh` | A sound cue when a session waits for input — permission prompts, option pickers, idle, turn end. Ships silent and opts in per machine: `--ws-alerts on\|off` (served by the flag hook, no skill) toggles a state file in the config directory that this hook gates on. Sound only, cross-platform, one cue per burst |
 | `hooks/hooks.json` | Declares the same events for a **plugin** install, where `settings.json` is the user's and a plugin never owns it. Plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The manifest that makes this directory installable. `claude plugin validate` reads it |
