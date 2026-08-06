@@ -6,7 +6,8 @@ roadmap, documentation and tooling catalog matching what the code actually does.
 Anything needing stack knowledge — architecture, correctness, security, the data
 model — is deliberately absent, so judge it as a project secretary rather than a
 programming assistant. There is no runtime and no build: the project is markdown
-instruction files, a handful of shell scripts and a CI workflow.
+instruction files, a handful of shell scripts and two CI workflows — one that
+verifies, one that publishes.
 
 The repository **is** `~/.claude`. It does not install into that directory; the
 directory is the working tree.

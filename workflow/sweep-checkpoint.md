@@ -88,6 +88,19 @@ Two things void that even when all three hold:
 second when the first does not apply, and it does not help: a subset cannot
 support a claim about the suite, whatever the checkpoint says.
 
+**Freshness-only entries.** A sweep whose coverage belongs to a permanent record
+— [`audit-coverage.md`](audit-coverage.md) keeps `record.audits` out of this
+cache deliberately — may still stamp an entry holding nothing but its name,
+`baseline` and `at`, so that *when did this last run* is answerable without
+parsing the record that holds the findings. `--ws-stocktake` writes one, keyed
+`stocktake`.
+
+Such an entry carries **no `scopes`, and therefore licenses nothing**: the
+reading procedure below resolves a path in neither list as never swept, so the
+whole scope comes back exactly as it would with no entry at all. That is what
+lets the date be cheap without the cache acquiring a second opinion about
+coverage.
+
 Stamp the entry including when the result is **red**. A red result carried
 forward is exactly as useful as a green one, and rather more urgent.
 

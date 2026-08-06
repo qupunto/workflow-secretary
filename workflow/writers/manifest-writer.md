@@ -3,10 +3,10 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `.claude/workflow.json`, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `.claude/workflow.json`.** Everything else in this workflow that
-needs a key set, corrected or removed calls this skill; who owns what is
+needs a key set, corrected or removed calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and which keys
 may exist at all is [`manifest.md`](../manifest.md), which is the
-authority this skill validates against.
+authority this procedure validates against.
 
 **It decides nothing.** The caller arrives having already settled what the value
 should be — which file plays which role, which command runs the tests, whether a
@@ -33,7 +33,7 @@ to reach the user**; everything downstream of the answer is here.
 `.claude/workflow.json` and nothing else. In particular:
 
 - **Not the record files.** `--ws-adopt` creates those empty. Creating a container
-  is not writing a record, and this skill does not even do that much.
+  is not writing a record, and this procedure does not even do that much.
 - **Not `permissions.ask`.** That is a merge into the project's
   `.claude/settings.json`, which is not a record, has no single owner, and stays
   with `--ws-adopt`.
@@ -113,7 +113,7 @@ S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 Run it and show the output. It checks that every declared path and `#anchor`
 resolves and that every key is one `manifest.md` documents — exactly the set of
-mistakes this skill can make.
+mistakes this procedure can make.
 
 **If it fails, fix and re-run.** Every later skill trusts the manifest without
 re-verifying it, so a failing doctor here is a failure that surfaces somewhere

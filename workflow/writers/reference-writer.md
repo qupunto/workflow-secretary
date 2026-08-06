@@ -3,7 +3,7 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `record.reference`, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `record.reference`.** Everything else in this workflow that
-needs it changed calls this skill; who owns what is
+needs it changed calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md), which is the
@@ -14,7 +14,7 @@ in [`manifest.md`](../manifest.md) — **say which you used.**
 
 **`record.reference` is often a list of paths rather than one**, and frequently
 includes the project's `README.md`. That mapping is the manifest saying the
-README *is* the project's reference material, which makes it this skill's — not
+README *is* the project's reference material, which makes it this procedure's — not
 an ordinary file anyone may edit, and not `--ws-docs`' to place by tier.
 
 ## What this record holds
@@ -62,7 +62,8 @@ when a project's shape was established for the first time.
 2. **Rewrite only the affected sections**, re-reading the source for each.
 3. **Count nothing from memory.** "N seeded locales", "three services", "the four
    entry points" — every such figure is a claim that decays silently. Run the
-   command that produces it, or write the command instead of the number.
+   command that produces it, or write the command instead of the number:
+   [`record-contract.md`](../record-contract.md#the-mutable-claim-rule).
 
 ## Negative claims need the grep that would disprove them
 

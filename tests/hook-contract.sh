@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Contract tests for the two hooks and the doctor — shorthand-flags.sh,
-# session-check.sh and doctor.sh.
+# Contract tests for the suite's executables — the hooks, doctor.sh, the
+# operational scripts (publish, reset/export/retire) and the skill asset scripts.
 #
 #   ~/.claude/tests/hook-contract.sh
 #
@@ -1126,6 +1126,42 @@ OWNFIX
   says "$wgone" "not in the hook's FLAGS" \
     "a wrapper naming a flag the hook does not serve is a FAILURE"
 
+  # The cadence card and README's "How often" table are two hand-copies of one
+  # list. The flag column must agree; wording and the third column must stay
+  # free to differ, or the check would be demanding one document instead of an
+  # agreement between two. A fixture carrying ws-adopt draws an unrelated
+  # dispatch-only warn, so these assert on the needle rather than on exit 0.
+  cadfix() { # dir, adopt-flags, readme-flags — one cadence table in each file
+    docfix "$1"
+    mkdir -p "$1/skills/ws-adopt"
+    { printf '# ws-adopt\n\nThe cadence card:\n\n| When | Flag |\n|---|---|\n'
+      for f in $2; do printf '| Some moment | `%s` |\n' "$f"; done
+    } > "$1/skills/ws-adopt/SKILL.md"
+    { printf '# Fixture\n\nSee [the matrix](workflow/ownership.md#the-matrix).\n'
+      printf '\n### How often\n\n| When | Flag | Why then |\n|---|---|---|\n'
+      for f in $3; do printf '| A different wording | `%s` | because |\n' "$f"; done
+    } > "$1/README.md"
+    docommit "$1"
+  }
+  cadok="$TMP/doc-cadence-agree"
+  cadfix "$cadok" "--ws-track --ws-wrap" "--ws-track --ws-wrap"
+  printf '%s' "$(doc "$cadok")" | grep -q "both cadence tables name the same flags (2 checked)" \
+    && ok "the cadence comparison reached a verdict over both tables" \
+    || bad "cadence comparison reached no verdict, or read fewer than 2 flags"
+  cadrift="$TMP/doc-cadence-drift"
+  cadfix "$cadrift" "--ws-track --ws-wrap" "--ws-track --ws-wrap --ws-scout"
+  says "$cadrift" "the two cadence tables name different flags" \
+    "a flag in one cadence table and not the other is a FAILURE"
+  printf '%s' "$(doc "$cadrift")" | grep -q "Only in README.md's 'How often' table: --ws-scout" \
+    && ok "the cadence failure names the flag that drifted, and which side has it" \
+    || bad "cadence failure did not name --ws-scout as README-only"
+  cadblind="$TMP/doc-cadence-unreadable"
+  cadfix "$cadblind" "--ws-track" "--ws-track"
+  edit_ "$cadblind/README.md" 's/^| When | Flag | Why then |$/| Moment | Shorthand | Why then |/'
+  docommit "$cadblind"
+  says "$cadblind" "no cadence table found in README.md" \
+    "a table the parser cannot find is a FAILURE, not a silent agreement"
+
   # --strict's entire job is an exit code, so nothing but an exit code tests it.
   # Both directions: a clean run must stay 0 under it, or it is just `exit 1`.
   doc "$clean" --bogus >/dev/null 2>&1
@@ -2092,6 +2128,287 @@ JSON
   else
     ok "regen refuses when record.decisionsIndex is undeclared"
   fi
+fi
+
+# ------------------------------------------------------------------ publish.sh
+
+head_ "publish.sh refuses to run without an outdir"
+
+# Its first act past the guards is `rm -rf $OUT`, so the argument check is the
+# last thing between a bare invocation and a deletion. This half runs the REAL
+# script: the guard fires before anything is touched. publish.sh does not
+# travel — the assembly removes it — so in a published tree this whole file's
+# publish coverage skips rather than failing the assembly's own Gate 3.
+PUB="$_root/publish.sh"
+if [ ! -f "$PUB" ]; then
+  printf '  \033[33mskip\033[0m  no publish.sh here — it does not ship; its gates are testable only in the source repo\n'
+else
+  uerr="$TMP/publish-usage-err"
+  bash "$PUB" </dev/null >/dev/null 2>"$uerr"; urc=$?
+  [ "$urc" -eq 2 ] && ok "no argument exits 2" \
+                   || bad "no argument exited $urc, not 2 — one slip from an unguarded rm -rf"
+  grep -q '^usage: publish.sh <outdir>' "$uerr" \
+    && ok "and prints a usage line on stderr" \
+    || bad "no usage line on stderr: $(head -1 "$uerr" 2>/dev/null)"
+
+  head_ "publish.sh's gates, each proven against a fixture assembly"
+
+  # The gates run on the ASSEMBLED tree, so they are tested on one: a minimal
+  # repo shaped like what Gate 2 admits, a copy of publish.sh dropped in (SRC
+  # resolves from BASH_SOURCE), and an outdir beside it, never inside it. The
+  # fixture's doctor.sh and tests/hook-contract.sh are STUBS on purpose —
+  # Gate 3 runs the assembly's own doctor and suite, and a real copy here
+  # would recurse into this file forever. The publish.sh copy stays UNTRACKED
+  # so its own needle list never reaches the archive. Note publish.sh writes
+  # its two gate logs to fixed /tmp paths; that is its behaviour, not this
+  # suite's temp dir.
+  #
+  # Every needle is BUILT AT RUNTIME, never a literal: this file travels
+  # (Gate 2 admits tests/) and Gate 1 scans tracked file content, so a fixture
+  # literally naming the owner is the 2b695a5 regression — the gate failing on
+  # its own test suite.
+  OWNER=$(printf 'qu%s%s' pun to)
+  PRIVREPO=$(printf 'claude%s' -config)
+
+  pubfix() { # dir — the minimum that reaches Gate 3 green
+    local d=$1
+    rm -rf "$d"; mkdir -p "$d/tests" "$d/docs"
+    printf '.credentials.json\n.env\nid_rsa\n*.pem\n*.key\n' > "$d/.gitignore"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$d/reset-records.sh"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$d/doctor.sh"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$d/tests/hook-contract.sh"
+    chmod +x "$d/reset-records.sh" "$d/doctor.sh" "$d/tests/hook-contract.sh"
+    git init -q "$d" 2>/dev/null
+    git -C "$d" config user.email t@test; git -C "$d" config user.name t
+    git -C "$d" config commit.gpgsign false
+    git -C "$d" add -A >/dev/null 2>&1
+    git -C "$d" commit -q -m shape >/dev/null 2>&1 \
+      || bad "pubfix: the fixture commit failed in $d — every gate below tests nothing"
+    cp "$PUB" "$d/publish.sh"
+  }
+  pubrun() { # fixture-dir, outdir — combined output; exit status is publish's
+    bash "$1/publish.sh" "$2" </dev/null 2>&1
+  }
+
+  # Green first: gates that pass on a clean assembly are what make every
+  # refusal below a refusal rather than a script that always fails.
+  pg="$TMP/pub-green"; pubfix "$pg"
+  out=$(pubrun "$pg" "$TMP/out-pub-green"); rc=$?
+  [ "$rc" -eq 0 ] && ok "a clean fixture passes every gate with exit 0" \
+    || bad "a clean fixture failed: $(printf '%s' "$out" | grep -a FAIL | head -2)"
+  case $out in
+    *"ALL GATES PASS"*) ok "and says so" ;;
+    *) bad "exit 0 without the ALL GATES PASS line" ;;
+  esac
+
+  # Gate 1, fixed-needle half: the private repo's name, planted in a
+  # whitelisted path so nothing but Gate 1 can be what refuses.
+  p1="$TMP/pub-needle"; pubfix "$p1"
+  printf 'imported from the %s repo\n' "$PRIVREPO" > "$p1/docs/history.md"
+  git -C "$p1" add docs/history.md >/dev/null 2>&1
+  git -C "$p1" commit -q -m docs >/dev/null 2>&1
+  out=$(pubrun "$p1" "$TMP/out-pub-needle"); rc=$?
+  [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "in the working tree" \
+    && ok "Gate 1 refuses a private identifier in the assembly" \
+    || bad "a private identifier sailed through Gate 1 (rc=$rc)"
+
+  # Gate 1, subtraction half: the owner handle in a form no sanctioning
+  # covers. Subtracting sanctioned SUBSTRINGS rather than whole lines is the
+  # demonstrated fix this pins.
+  p2="$TMP/pub-handle"; pubfix "$p2"
+  printf 'notes live at /home/%s/private\n' "$OWNER" > "$p2/docs/where.md"
+  git -C "$p2" add docs/where.md >/dev/null 2>&1
+  git -C "$p2" commit -q -m docs >/dev/null 2>&1
+  out=$(pubrun "$p2" "$TMP/out-pub-handle"); rc=$?
+  [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "outside its sanctioned forms" \
+    && ok "Gate 1 refuses the owner handle outside its sanctioned forms" \
+    || bad "an unsanctioned handle passed Gate 1 (rc=$rc)"
+
+  # Gate 2: a tracked path the whitelist does not admit. The premise of the
+  # inverted .gitignore is that the dangerous set is open-ended, so admission
+  # is explicit and everything else refuses.
+  p3="$TMP/pub-stray"; pubfix "$p3"
+  printf 'x\n' > "$p3/stray.txt"
+  git -C "$p3" add stray.txt >/dev/null 2>&1
+  git -C "$p3" commit -q -m stray >/dev/null 2>&1
+  out=$(pubrun "$p3" "$TMP/out-pub-stray"); rc=$?
+  [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "not one this script admits" \
+    && ok "Gate 2 refuses a tracked path outside the whitelist" \
+    || bad "a non-whitelisted file passed Gate 2 (rc=$rc)"
+
+  # Gate 3, both halves: a failing doctor and a failing test run in the
+  # assembly must each surface as a non-zero publish — the gate people skip
+  # must not be skippable by the script itself.
+  p4="$TMP/pub-docfail"; pubfix "$p4"
+  printf '#!/usr/bin/env bash\necho "  FAIL  synthetic"\nexit 1\n' > "$p4/doctor.sh"
+  git -C "$p4" add doctor.sh >/dev/null 2>&1
+  git -C "$p4" commit -q -m doc >/dev/null 2>&1
+  out=$(pubrun "$p4" "$TMP/out-pub-docfail"); rc=$?
+  [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "doctor.sh non-zero" \
+    && ok "Gate 3 propagates the assembly's failing doctor" \
+    || bad "the assembly's doctor failed and publish did not (rc=$rc)"
+
+  p5="$TMP/pub-testfail"; pubfix "$p5"
+  printf '#!/usr/bin/env bash\necho "  FAIL  synthetic"\nexit 1\n' > "$p5/tests/hook-contract.sh"
+  git -C "$p5" add tests/hook-contract.sh >/dev/null 2>&1
+  git -C "$p5" commit -q -m tests >/dev/null 2>&1
+  out=$(pubrun "$p5" "$TMP/out-pub-testfail"); rc=$?
+  [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "hook-contract.sh non-zero" \
+    && ok "Gate 3 propagates the assembly's failing test suite" \
+    || bad "the assembly's tests failed and publish did not (rc=$rc)"
+fi
+
+# ------------------------------------------------------- ws-overview probe.sh
+
+head_ "probe.sh emits the overview's countable lines"
+
+# The skill quotes this block rather than re-deriving the counts, so a line
+# that drifts here misreports every --ws-overview at once. Asserted on the
+# exact lines the report leans on. A bare config dir keeps the doctor line
+# hermetic — its content is not asserted, only that probe survives it.
+PROBE="$_root/skills/ws-overview/assets/probe.sh"
+if [ ! -f "$PROBE" ]; then
+  bad "probe.sh missing at $PROBE"
+else
+  prun() { # dir
+    (cd "$1" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" bash "$PROBE" 2>/dev/null)
+  }
+
+  # No manifest: conventional names apply, and probe must say that is why.
+  pnm="$TMP/probe-noman"
+  rm -rf "$pnm"; mkdir -p "$pnm/docs"
+  git init -q "$pnm" 2>/dev/null
+  git -C "$pnm" config user.email t@test; git -C "$pnm" config user.name t
+  git -C "$pnm" config commit.gpgsign false
+  printf '# Backlog\n\n- [ ] **One.**\n- [ ] **Two.**\n' > "$pnm/TODO.md"
+  printf '# Open decisions\n\n## Whether to X\n' > "$pnm/docs/open-decisions.md"
+  git -C "$pnm" add -A >/dev/null 2>&1
+  git -C "$pnm" commit -q -m records >/dev/null 2>&1
+  out=$(prun "$pnm")
+  case $out in
+    *"note: no manifest — conventional fallback names in use"*)
+      ok "no manifest is announced, not papered over" ;;
+    *) bad "the no-manifest note is gone" ;;
+  esac
+  case $out in
+    *"worktree: clean"*) ok "a committed tree reads clean" ;;
+    *) bad "the worktree line is wrong or absent on a clean tree" ;;
+  esac
+  case $out in
+    *"todo: TODO.md — 2 open"*) ok "the conventional backlog is counted" ;;
+    *) bad "TODO.md's open count is wrong or absent" ;;
+  esac
+  case $out in
+    *"no checkpoint file at .claude/sweeps.json"*)
+      ok "no sweep ever run is said in words" ;;
+    *) bad "the no-checkpoint message is gone — freshness reads as silence" ;;
+  esac
+  case $out in
+    *"roadmap: ROADMAP.md — missing"*)
+      ok "a missing conventional roadmap is named" ;;
+    *) bad "the missing-roadmap line is gone" ;;
+  esac
+
+  printf 'x\n' > "$pnm/scratch.txt"
+  out=$(prun "$pnm")
+  case $out in
+    *"worktree: dirty (1 paths)"*) ok "one untracked path reads dirty" ;;
+    *) bad "a dirty tree did not read dirty" ;;
+  esac
+
+  # With a manifest: declared names only — an undeclared key must never fall
+  # back — and the sweeps block reads each entry's baseline, stamp and
+  # distance, which is the freshness half of the whole report.
+  pman="$TMP/probe-man"
+  rm -rf "$pman"; mkdir -p "$pman/.claude"
+  git init -q "$pman" 2>/dev/null
+  git -C "$pman" config user.email t@test; git -C "$pman" config user.name t
+  git -C "$pman" config commit.gpgsign false
+  printf '{"record":{"todo":"BACKLOG.md","roadmap":"PLAN.md"},"sweeps":".claude/sweeps.json"}\n' \
+    > "$pman/.claude/workflow.json"
+  printf '# Backlog\n\n- [ ] **One.**\n' > "$pman/BACKLOG.md"
+  printf '# Roadmap\n\n## M1 — first\n\n- [ ] **Block A.**\n\n## M2 — second\n' > "$pman/PLAN.md"
+  git -C "$pman" add -A >/dev/null 2>&1
+  git -C "$pman" commit -q -m records >/dev/null 2>&1
+  base=$(git -C "$pman" rev-parse HEAD)
+  jq -n --arg b "$base" \
+    '{entries:{stocktake:{baseline:$b,at:"2026-01-05",method:"full",result:"clean"}}}' \
+    > "$pman/.claude/sweeps.json"
+  for _ in 1 2 3; do
+    git -C "$pman" commit -q --allow-empty -m c >/dev/null 2>&1
+  done
+  out=$(prun "$pman")
+  case $out in
+    *"todo: BACKLOG.md — 1 open"*) ok "a declared backlog is counted where declared" ;;
+    *) bad "record.todo's declared path was not counted" ;;
+  esac
+  case $out in
+    *"open-decisions: undeclared"*)
+      ok "an undeclared key reads undeclared, never a fallback" ;;
+    *) bad "an undeclared key fell back despite the manifest" ;;
+  esac
+  case $out in
+    *"stocktake: baseline $base (2026-01-05, full, result clean) — 3 commits behind HEAD"*)
+      ok "a sweep entry reports baseline, stamp and distance" ;;
+    *) bad "the sweeps block lost baseline/at/distance: $(printf '%s' "$out" | grep stocktake)" ;;
+  esac
+  case $out in
+    *"current (first not marked completed): M1 — first"*)
+      ok "the roadmap block names the current milestone" ;;
+    *) bad "the roadmap position line is gone" ;;
+  esac
+
+  # A baseline git cannot resolve is a sweep owed in full, not a crash and not
+  # a silent skip.
+  jq -n '{entries:{stocktake:{baseline:"notacommit",at:"2026-01-05"}}}' \
+    > "$pman/.claude/sweeps.json"
+  out=$(prun "$pman")
+  case $out in
+    *"baseline notacommit is not a commit in this repository — sweep in full"*)
+      ok "an unresolvable baseline says sweep-in-full" ;;
+    *) bad "an unresolvable baseline was not reported" ;;
+  esac
+fi
+
+# --------------------------------------------------------- ws-docs scaffold.sh
+
+head_ "scaffold.sh builds the site shell once and refuses an existing one"
+
+# The shell is three files; the refusal is the contract — an existing site is
+# the authority on its own conventions and must never be overwritten.
+SCAF="$_root/skills/ws-docs/assets/scaffold.sh"
+if [ ! -f "$SCAF" ]; then
+  bad "scaffold.sh missing at $SCAF"
+else
+  sc="$TMP/scaf"; rm -rf "$sc"; mkdir -p "$sc"
+  (cd "$sc" && bash "$SCAF" docs "Demo Project" >/dev/null 2>&1); rc=$?
+  [ "$rc" -eq 0 ] && [ -f "$sc/docs/index.html" ] && [ -f "$sc/docs/_sidebar.md" ] \
+    && [ -f "$sc/docs/index.md" ] \
+    && ok "an empty target gets the shell: index.html, _sidebar.md, index.md" \
+    || bad "the monolingual shell did not scaffold (rc=$rc)"
+  [ ! -f "$sc/docs/_navbar.md" ] \
+    && ok "one language means no language switcher" \
+    || bad "a monolingual site grew a _navbar.md"
+  grep -q 'Demo Project' "$sc/docs/index.html" 2>/dev/null \
+    && ok "the project name reaches the shell" \
+    || bad "the project name never made it into index.html"
+
+  printf 'HANDS OFF\n' > "$sc/docs/keep.md"
+  out=$(cd "$sc" && bash "$SCAF" docs "Demo Project" 2>&1); rc=$?
+  [ "$rc" -eq 1 ] && ok "an existing docs dir exits 1" \
+                  || bad "an existing docs dir exited $rc, not 1"
+  printf '%s' "$out" | grep -q 'refusing to scaffold' \
+    && ok "and says it is refusing" \
+    || bad "the refusal carried no message"
+  [ "$(cat "$sc/docs/keep.md" 2>/dev/null)" = "HANDS OFF" ] \
+    && ok "and touched nothing in the existing site" \
+    || bad "the refused run still wrote into the existing dir"
+
+  (cd "$sc" && bash "$SCAF" docs2 "Demo Project" en ca >/dev/null 2>&1); rc=$?
+  [ "$rc" -eq 0 ] && [ -f "$sc/docs2/ca/index.md" ] \
+    && grep -q 'Català' "$sc/docs2/_navbar.md" 2>/dev/null \
+    && ok "translations get their folder and an endonym-labelled navbar" \
+    || bad "the multilingual shell lost a language folder or its navbar (rc=$rc)"
 fi
 
 head_ "Result"

@@ -3,7 +3,7 @@
 > **A shared method, not a skill.** See [`README.md`](README.md). `--ws-tools` runs it
 > over whatever it just edited; `--ws-full-check` runs it over every file in
 > `record.tooling.sources`. `--ws-tools`'s prune job finds a neighbouring class — prose that changes
-> nothing — and dispatches its cuts to `--ws-tools`, which applies them under this method.
+> nothing — proposing its cuts first, then applying them under this method.
 
 **The rule is
 [`record-contract.md`](../record-contract.md#the-mutable-claim-rule),

@@ -297,8 +297,10 @@ Say, briefly:
 | When | Flag |
 |---|---|
 | Starting anything non-trivial | `--ws-track` |
+| Facing a capability-shaped task | `--ws-scout` |
 | Deciding *not* to build something | `--ws-todo` |
 | A decision with no task attached | `--ws-log` |
+| Settling how the system behaves | `--ws-describe` |
 | Finishing a unit of work, or before `/clear` | `--ws-wrap` |
 | Weekly, or after a refactor | `--ws-check` |
 | Before a release, or when you stop trusting the record | `--ws-full-check` |

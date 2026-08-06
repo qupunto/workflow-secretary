@@ -30,8 +30,8 @@ redirect work before anyone notices:
 
 ### 2. Updates the code owes but never got
 
-This is the check only this skill does, and it is why the trigger table is
-stated diff-shaped: a diff-shaped obligation is mechanically checkable.
+No other check covers this, and it is why the trigger table is stated
+diff-shaped: a diff-shaped obligation is mechanically checkable.
 
 | A diff touching | Owes an update to |
 |---|---|
@@ -41,10 +41,10 @@ stated diff-shaped: a diff-shaped obligation is mechanically checkable.
 | block scope, order or dependencies | `record.roadmap` |
 | a skill or agent file added, removed, or changed in purpose | `record.tooling.catalog`, and the docs site's Claude-tooling annex page, which is derived from it |
 
-The last row is two findings, not one, and they dispatch to different owners:
-the catalog is `--ws-tools`', the annex page is `--ws-docs`'. A catalog that moved
-while the page did not is the ordinary failure of any derived copy, and it is
-invisible from either file alone.
+The last row is two findings, not one: the catalog and the annex page derived
+from it are separately owned. A catalog that moved while the page did not is
+the ordinary failure of any derived copy, and it is invisible from either file
+alone.
 
 So: what changed since the last time each record file did? `git log` the record
 file, `git log` the code it describes, and compare. A code path that moved after
@@ -65,8 +65,7 @@ is
 [`record-contract.md`](../record-contract.md#the-mutable-claim-rule),
 which is the authority; read it rather than a copy here.
 
-Dispatch these to `--ws-tools`, whose rule is to *delete* the claim rather than
-correct it.
+A claim these files may not carry is a finding.
 
 ### 4. Generated files that are out of date
 
@@ -74,9 +73,8 @@ Where the manifest names a check command (`commands.indexCheck`), run
 it. A generated file cannot drift, only lag — and that is detectable, which is
 exactly why it is generated.
 
-**A stale result goes to `--ws-todo` / `--ws-log`**, which owns the index and its
-`commands.indexRegen`. Never regenerate it here: running the regen command is a
-write, and this skill writes nothing.
+**A stale result is a finding, never a fix**: running the regen command is a
+write, and this method is read-only.
 
 ### 5. Dangling cross-references
 
@@ -95,22 +93,21 @@ Both, because they answer different questions: a tag that exists locally and
 not on the remote means nothing to anyone else's checkout. Compare against the
 versions `record.changelog` and `record.roadmap` claim shipped.
 
-Two findings live here, and they dispatch to different owners:
+Two distinct findings live here:
 
-| Finding | Dispatch to |
-|---|---|
-| `record.changelog` describes a version no tag resolves | `changelog-writer` — the entry gets its unreleased status set |
-| `record.roadmap` claims a milestone shipped, rather than that it is completed | `--ws-plan` — a tag is the only proof a version shipped |
+- `record.changelog` describes a version no tag resolves — the entry's
+  released status is wrong.
+- `record.roadmap` claims a milestone *shipped*, rather than that it is
+  *completed* — a tag is the only proof a version shipped.
 
 **Report it; never resolve it by tagging.** Choosing between tagging the commit
 a milestone completed at and recording the work as unreleased is a release
-decision the user makes, and `--ws-release` is where it is put to them. This
-dimension exists so the drift is found on an ordinary sweep rather than only
-when someone happens to cut a release — which is exactly when nobody is
-releasing.
+decision the user makes. This dimension exists so the drift is found on an
+ordinary sweep rather than only when someone happens to cut a release — which
+is exactly when nobody is releasing.
 
-**This dimension ignores the checkpoint.** Tags move without any commit touching
-the repository, so a baseline computed from commits cannot tell you this is
+**No baseline narrows this dimension.** Tags move without any commit touching
+the repository, so a scope computed from commits cannot tell you it is
 unchanged. It is two git commands; run them every sweep.
 
 ## What is NOT a finding
@@ -118,13 +115,13 @@ unchanged. It is two git commands; run them every sweep.
 Getting these wrong turns the inspector into noise, and an inspector nobody
 trusts is worse than none.
 
-- **History is not staleness.** An old entry in `record.decisions` describing a
-  decision later reversed is **correct as written**. The later entry is what
-  makes the record accurate. Never dispatch a "fix" for one — that file is the
-  single exception to "fix what is stale", and the exemption is why it can be
-  trusted as a log.
+- **History is not staleness.** Never report a "fix" for an entry in
+  `record.decisions` that a later entry reversed — it is correct as written, per
+  [`record-contract.md`](../record-contract.md)'s rule 4. Stated here rather than
+  only cited, because this is the guard that stops an inspector reporting and it
+  has to fire before anyone opens another file.
 - **Personal and environment facts** — dev machine, IDE, personal tooling paths
-  — cannot be verified from the repo. Ask; do not infer, and do not dispatch a
+  — cannot be verified from the repo. Ask; do not infer, and do not report a
   guess.
 - **Decided-but-unbuilt behaviour** belongs in `record.decisions` and is not
   missing from `record.behaviour`.

@@ -3,7 +3,7 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `record.handoff` and its overflow document, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `record.handoff`.** Everything else in this workflow that
-needs the handoff changed calls this skill; who owns what is
+needs the handoff changed calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md), which is the
@@ -49,7 +49,7 @@ never decides to.**
 A subagent starts with a fresh context and would have to reconstruct what
 changed by reading diffs — which is exactly the knowledge the session that did
 the work already has. **Never delegate this.** The compression is only cheap for
-whoever lived through it, which is also why this skill loads into the calling
+whoever lived through it, which is also why this procedure loads into the calling
 session rather than running as one.
 
 ## What the file must answer, in this order
@@ -76,9 +76,10 @@ session rather than running as one.
   is worse than none — it teaches whoever reads it that the warnings in this
   file are not reliable, which costs you the real ones.
 - **Watch for state claims going stale**: counts (tests, migrations, endpoints),
-  "not yet built", "nothing does X". These are the claims that rot silently, and
-  a stale one in the card is read every session. If the work just done changed
-  one, fix it now.
+  "not yet built", "nothing does X" —
+  [`record-contract.md`](../record-contract.md#the-mutable-claim-rule). These rot
+  silently, and a stale one in the card is read every session. If the work just
+  done changed one, fix it now.
 - **Budget**: see the card below. A section growing past a screenful is the
   signal it belongs in a reference doc with a pointer left behind — not that
   `record.handoff` should get longer.
@@ -119,7 +120,7 @@ hazard that has become conditional and belongs in the overflow document.
 ## The overflow document
 
 Where a project's hazards have outgrown the handoff, they live in a **sibling
-reference document this skill also owns** — in this configuration,
+reference document this procedure also owns** — in this configuration,
 `.claude/HAZARDS.md` beside `.claude/HANDOFF.md`. One writer still, because the
 two are one record split by cost rather than by subject.
 
@@ -174,7 +175,7 @@ correction that is itself wrong — every session reads what you write here.
 Say so and move on. A no-op pass is a fine outcome; editing the file to show
 effort is not.
 
-## What this skill does not do
+## What this procedure does not do
 
 - **It does not commit or push.** The caller does, under the caller's grant.
 - **It does not write any other record.** Not `record.todo`, not

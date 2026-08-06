@@ -86,7 +86,7 @@ is paid for far more often than a byte in another.
 | A skill's **body** | only when that skill is invoked | length here is cheap by comparison |
 | `skills/ws-docs/references/*.md` | only when the `ws-docs` skill reads one | reference detail belongs here, not in a body |
 | A `shorthand-flags.sh` block | when its flag fires | injected into the prompt |
-| The project's `record.handoff` | every session in **any** project whose manifest maps it away from `CLAUDE.md`, via `session-check.sh` | so handoff length is a permanent per-session cost of adopting, not a local quirk |
+| The project's `record.handoff` — or just its **card**, where the file carries a `<!-- handoff:card-ends -->` marker | every session in **any** project whose manifest maps it away from `CLAUDE.md`, via `session-check.sh` | so *card* length is the permanent per-session cost of adopting, not file length. Without the marker the whole file is injected, which is what the split exists to escape |
 
 Two rules follow. **A description must carry every case that should trigger the
 skill, and nothing else** — no procedure summary, no inventory of callers, since
@@ -116,11 +116,16 @@ record procedures left `skills/` for `workflow/writers/` and stopped being
 skills at all. `doctor.sh` guards the arrangement: its dispatch-only check (the
 `dispatch-only skills vs overrides` section) warns when a skill no flag maps to
 has no override entry, and
-its pass line names how many it compared, **so read that line rather than the
-summary**. The policy is never `off` for these — `off` blocks *model*
+its pass line names how many skills it *examined* — every one with a `SKILL.md`,
+not the dispatch-only subset it warns about — **so read that line rather than the
+summary**, and read it as scope rather than as a count of what it found. The policy is never `off` for these — `off` blocks *model*
 invocation, which is the only kind a dispatched skill ever gets, so it would not
 trim the skill but break it. The warning text states that policy; the check
 itself only tests that an entry exists and never inspects its value.
+
+**Two values disable, not one.** `skill_disabled()` returns true for `off` *and*
+for `user-invocable-only`, and it reads `$PWD/.claude/settings.json` before the
+config directory's — so a project can disable a skill the user enabled globally.
 
 **As a plugin, none of that reaches the skills.** `skillOverrides` is ignored for
 plugin skills at `off` as well as `name-only`, under bare and namespaced keys
@@ -130,9 +135,15 @@ affected by `skillOverrides`. Manage those through `/plugin` instead"* — and w
 one with it.
 
 **This suite is one plugin**, so once it is distributed that way, installing it
-brings every skill and every flag with no way to decline any of them. There is no
-in-suite substitute to build instead, because `skillOverrides` was the mechanism
-any per-skill selection would have used. **The rejected alternative was shipping
+brings every skill with no way for the harness to decline any of them.
+
+**The flags are the exception, and they are in-suite rather than harness.**
+`skill_disabled()` in `hooks/shorthand-flags.sh` reads `skillOverrides` out of
+`settings.json` itself, so `off` still stops that skill's *flag* firing under a
+plugin install — the skill stays callable by name, the shorthand does not fire.
+Half a disabled skill, and the half a user reaches for most. What is genuinely
+absent is harness-level per-skill selection, since `skillOverrides` was the
+mechanism that would have used. **The rejected alternative was shipping
 several plugins by dependency group**, which would have made the group the unit of
 choice; it was tried, proven to work, and dropped because the suite's skills reach
 their shared contracts by relative link and every one of those would have had to
@@ -168,7 +179,7 @@ source, so the marketplace-add and plugin-install commands name the same place
 and there is no second repository to keep in step. The checkout remains the
 route for developing, forking or auditing the suite. `claude plugin marketplace
 add` also accepts a local path, so a `git archive HEAD` copy can be installed
-and measured without publishing anything — which is how the cost figures above
+and measured without publishing anything — which is how the costs described above
 were taken.
 
 ## The hooks
@@ -201,13 +212,24 @@ replacing them, so an adopter's own hooks keep firing.
   this block; and never for a backlog that names a provider rather than a file,
   because "unchanged for N commits" cannot be asked of a set of issues that
   leaves no trace in this repository's history; and on an open entry in `bug-reports.md`, which nothing else
-  surfaces because the file is gitignored. Age is counted in **commits, not dates** — no date
+  surfaces because the file is gitignored. It also counts **open issues on the
+  suite's public repository**, but only from a session standing in the suite's
+  own checkout — that is the one place triage can act, and the gate keeps a
+  network call out of every other project's session start. An unreachable read
+  says the repository was *not checked* rather than going silent, since silence
+  would make "unreachable" and "zero" identical. Age is counted in **commits, not dates** — no date
   semantics exist anywhere else in this workflow, and a hook is the wrong place
-  to introduce one. One output is not a warning at all: it injects the project's
+  to introduce one. Two outputs are not warnings at all. It injects the project's
   handoff, and only where that project mapped `record.handoff` away from
   `CLAUDE.md`. Where the handoff *is* `CLAUDE.md`, or undeclared, or absent, it
   stays silent — the harness has already loaded it, or there is nothing to load,
-  so injecting would put the same file in context twice. Read the script for the
+  so injecting would put the same file in context twice. And **the first session
+  after a plugin install gets one orientation block**, since a plugin has no
+  channel to speak at install time and `SessionStart` is the documented
+  alternative; it is gated by a marker in the config directory rather than under
+  the plugin root, so it survives a plugin update, and where that directory is
+  unwritable the notice repeats rather than being lost. Plugin form only — a
+  checkout user has `README.md`. Read the script for the
   current thresholds; it is the authority and this page describes it.
 - **`Notification`, `Stop`, `PreToolUse(AskUserQuestion)` → `hooks/alert.sh`.** An
   opt-in sound cue when the session waits for input. Silent until a machine runs

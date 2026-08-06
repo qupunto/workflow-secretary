@@ -51,10 +51,10 @@ Is it settled?
 not need it" is a **decision** → `decisions`. "We cannot start because nobody has
 chosen between A and B" is an **open decision** → `openDecisions`.
 
-**An entry never lives in both.** Settling one means deleting it from
-`openDecisions` and appending the outcome — including the options rejected — to
-`decisions`. An entry in both is the specific failure this split exists to
-prevent.
+**An entry never lives in both** — [`record-contract.md`](../../workflow/record-contract.md)'s
+rule 3, which is where the rule and its reasoning live. Executing it here means
+deleting the entry from `openDecisions` and appending the outcome, including the
+options rejected, to `decisions`.
 
 **An open-decision entry is one `## <the choice>` heading**, with the options,
 tradeoffs, recommendation and what it blocks in the body below. The shape is
@@ -170,13 +170,11 @@ Four rules that are not stylistic:
   omit this read as settled while hiding who settled them, and "I don't recall
   ordering this" must be answerable from the record —
   [`record-contract.md`](../../workflow/record-contract.md)'s rule 2.
-- **Record when the decision is made, not when it is built.** The opposite rule
-  fails concretely: real design commitments end up in the backlog mixed with
-  unbuilt sketches, and nothing distinguishes them.
-- **Never rewrite a past entry.** An old entry describing a decision later
-  reversed is *correct as written*; the later entry is what makes the record
-  accurate. This is the one file exempt from "fix what is stale", and that
-  exemption is why it can be trusted as a log at all.
+- **Record when the decision is made, not when it is built** —
+  [`record-contract.md`](../../workflow/record-contract.md)'s rule 1. An entry
+  goes in the day something is settled, even if no code follows for months.
+- **Never rewrite a past entry** — that contract's rule 4. Appending is the only
+  way this file changes.
 - **Group a batch.** Several deferrals in one pass make one dated entry with a
   bullet each, not a dozen tiny ones.
 

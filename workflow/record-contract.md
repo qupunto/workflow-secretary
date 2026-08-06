@@ -173,6 +173,60 @@ bare framework method in a codebase that wraps it, and the absence of results
 name. A negative claim is then used to retire work, which is what makes it
 expensive rather than merely wrong.
 
+## A record holds one project, and only its own
+
+**A finding about another project never enters this project's records.** Not
+`todo`, not `roadmap`, not `openDecisions`, and **not `decisions`** — which is
+otherwise the file that takes everything settled, and is the one most likely to
+be reached for on the grounds that a real decision was made. Hand it to that
+project's own record, in that project's lane, and stop there.
+
+This is not the lane split one level up. Lanes divide one project among
+worktrees; this divides projects. A lane's records still describe the system all
+its lanes build.
+
+The suite is installed once and serves every project on the machine, so another
+project reaches a session routinely — through a shared inbox, a question asked
+mid-batch, a checkout in the next directory. **Reaching a session confers no
+ownership.** What goes wrong is not exposure: it is that an entry filed in the
+wrong project is read by sessions that cannot act on it, missed by the ones that
+can, and counted in a status report describing a tree it does not describe.
+
+Where this project's own machinery must change *because* of what another project
+showed, that item is legitimate and belongs here — **written from this project's
+facts**. State what is true here; never name the other project, quote its
+configuration, or cite its records as the evidence. A reader of this record must
+be able to act on the entry without access to anything outside this tree.
+
+### The one exception: a name that is load-bearing
+
+**Another project's name may be written where the name itself is the operative
+detail of a fact about *this* tree.** Both halves are required:
+
+- **It is a fact about this project.** This repository's history contains the
+  string; this repository's gate trips on it; this repository's file was copied
+  from there. Not a fact about the other project's state, plans or adoption.
+- **The name does the work.** Redacting it breaks the entry — it is the needle a
+  grep is run with, the literal a check matches on, the value that has to be
+  typed. A name that could be replaced by "another project" without loss is not
+  load-bearing, and the rule above applies unchanged.
+
+The canonical case is a hazard whose own command embeds the string: abstracting
+the name leaves a warning nobody can act on, which is a worse record than the
+one that names it. The canonical *non*-case is a condition on the other project
+— "once they adopt this", "when their migration lands" — which names it for
+state a reader of this tree cannot observe, and fails whether or not the name is
+spelled out.
+
+Provenance on already-completed work qualifies where the name is what makes the
+provenance checkable, and not otherwise. Append-only records get no separate
+allowance, and no licence to rewrite either: `record.decisions` takes no rewrites
+of past entries (the table at the top of this file), so an entry that violated
+the rule when written stays as written and the correction is a later entry.
+
+Telling the user what was noticed is always right. **Filing is what routes**, and
+it routes outward.
+
 ## When nothing fits
 
 Say so. Do not invent structure — ask which existing file should stretch, or

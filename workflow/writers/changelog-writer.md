@@ -3,7 +3,7 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `record.changelog`, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `record.changelog`.** Everything else in this workflow that
-needs it changed calls this skill; who owns what is
+needs it changed calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md), which is the
@@ -26,7 +26,7 @@ The nearest neighbour is `--ws-log`, and the two are easy to collapse into each
 other because both are dated, append-only histories. They have different
 readers, and that is the whole test:
 
-| | `record.decisions` (`--ws-log`) | `record.changelog` (this skill) |
+| | `record.decisions` (`--ws-log`) | `record.changelog` (this procedure) |
 |---|---|---|
 | Answers | why a choice was made | what a user of the software notices |
 | Read by | whoever maintains the project | whoever consumes it |
@@ -74,6 +74,11 @@ asked.
 | `--ws-release` | The entry for the version being cut, under the version and date the caller supplies |
 | `--ws-check` | The one drift finding it dispatched — re-verified first — usually marking an entry unreleased |
 
+**A caller with no row gets the `--ws-check` row**: write the findings you were
+handed and stop. Say in one line that the caller was not listed, so the row can
+be added rather than guessed at again. `--ws-full-check` and `--ws-stocktake`
+both dispatch release drift here and neither is listed above.
+
 **Re-verify a dispatched finding against `git tag -l` before changing anything** —
 that is what settles a release-drift claim here. The rule is
 [`ownership.md`](../ownership.md#the-inspector-writes-nothing).
@@ -81,7 +86,7 @@ that is what settles a release-drift claim here. The rule is
 **Write what was asked and stop.** No version bump, no tag, no commit — a caller
 that wanted a release would have run `--ws-release`.
 
-## What this skill does not do
+## What this procedure does not do
 
 - **It does not decide the version.** The number comes from the caller, which
   gets it from `record.roadmap` for a milestone or derives a patch. If a caller

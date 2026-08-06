@@ -26,7 +26,7 @@ the next one.
 
 | Method | What it finds | Run by |
 |---|---|---|
-| [`record-drift.md`](record-drift.md) | six classes of drift in a record, and the things that look like drift and are not | `--ws-check`, `--ws-full-check`, `--ws-stocktake` |
+| [`record-drift.md`](record-drift.md) | the classes of drift in a record, and the things that look like drift and are not | `--ws-check`, `--ws-full-check`, `--ws-stocktake` |
 | [`docs-audit.md`](docs-audit.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page-level accuracy against source | `--ws-docs`, `--ws-full-check` |
 | [`tooling-claims.md`](tooling-claims.md) | mutable claims inside the tooling files, which are deleted rather than corrected | `--ws-tools`, `--ws-full-check` |
 

@@ -1,6 +1,6 @@
 ---
 name: ws-release
-description: "Cut a release once `--ws-plan` has marked a milestone completed — confirm the version, have the changelog written, tag, push. SHORTHAND: `--ws-release`. Always asks before pushing. Also on \"cut a release\", \"tag this version\". TAGS AND PUSHES — not to be inferred from \"ship it\", which is approval, not a request to publish."
+description: "Cut a release — confirm the version, have the changelog written, tag, push. Needs a milestone `--ws-plan` marked completed, or a roadmap that has ended milestones. SHORTHAND: `--ws-release`. Always asks before pushing. Also on \"cut a release\", \"tag this version\". TAGS AND PUSHES — not to be inferred from \"ship it\", which is approval, not a request to publish."
 ---
 
 # Cutting a release
@@ -27,21 +27,48 @@ authorization it confers, is in `shorthand-flags.sh` and
 
 ## 1. The precondition is a mark, not a word
 
-**A release requires a milestone marked completed in `record.roadmap`.** That is
-the entire precondition and it is `--ws-plan`'s to write: checkable by reading one
-file, and still true after a `/clear` — which a spoken approval is not.
+**While a project still has milestones ahead of it, a release requires one marked
+completed in `record.roadmap`.** That is `--ws-plan`'s to write: checkable by
+reading one file, and still true after a `/clear` — which a spoken approval is
+not.
 
-Three cases:
+Four cases:
 
 - **Marked completed, no tag for it** — that is the release. Go.
 - **Looks complete but is not marked** — do not tag it. Hand to `--ws-plan`, which
   asks the user and marks it, then come back. Marking it here would be writing
   another skill's record, and it skips the two disqualifier checks `--ws-plan` runs
   (an open blocking decision; unremediated high-severity audit findings).
-- **Nothing marked completed** — say so and stop, unless this is a patch on an
-  already-tagged version (§4), which needs no milestone.
+- **A patch on an already-tagged version** (§4) — no milestone needed.
+- **The roadmap has declared an end to milestones** — see below.
 
 Never infer the milestone from recent commits.
+
+### A project that has run out of milestones
+
+A roadmap may say, in its own words, that the planned work is done and what
+follows is maintenance on evidence rather than a next version. Once it does,
+**every milestone in it is both completed and already tagged, permanently**, so
+"marked completed, no tag for it" can never be true again and the rule above
+would forbid every future release.
+
+That is not a reason to stop. It is a different gate:
+
+- **The roadmap must say so itself.** A section declaring the end of milestones,
+  written by `--ws-plan`. Not an empty next-up list, not an inference from the
+  last milestone being tagged — those are the ordinary state of a project between
+  blocks, and treating them as this case is how the mark gets skipped while
+  milestones are still owed.
+- **The evidence goes in the release, not in the reply.** What is being shipped
+  and why now — an inbox entry, a defect, an owed publish, accumulated fixes to
+  shipped files. `record.todo` is where an owed outward act is recorded, so it is
+  the thing to read.
+- **§2 and §5 are unchanged and matter more here**, because no milestone review
+  happened. The full health check and the explicit in-turn OK are the whole gate.
+
+**Say which case this is, every time.** A maintenance release that does not name
+itself as one is indistinguishable from a milestone release whose precondition
+was skipped, and nothing downstream can tell them apart afterwards.
 
 ## 2. Check that everything is in order before releasing on top of it
 

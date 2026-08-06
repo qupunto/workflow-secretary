@@ -63,7 +63,7 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 # below does not matter. `--ws-stocktake` and `--ws-full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts --ws-overview --ws-scout)
+FLAGS=(--ws-full-stocktake --ws-pr --ws-full-check --ws-release --ws-stocktake --ws-report --ws-adopt --ws-flags --ws-start --ws-track --ws-docs --ws-check --ws-tools --ws-todo --ws-wrap --ws-plan --ws-help --ws-log --ws-alerts --ws-overview --ws-scout --ws-describe)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -228,6 +228,7 @@ skill_for() {
     --ws-plan) echo ws-plan ;;
     --ws-overview) echo ws-overview ;;
     --ws-scout) echo ws-scout ;;
+    --ws-describe) echo ws-describe ;;
   esac
 }
 
@@ -550,6 +551,28 @@ Irreversible, in force before the skill loads:
   it. Never hand-edit one.
 EOF
     ;;
+  --ws-describe)
+    cat <<'EOF'
+The user included the `--ws-describe` flag. That is an explicit, unconditional
+instruction to invoke the `ws-describe` skill now and record what the system
+does at runtime. The rest of the message is the rule, not a question to answer
+first.
+
+Authorization: none.
+
+Irreversible, in force before the skill loads:
+- The behaviour record takes RULES, never reasoning. Why a rule is the way it is
+  goes through --ws-log; a rule with its rationale inline is a decision log
+  growing inside a reference.
+- Never record a rule that is decided but not built. That record describes the
+  running system, and a plan written as a rule is indistinguishable from one.
+- Verify the rule against the code before writing it. Where the two disagree the
+  code wins, and the disagreement is what to report.
+- Stack, architecture, data model and conventions are the REFERENCE record's,
+  not this one's. Name the right record and stop rather than writing to the
+  nearest file.
+EOF
+    ;;
   --ws-wrap)
     cat <<'EOF'
 The user included the `--ws-wrap` flag. Treat it exactly as "wrap this up, I am
@@ -628,6 +651,9 @@ Irreversible, in force before the skill loads:
 - The precondition is a MILESTONE MARKED COMPLETED in the roadmap, written by
   --ws-plan. If it looks complete but is not marked, hand to --ws-plan and come back;
   do not mark it yourself and do not infer the milestone from recent commits.
+  Two exemptions, both written down rather than judged: a patch on an
+  already-tagged version, and a roadmap that has itself declared an end to
+  milestones. The skill's section 1 holds the cases; say which one applies.
 - Show the commits, the tag name and the branch, then wait for an explicit OK
   IN THAT TURN before pushing either the branch or the tag. Unlike --ws-wrap and
   --ws-stocktake this flag is not standing authorization to publish: a tag another

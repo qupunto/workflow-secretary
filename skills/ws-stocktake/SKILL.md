@@ -453,6 +453,15 @@ supplies the dispositions and the approved shape.
    one-field write on an existing entry, and the caller landing the remediation
    goes to `audit-writer` directly — needing a full audit procedure to move a
    status field is the shape this split removed.
+8. **Then hand `sweep-tracker` a freshness-only entry** keyed `stocktake` — the
+   name, the `baseline` and the date, and nothing else. **No coverage and no
+   findings**: those went to `record.audits` in step 7, and
+   [`audit-coverage.md`](../../workflow/audit-coverage.md) keeps them out of a
+   cache that gets deleted. What this buys is that `--ws-overview` can say when
+   this last ran without opening the audit record at all — and it licenses no
+   narrowing, because an entry with no scopes leaves the next run's slice
+   untouched. The shape is
+   [`sweep-checkpoint.md`](../../workflow/sweep-checkpoint.md)'s.
 
 ## Phase 5 — Close out, and hand the work to its owners
 
