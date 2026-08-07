@@ -3,7 +3,7 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `record.behaviour`, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `record.behaviour`.** Everything else in this workflow that
-needs it changed calls this skill; who owns what is
+needs it changed calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md), which is the
@@ -38,8 +38,8 @@ This is why the record has its own primitive rather than living inside `--ws-doc
 
 ### A dispatched one-line correction
 
-From `--ws-check`, `--ws-full-check`, `--ws-start` or `--ws-stocktake`. Scope is **the section
-the finding names, and nothing else.**
+From any inspecting or building caller that found a single rule wrong. Scope is
+**the section the finding names, and nothing else.**
 
 1. **Re-verify against source before writing.** A dispatched finding is a
    hypothesis, not an instruction —
@@ -53,8 +53,9 @@ the finding names, and nothing else.**
 
 ### A batch of runtime changes
 
-From `--ws-start` Phase 6, or `--ws-docs` when a page it owns turns out to describe
-behaviour rather than architecture.
+From `--ws-describe`, which exists to bring one here directly; from `--ws-start`
+Phase 6; or from `--ws-docs` when a page it owns turns out to describe behaviour
+rather than architecture.
 
 1. **Read the source, not the diff summary.** The caller knows what it changed;
    only the code knows what the rule now is.

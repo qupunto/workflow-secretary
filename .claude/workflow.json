@@ -21,8 +21,10 @@
       "catalog": ".claude/TOOLING.md",
       "sources": [
         "skills/*/SKILL.md",
+        "skills/*/references/*.md",
         "workflow/writers/*.md",
-        "workflow/checks/*.md"
+        "workflow/checks/*.md",
+        "commands/*.md"
       ]
     }
   },

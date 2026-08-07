@@ -9,6 +9,14 @@ Most skills live in `~/.claude/skills/` and are shared by every project. They
 take project-specific facts from **`.claude/workflow.json`** in the working
 directory.
 
+**One suite, many projects — and a record holds only its own.** Another project
+on this machine reaching a session, through a shared inbox or a question asked
+mid-batch or a checkout in the next directory, confers no ownership. Say what
+was noticed, then file it in *that* project's record and lane. Never here, and
+`decisions` is not an exception. `record-contract.md` carries the rule and the
+one case that does belong: a change to this project's own machinery, written
+from this project's facts and naming no other.
+
 Three files are the authority and settle any disagreement between skills:
 
 - `~/.claude/workflow/ownership.md` — who may write what
@@ -19,7 +27,8 @@ Three files are the authority and settle any disagreement between skills:
 where these paths resolve under a plugin install rather than a clone, is the
 `ws-contracts` skill.** It is canonical; the paths above are here so
 routing itself costs no lookup. `~/.claude/README.md` covers the `--flag`
-shorthands and what each one authorizes.
+shorthands; what each one authorizes is `~/.claude/workflow/ownership.md`'s
+matrix.
 
 ## Run the doctor rather than trusting an inventory
 

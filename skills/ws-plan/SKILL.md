@@ -1,6 +1,6 @@
 ---
 name: ws-plan
-description: "Plan and maintain the project's roadmap — milestones and the blocks inside them, their order, when one splits, and when a milestone is complete enough to mark. Marking one is what authorises `--ws-release` to tag it. SHORTHAND: `--ws-plan`. Also trigger on \"what should we build next\", \"is this milestone done\", \"reorder the roadmap\"."
+description: "Plan and maintain the project's roadmap — milestones and the blocks inside them, their order, when one splits, and when a milestone is complete enough to mark. Marking one authorises `--ws-release` to tag it, and so does declaring an end to milestones. SHORTHAND: `--ws-plan`. Also trigger on \"what should we build next\", \"is this milestone done\", \"reorder the roadmap\"."
 ---
 
 # The roadmap
@@ -9,9 +9,9 @@ description: "Plan and maintain the project's roadmap — milestones and the blo
 it up and the order they happen in. This skill is its sole writer.
 
 A **milestone is the unit that ships.** It carries the version it intends to
-ship as, and marking one completed is the only thing in this workflow that
-authorises a tag. That intended version is a *plan*: `--ws-release` confirms the
-number and is the only thing that turns it into a tag or a changelog entry.
+ship as, and marking one completed authorises a tag. That intended version is a
+*plan*: `--ws-release` confirms the number, and the tag and the changelog entry
+are written by `git-writer` and `changelog-writer` on its say-so.
 
 It is **not** a task list and **not** a place for design arguments. The
 checklist is `record.todo` and the reasoning is `record.decisions`, both
@@ -72,13 +72,38 @@ So, when the final block of a milestone is checked off:
    **unremediated high-severity audit findings**. Both are worth catching here,
    because the alternative is a release discovering them.
 3. Ask, once, in conversation.
-4. On yes, **mark it completed in `record.roadmap` with its version**, then hand
-   to `--ws-release` and stop.
+4. On yes, **mark it completed in `record.roadmap` with its version**, then name
+   `--ws-release` as the next step and stop.
 
 **The mark is the durable form of the answer** — a spoken "yes" does not survive
 a `/clear`.
 
 Versions, the changelog and tags themselves are not yours.
+
+## Declaring an end to milestones
+
+A project can finish its planned work. When the roadmap has no next milestone and
+the user says the remaining work is maintenance rather than a next version,
+**write that into `record.roadmap` as a section saying so.** It is this skill's
+write and nobody else's.
+
+It matters beyond tidiness: `--ws-release` reads that section as one of its four
+preconditions for tagging. Without it, every milestone is completed and tagged,
+"marked completed with no tag for it" is permanently false, and **no further
+release can be cut** — the project ships its last version and then silently
+cannot ship again.
+
+Three rules, and the first is the one that gets skipped:
+
+- **Ask before writing it, the same as completing a milestone.** This is a larger
+  statement than any single mark: it says the plan is done. Never infer it from an
+  empty next-up list or from the last milestone being tagged — those are the
+  ordinary state of a project between blocks.
+- **Say what replaces the plan.** What now triggers work, in terms a reader of
+  *this* tree can evaluate — a defect, an inbox entry, an owed publish. A trigger
+  nobody can check is not a trigger.
+- **It is reversible.** New planned work means a new milestone and the section
+  goes; say so when writing it, so it does not read as a project's obituary.
 
 ## Keeping the file honest
 

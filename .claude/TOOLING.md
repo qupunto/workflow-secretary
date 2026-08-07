@@ -65,6 +65,7 @@ it stops being readable.
    │                                                              │
    │    with a flag:  --ws-track    --ws-todo / --ws-log          │
    │                  --ws-plan     --ws-tools     --ws-scout     │
+   │                  --ws-describe                               │
    │                                                              │
    │    flagless:     ws-contracts  (a skill)                     │
    │                                                              │
@@ -116,7 +117,7 @@ because the tier says what a skill owns, not who may call it.
 | `--ws-wrap` | `handoff-writer`, `--ws-plan`, `git-writer` | the handoff, the milestone question, the commits. It *names* `--ws-pr` where the pushed branch is ahead of `branch.publish`, and never invokes it — a session ending and work being ready to merge are two different facts |
 | `--ws-pr` | `git-writer`, `--ws-todo` | the merge, once the user confirms in that turn; and the review threads nobody resolved, which the merge is about to hide — proposed to the user, never filed automatically, because a meaningful share of unresolved threads is chatter. It drafts the body and holds the gate, and writes nothing itself |
 | `--ws-tools` | `--ws-docs`, `--ws-todo`, `sweep-tracker`, `git-writer` | handing the catalog over, stamping the sweep. It draws the diagram above itself. A tooling *task* it uncovers goes to `--ws-todo` rather than being written here |
-| `--ws-docs` | `--ws-todo`, `--ws-track`, `sweep-tracker` | parking a page set larger than one session, since this skill stores no state of its own; narrowing its next audit |
+| `--ws-docs` | `--ws-todo`, `--ws-track`, `sweep-tracker`, `behaviour-writer`, `reference-writer` | parking a page set larger than one session, since this skill stores no state of its own; narrowing its next audit; and handing over a subject that turns out to be a runtime rule or reference material rather than a page, which it never writes itself |
 | `--ws-scout` | `--ws-log` | the reasoning entry an adoption earns, at the moment the user adopts — the registry row stays lean and points at it |
 
 `--ws-check` and `--ws-full-check` appear as callers and never as callees of a write:
@@ -137,10 +138,11 @@ after this one.
 | `ws-pr` | `--ws-pr` | Moves work from the integration branch onto the publish branch through a pull request — drafts the body from the branch range rather than from memory, opens it, watches its CI, and merges behind a fresh confirmation. The only thing in the suite that moves work between the two branches |
 | `ws-stocktake` | `--ws-stocktake`, `--ws-full-stocktake` | Where is this project — record, conventions, public surface, safety nets — then rebuilds the backlog around the answer. Invokes the project's own code-analysis skill where one exists |
 | `ws-record` | `--ws-todo`, `--ws-log` | Parks work that is not being built now, and records decisions already made |
+| `ws-describe` | `--ws-describe` | Gets a runtime rule settled in conversation into `record.behaviour`, which every other route reaches only as a side effect of a check or a build. Dispatches to `behaviour-writer` and writes nothing; its own work is turning away the three things handed to it by mistake — reasoning and decided-but-unbuilt behaviour, both `--ws-log`'s, and stack or architecture, which is `record.reference`'s |
 | `ws-scout` | `--ws-scout` | Consults the project's toolbelt registry before any capability gets hand-built, searches the stack's public registries when the registry has no answer, and explains the candidates — advises, never implements. Sole writer of `record.toolbelt`; the reasoning behind each row goes through `--ws-log` |
 | `ws-check` | `--ws-check` | Asks whether a project's records still match reality — including whether the documents claim a version no tag resolves; reports and dispatches, writes nothing itself |
 | `ws-report` | `--ws-report` | Files a finding about this suite upstream — appends it to the machine-local inbox, then opens a GitHub issue on the public repository behind a preview, a redaction of the project context, and a fresh OK. Can bundle every open inbox entry under the same rules; hazards are referenced by group name, never quoted |
-| `ws-release` | `--ws-release` | Decides that a version ships, once the roadmap marks a milestone done, and asks before anything is published. The entry and the tag are written by the two primitives above |
+| `ws-release` | `--ws-release` | Decides that a version ships — once the roadmap marks a milestone done, or once it has declared an end to milestones and the release is maintenance on evidence — and asks before anything is published. The entry and the tag are written by the two primitives above |
 | `ws-plan` | `--ws-plan` | Keeps milestones and blocks in order, and marks a milestone complete |
 | `ws-overview` | `--ws-overview` | Reports where a project stands at a glance — branch and lane, per-record counts, sweep freshness, pending warnings, the nearest milestones — read fresh at invocation, writing nothing at all. Every mechanical number comes from its probe script in one call; the model adds only the judgment lines. The read-only sibling of `--ws-check`: it counts what the records say and never verifies them |
 | `ws-start` | `--ws-start` | Picks up pending work and does it, in parallel lanes partitioned so they cannot collide |
@@ -164,13 +166,13 @@ is their index.
 | Procedure | Sole writer of | What it does |
 |---|---|---|
 | [`audit-writer`](../workflow/writers/audit-writer.md) | `record.audits` | Writes the audit log entry — what a stocktake examined, against which tree, and what it found, with its coverage block. Also the one-field `Outcome` update when remediation lands, which is why it is not part of `--ws-stocktake` |
-| [`behaviour-writer`](../workflow/writers/behaviour-writer.md) | `record.behaviour` | Writes the record of what the system does at runtime, by topic. Never *why* it does it, which is `--ws-log`'s |
+| [`behaviour-writer`](../workflow/writers/behaviour-writer.md) | `record.behaviour` | Writes the record of what the system does at runtime, by topic. Never *why* it does it, which is `--ws-log`'s. Reached by dispatch from a check or a build, or directly through `--ws-describe` |
 | [`changelog-writer`](../workflow/writers/changelog-writer.md) | `record.changelog` | Writes the changelog entry for a version, and marks an entry unreleased when the documents claim more than the tags do |
 | [`git-writer`](../workflow/writers/git-writer.md) | commits and tags | Makes the commits, the tags and `--ws-pr`'s merge for every skill that may, so the rules that keep a commit, a merge or a push safe live in one file rather than in whichever caller remembered them |
 | [`handoff-writer`](../workflow/writers/handoff-writer.md) | `record.handoff` | Writes the handoff a fresh session inherits, at whatever scope its caller asked for |
 | [`manifest-writer`](../workflow/writers/manifest-writer.md) | `.claude/workflow.json` | Writes `.claude/workflow.json` — validates each key against `workflow/manifest.md`, refuses one nothing reads or whose path does not resolve, and runs the doctor. Decides nothing: the caller arrives having settled the values |
 | [`reference-writer`](../workflow/writers/reference-writer.md) | `record.reference` | Writes the record of what the system *is* — stack, architecture, data model, stated conventions. Often the project's `README.md`, where the manifest maps it there |
-| [`sweep-tracker`](../workflow/writers/sweep-tracker.md) | the sweep checkpoint | Records which commit each sweep last verified and what it covered, so the next one re-reads only what changed |
+| [`sweep-tracker`](../workflow/writers/sweep-tracker.md) | the sweep checkpoint | Records which commit each sweep last verified and what it covered, so the next one re-reads only what changed. It refuses a stamp claiming a commit with no coverage — except a freshness-only entry, which claims none and licenses nothing |
 
 
 ---
@@ -188,9 +190,9 @@ the citations that remain.
 
 | Method | What it finds | Run by |
 |---|---|---|
-| [`record-drift.md`](../workflow/checks/record-drift.md) | six classes of drift in a record, and the things that look like drift and are not | `--ws-check`, `--ws-full-check`, `--ws-stocktake` |
-| [`docs-audit.md`](../workflow/checks/docs-audit.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page accuracy against source | `--ws-docs`, `--ws-full-check` |
-| [`tooling-claims.md`](../workflow/checks/tooling-claims.md) | mutable claims inside the tooling files, deleted rather than corrected | `--ws-tools`, `--ws-full-check` |
+| [`record-drift.md`](../workflow/checks/record-drift.md) | the classes of drift in a record, and the things that look like drift and are not | `--ws-check`, `--ws-full-check`, `--ws-stocktake` |
+| [`docs-audit.md`](../workflow/checks/docs-audit.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page-level accuracy against source | `--ws-docs`, `--ws-full-check` |
+| [`tooling-claims.md`](../workflow/checks/tooling-claims.md) | mutable claims inside the tooling files, which are deleted rather than corrected | `--ws-tools`, `--ws-full-check` |
 
 **A method says what counts as a finding; a runner decides scope, disposition
 and owner.** `workflow/checks/README.md` holds that line and why it matters —
@@ -253,7 +255,7 @@ would route a lane to an agent does that work inline and says so.
 | `skills/ws-record/assets/index-decisions.sh` | Generates `record.decisionsIndex` from the decision log — one row per entry, line number and heading — and verifies it without writing under `--check`. Declared as `commands.indexRegen` / `commands.indexCheck` in this repo's manifest; refuses to run where the index key is undeclared |
 | `skills/ws-overview/assets/probe.sh` | Emits `--ws-overview`'s whole mechanical block in one read-only call — tree, record counts, doctor result, sweep freshness, roadmap position — so the report costs seconds instead of a model read of every record. Offline by design: external state is reported as not counted, never as zero. Invoked by `--ws-overview` |
 | `tests/hook-contract.sh` | The contract tests for the hook, whose breakage is total and silent |
-| `.github/workflows/publish.yml` | Fires on a release-tag push: runs `publish.sh`, and stages the gated assembly as a PR on the public repository — never a merge. Needs the `PUBLISH_TOKEN` secret; removed from the assembly so it never ships |
+| `.github/workflows/publish.yml` | Fires on a release-tag push, and on manual dispatch — which is how a publication is staged when the public repo has drifted behind `dev` without a tag. Runs `publish.sh` and stages the gated assembly as a PR on the public repository, never a merge. It asserts the pushed tag against `.claude-plugin/plugin.json` first, and reports rather than refuses on a dispatch run, where there is no tag to assert against. Needs the `PUBLISH_TOKEN` secret; removed from the assembly so it never ships |
 | `.github/workflows/verify.yml` | CI. Runs `doctor.sh` (twice, from both scopes) and the hook contract tests, plus shell syntax, Shellcheck, JSON validity, credential scans, skill frontmatter, cross-links and absolute-path checks. Runs on a push to any branch except `main`, on every pull request, and on manual dispatch — `main` is reached only through a PR, and on the published repository `main` additionally requires that PR run to be green before it can be merged |
 
 ## Command wrappers

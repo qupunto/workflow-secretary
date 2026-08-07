@@ -101,8 +101,9 @@ legitimate is leaving it open while building the thing it blocks.
 For each decision the user actually makes, **hand it to `--ws-log`** — which owns
 deleting the entry from `record.openDecisions`, appending the outcome and the
 options rejected to `record.decisions`, and regenerating the index. Do not write
-those files here; an entry existing in both is the specific failure that split
-exists to prevent, and one owner is how it stays prevented.
+those files here: never-in-both is
+[`record-contract.md`](../../workflow/record-contract.md)'s rule 3, and one owner
+is how it stays prevented.
 
 A decision *not* to build something is still a decision and still gets an entry —
 that goes through `--ws-todo`, which owns the task-and-reasoning split.

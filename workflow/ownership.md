@@ -70,7 +70,7 @@ the handoff, the changelog entry and the commit are steps inside those. Those
 primitives are the flagless rows in the matrix below, and are invoked only by
 other skills.
 
-**Those eight are not skills — they are procedure files under
+**They are not skills — they are procedure files under
 [`writers/`](writers/README.md), read by the skill that needs one.** A skill's
 description is a standing per-session cost, and these are invoked only by other
 skills — a trigger a description cannot serve — so they live outside `skills/`.
@@ -116,7 +116,7 @@ while it stays easy to state.
 | hand over | — | [`writers/handoff-writer.md`](writers/handoff-writer.md) | primitive | `record.handoff` | — |
 | note | — | [`writers/changelog-writer.md`](writers/changelog-writer.md) | primitive | `record.changelog` | — |
 | declare | — | [`writers/manifest-writer.md`](writers/manifest-writer.md) | primitive | `.claude/workflow.json` | — |
-| describe | — | [`writers/behaviour-writer.md`](writers/behaviour-writer.md) | primitive | `record.behaviour` | — |
+| describe | `--ws-describe` | `ws-describe`, which dispatches to [`writers/behaviour-writer.md`](writers/behaviour-writer.md) | primitive | `record.behaviour` — the writer's; the skill is a route to it and writes nothing | — |
 | reference | — | [`writers/reference-writer.md`](writers/reference-writer.md) | primitive | `record.reference` | — |
 | log an audit | — | [`writers/audit-writer.md`](writers/audit-writer.md) | primitive | `record.audits` | — |
 | commit | — | [`writers/git-writer.md`](writers/git-writer.md) | primitive | commits and tags | — |
@@ -170,6 +170,11 @@ files.** `--ws-plan` marks a milestone completed in `record.roadmap`; that mark 
 rather than a spoken approval — a conversation does not survive a `/clear`, and a
 precondition nobody can check is one that never fires. `--ws-release` never writes
 that mark, and `--ws-plan` never writes a tag.
+
+**A roadmap that has declared an end to milestones satisfies that precondition a
+second way**, and it is still `--ws-plan`'s written state rather than a spoken
+one — the declaration is a section in `record.roadmap`. `--ws-release`'s §1 holds
+the cases and the rule that a release names which one it is.
 
 ## The inspector writes nothing
 
@@ -423,6 +428,10 @@ independently.
    Where one skill serves several verbs, each verb's flag gets a same-named
    wrapper in `commands/`, so the menu entry, the flag and the route stay one
    token; `doctor.sh` asserts every wrapper fires the flag its name promises.
+   **A flag whose name already equals its skill's gets no wrapper** — it reaches
+   the menu as the skill — and neither does a scope-variant prefix
+   (`--ws-full-stocktake`). `doctor.sh` cannot catch a redundant one, since it
+   fires the flag its name promises; the cost is a duplicate menu entry.
    Wrappers exist only for flags whose skill carries its own rules — never for
    hook-served flags, whose whole behavior lives in the hook and would be
    improvised from memory if reached without it.

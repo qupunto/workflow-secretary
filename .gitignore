@@ -14,12 +14,13 @@
 !settings.json
 !CLAUDE.md
 
-# Hook scripts. Only `doctor.sh` lives at the root now; the two hooks moved to
-# `hooks/` on 2026-08-01 for the plugin layout, and `!*.sh` cannot reach them
-# there — see the `!hooks/` block below for why that is not a redundant line.
+# Root scripts. `!*.sh` re-includes the operational scripts at the root; the
+# hook scripts moved to `hooks/` on 2026-08-01 for the plugin layout, and
+# `!*.sh` cannot reach them there — see the `!hooks/` block below for why that
+# is not a redundant line.
 !*.sh
 
-# The plugin layout. `hooks/` holds the two hook scripts and the `hooks.json`
+# The plugin layout. `hooks/` holds the hook scripts and the `hooks.json`
 # that declares them; `.claude-plugin/` holds the manifest that makes this
 # directory installable.
 #

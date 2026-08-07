@@ -3,7 +3,7 @@
 > **A procedure, not a skill** — see [`README.md`](README.md). Sole writer of `record.audits`, per [`ownership.md`](../ownership.md).
 
 **Sole writer of `record.audits`.** Everything else in this workflow that needs
-an entry written or an `Outcome` updated calls this skill; who owns what is
+an entry written or an `Outcome` updated calls this procedure; who owns what is
 [`ownership.md`](../ownership.md), and what this
 file may and may not hold is
 [`record-contract.md`](../record-contract.md).
@@ -79,4 +79,4 @@ two move on completely different schedules.
 **None of its own.** Its grant is whatever the caller was granted, and it confers
 nothing. `--ws-stocktake` carries commit-and-push scoped to its own record, and this
 file is inside that scope — but the push is still the caller's act through
-`git-writer`, never this skill's.
+`git-writer`, never this procedure's.

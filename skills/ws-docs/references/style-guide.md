@@ -162,11 +162,11 @@ bare `│` line to group related entries.
 
 ### Diagrams
 
-`architecture.md` exists to show shape, so it needs a picture. Draw it here — there was a
-`diagram` skill for this and it was cut, because choosing a form and laying out boxes is
-behaviour Claude already has and a skill description is paid for in every session.
+`architecture.md` exists to show shape, so it needs a picture. Draw it here — no skill
+exists for this, deliberately: choosing a form and laying out boxes is behaviour Claude
+already has, and a skill description is paid for in every session.
 
-Three rules survive it. The first ships a broken page rather than a missing one when you get
+Three rules apply. The first ships a broken page rather than a missing one when you get
 it wrong: **check what will render it.** ASCII in a plain fence is the default, and **docsify
 needs a plugin the default `index.html` does not load**, so a Mermaid fence chosen without
 checking shows raw markup to every reader. The second: every box and arrow is a claim, so draw

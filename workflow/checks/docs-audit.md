@@ -6,6 +6,9 @@
 > expensive treatment is the runner's, and deliberately not in this file.
 
 The mechanical half of G9 (verify, don't eyeball) and the detection half of G16 (code wins).
+**G-numbers throughout this file are the guardrails in
+[`skills/ws-docs/SKILL.md`](../../skills/ws-docs/SKILL.md)**, which is where they are
+defined and numbered; cited here by number so a finding can name one in review.
 
 Docs rot silently. Run this when asked to check the docs, or after any refactor that
 touched paths, props, or contracts.
@@ -53,11 +56,12 @@ done
 
 A file-relative link that only works from the root is the classic symptom of a page copied
 into a translation folder without repointing — and of `relativePath: true` missing from
-`index.html` (see `site-setup.md`).
+`index.html` (see [`site-setup.md`](../../skills/ws-docs/references/site-setup.md)).
 
 For anchors, compare the `#slug` in each link against the headings of the target file, in
-the target file's own language (see `translations.md` — a translated file's anchors are
-translated too).
+the target file's own language (see
+[`translations.md`](../../skills/ws-docs/references/translations.md) — a translated file's
+anchors are translated too).
 
 ## 3. Stale type and prop definitions
 
@@ -176,8 +180,8 @@ done
 Sections 1–7 verify *mechanics*: that paths resolve, links work, fences close. **None of them
 verify that a stated fact is true.** A page can assert `max: 10` when the pool is 20, name a
 function that was renamed six months ago, and pass every check above. Since G1 and G16 are the
-whole point of this skill, this is the check that matters most — and the only one that cannot be
-fully automated.
+whole point of documenting from source, this is the check that matters most — and the only one
+that cannot be fully automated.
 
 Mechanical first pass: every code symbol and literal the docs assert should be findable in the
 source.

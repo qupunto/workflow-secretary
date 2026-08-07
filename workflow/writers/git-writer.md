@@ -12,8 +12,8 @@ what ordinary work goes to, `branch.publish` is what `--ws-release` tags, and
 current branch and say so in one line.
 
 **No flag of its own**, on the same reasoning as `handoff-writer` and
-`sweep-tracker` — and one reason particular to this skill: a flag is how a user
-confers authorization, and this skill must never confer any. The grant is always
+`sweep-tracker` — and one reason particular to this procedure: a flag is how a user
+confers authorization, and this procedure must never confer any. The grant is always
 the caller's.
 
 ## Why the history has an owner at all
@@ -148,7 +148,7 @@ that turn, stop and hand back.
 A tag is the one thing here that cannot be undone: once another checkout has
 fetched it, deleting it locally changes nothing.
 
-## What this skill does not do
+## What this procedure does not do
 
 - **It does not decide to commit or push.** No judgement about whether the work
   is ready, whether the milestone is done, or whether now is the moment.

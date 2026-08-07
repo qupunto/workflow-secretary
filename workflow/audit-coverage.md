@@ -78,7 +78,14 @@ it costs one full sweep.
 
 So the two share their rules and not their storage. When both are present, the
 audit record is the authority on what the audit covered; the checkpoint never
-carries an audit entry.
+carries an audit's coverage or its findings.
+
+**A freshness-only entry is not that entry**, and the distinction is the whole
+of what the checkpoint may know about an audit: a name, a `baseline` and a date,
+so a reader can ask *when did this last run* without opening the permanent
+record. It claims no coverage, so it settles no question the audit record owns,
+and it licenses no narrowing — [`sweep-checkpoint.md`](sweep-checkpoint.md) is
+where the shape lives.
 
 ## Why it is written down rather than inferred
 

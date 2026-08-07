@@ -92,7 +92,7 @@ Three rules, because each is a way to be wrong that is easy to be:
   than the table above it, and the table is already there.
 
 The diagram travels with the catalog when it goes to `--ws-docs`, which re-renders
-it for the site's own renderer under the same three rules.
+it for the site's own renderer under the rules above.
 
 ## Scope, when this runs as a sweep
 

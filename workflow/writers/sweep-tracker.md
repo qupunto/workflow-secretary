@@ -15,7 +15,7 @@ nobody earned.
 
 Who owns what is [`ownership.md`](../ownership.md).
 
-**Why this is a skill rather than a paragraph in each sweep** is argued in
+**Why this is a procedure rather than a paragraph in each sweep** is argued in
 [`ownership.md`](../ownership.md#one-writer-many-readers--the-sweep-checkpoint),
 which is the authority on it.
 
@@ -48,10 +48,17 @@ covered and the globs it did not.
    `not-covered` lists, and if it genuinely cannot produce them, write
    `complete: false` with `covered: []` — which costs one full sweep next time
    and is the only honest thing to record.
+
+   **Unless it asks for a freshness-only entry**, which is the one shape that
+   has no coverage to withhold: write the name, `baseline` and `at`, and
+   nothing else — no `scopes`, no `method`, no `complete`. It claims nothing by
+   omission because it claims nothing at all, and
+   [`sweep-checkpoint.md`](../sweep-checkpoint.md) is where that is licensed.
 2. **Move the dirty paths to `not-covered`.** `git status --porcelain` at stamp
    time; a path with uncommitted changes was verified in a state the baseline
    sha does not address, so no later diff can reason about it. Record the
-   baseline as `<sha>+dirty` so the entry says why.
+   baseline as `<sha>+dirty` so the entry says why. A freshness-only entry has
+   nowhere to move them to and keeps the `+dirty` marker alone.
 3. **Write the entry**, replacing any previous one for that key. The checkpoint
    is not a log — it holds the current position, and the history of what was
    swept when belongs to `record.audits` where a project keeps one.
@@ -71,13 +78,13 @@ Prefer `--ws-full-check` when the intent is "re-verify everything": it sweeps at
 full scope *and* leaves fresh entries behind, where deleting the file leaves the
 next ordinary sweep to pay for it.
 
-## What this skill does not do
+## What this procedure does not do
 
 - **It does not sweep.** It never opens a doc, a record file or a source file to
   check anything. It reads git metadata and one JSON file.
 - **It does not judge coverage.** The caller says what it covered; the four rules
   in [`sweep-checkpoint.md`](../sweep-checkpoint.md) constrain the
-  caller, not this skill. The one thing it does refuse is a stamp with no
+  caller, not this procedure. The one thing it does refuse is a stamp with no
   coverage at all, because that is a claim rather than a report.
 - **It writes no record file, and it does not commit.** The checkpoint is
   gitignored, so there is nothing to commit.

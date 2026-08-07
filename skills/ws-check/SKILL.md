@@ -24,6 +24,7 @@ Delegation is a lookup, not a judgement —
 | `record.audits` | `audit-writer` |
 | `record.changelog` | `changelog-writer` |
 | `record.tooling.catalog`, `record.tooling.sources` | `--ws-tools` |
+| the docs site's annex page derived from `record.tooling.catalog` | `--ws-docs` |
 | `.claude/workflow.json` — a key naming a file that moved, or one nothing reads | `manifest-writer` |
 
 **Every row is a primitive or a record owner, and none is an orchestrator whose
@@ -107,7 +108,7 @@ the next run to redo all of it.
 ## What to look for
 
 **The taxonomy is [`workflow/checks/record-drift.md`](../../workflow/checks/record-drift.md)**
-— six classes of drift, and the things that look like findings and are not.
+— the classes of drift, and the things that look like findings and are not.
 Read it and apply it over the scope resolved above.
 
 ## The boundary with `--ws-docs`

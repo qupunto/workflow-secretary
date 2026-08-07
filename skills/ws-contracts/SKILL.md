@@ -51,8 +51,9 @@ install, where the suite is under the plugin cache and the config directory hold
 the user's own settings instead. `${CLAUDE_PLUGIN_ROOT}` is set by the harness
 only in plugin form, so its absence is what distinguishes the two.
 
-`README.md` at the suite root covers the `--flag` shorthands and what each one
-authorizes. It is not loaded automatically in either form.
+`README.md` at the suite root covers the `--flag` shorthands; what each one
+authorizes is `workflow/ownership.md`'s matrix. Neither is loaded automatically
+in either form.
 
 ## Run the doctor rather than trusting an inventory
 

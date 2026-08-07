@@ -119,10 +119,10 @@ That is the only test of a project secretary worth anything: a suite that cannot
 keep its own record straight has no business keeping yours.
 
 But what those records *say* is about that repository. So a published copy ships
-them **present and empty**, carrying only their canonical heading — `TODO.md`,
-`ROADMAP.md`, `CHANGELOG.md`, `docs/decisions.md`, `docs/open-decisions.md`,
-`docs/audits.md`, `.claude/HANDOFF.md`, and its overflow sibling
-`.claude/HAZARDS.md`. Empty rather
+them **present and empty**, carrying only their canonical heading. Which files
+those are is `reset-records.sh`'s `RECORDS` table plus any overflow sibling a
+handoff declares — read the script rather than a list here, since a list is one
+record away from being wrong and this one already was. Empty rather
 than absent, because `doctor.sh` fails on a declared record whose file is missing,
 and a fresh clone has to pass its own health check.
 
@@ -226,9 +226,8 @@ git check-ignore -q .credentials.json \
   && echo "credentials ignored: ok" \
   || echo "STOP. .credentials.json is NOT ignored — do not run 'git add'."
 
-# 6. Hooks are useless unless executable. Both live under hooks/, not at the
-#    root — a *.sh glob at the root matches only doctor.sh and would silently
-#    skip them.
+# 6. Hooks are useless unless executable. They live under hooks/, not at the
+#    root — a *.sh glob at the root would silently skip them.
 (cd ~/.claude && chmod +x $(git ls-files '*.sh'))
 ~/.claude/doctor.sh    # doctor:checkout-only — this block is building the checkout
 ```
@@ -347,6 +346,7 @@ behind.
 | Facing a capability-shaped task | `--ws-scout` | the toolbelt registry answers before anything is hand-built, and the search runs before the first failed attempt rather than after the third |
 | The moment you decide *not* to build something | `--ws-todo` | the reasoning is perishable; it is gone by tomorrow |
 | A decision made with no task attached | `--ws-log` | the same, minus the backlog entry |
+| Settling how the system behaves | `--ws-describe` | the rule goes to the behaviour record while it is still checkable against the code; `--ws-log` takes the reasoning, and the two are routinely conflated into one entry that ages badly |
 | Finishing a unit of work, or before `/clear` | `--ws-wrap` | the handoff is what the next session inherits |
 | Every week or so, or after a refactor | `--ws-check` | cheap, incremental, and catches the records the code just falsified |
 | Before a release, or when you stop trusting the record | `--ws-full-check` | the expensive one; earns its cost when the answer might be "no" |
@@ -413,6 +413,7 @@ Current flags:
 | `--ws-report` | `ws-report` | orchestrator — appends to the machine-local inbox, then opens an upstream issue on a fresh OK |
 | `--ws-overview` | `ws-overview` | orchestrator — reads and reports, writes nothing at all |
 | `--ws-scout` | `ws-scout` | primitive |
+| `--ws-describe` | `ws-describe` | primitive — dispatches to `behaviour-writer`, which is `record.behaviour`'s sole writer |
 
 **What each flag authorizes is deliberately not a column here.** A grant is
 written by hand in two places — the block `shorthand-flags.sh` injects, and the

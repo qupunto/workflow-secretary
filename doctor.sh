@@ -1223,6 +1223,63 @@ else
   pass "no commands/ directory — nothing to check"
 fi
 
+# ------------------------------------------------ the cadence table, hand-copied
+
+head_ "Cadence tables"
+
+# The cadence a user is told to keep exists twice: as the card --ws-adopt reads
+# out at the end of an adoption, and as README.md's "How often" table. Same
+# class as CI's two markdown walks below — two hand-copies of one list, no way
+# to source it once, so what is asserted is that they agree. Only the FLAG
+# column: the two tables address different readers, so their wording and their
+# third column are free to differ, and forcing those into step would collapse
+# two documents into one.
+#
+# Drift here is silent in the worst direction — an adopter is handed a cadence
+# missing the flag added last week, and the card is the one surface that ever
+# gets read aloud.
+cadence_flags_() { # file — the flag column of the "| When | Flag |" table
+  awk '
+    /^\|[[:space:]]*When[[:space:]]*\|[[:space:]]*Flag[[:space:]]*\|/ { t = 1; next }
+    t && /^\|[[:space:]]*[-:]/ { next }
+    t && /^\|/ {
+      n = split($0, f, "|")
+      if (n >= 3 && match(f[3], /--ws-[a-z-]+/))
+        print substr(f[3], RSTART, RLENGTH)
+      next
+    }
+    t { t = 0 }
+  ' "$1" | sort
+}
+cad_card="$CLAUDE_DIR/skills/ws-adopt/SKILL.md"
+cad_readme="$CLAUDE_DIR/README.md"
+if [ -f "$cad_card" ] && [ -f "$cad_readme" ]; then
+  cad_a=$(cadence_flags_ "$cad_card")
+  cad_b=$(cadence_flags_ "$cad_readme")
+  if [ -z "$cad_a" ] || [ -z "$cad_b" ]; then
+    # Reading nothing is the failure mode that matters: a parser that has gone
+    # blind agrees with everything, and an empty-vs-empty pass is what the
+    # agreement was supposed to rule out.
+    cad_blind=""
+    [ -z "$cad_a" ] && cad_blind="skills/ws-adopt/SKILL.md"
+    [ -z "$cad_b" ] && cad_blind="${cad_blind:+$cad_blind and }README.md"
+    fail "no cadence table found in $cad_blind — the comparison needs a
+        '| When | Flag |' table in both files, and two tables that cannot be
+        read compare equal"
+  elif [ "$cad_a" = "$cad_b" ]; then
+    pass "both cadence tables name the same flags ($(printf '%s\n' "$cad_a" | grep -c .) checked)"
+  else
+    cad_only_a=$(comm -23 <(printf '%s\n' "$cad_a") <(printf '%s\n' "$cad_b") | tr '\n' ' ')
+    cad_only_b=$(comm -13 <(printf '%s\n' "$cad_a") <(printf '%s\n' "$cad_b") | tr '\n' ' ')
+    fail "the two cadence tables name different flags.
+        Only in skills/ws-adopt/SKILL.md's card: ${cad_only_a:-none}
+        Only in README.md's 'How often' table: ${cad_only_b:-none}
+        Wording and the 'Why then' column may differ; the flag column may not."
+  fi
+else
+  pass "no cadence table pair to compare"
+fi
+
 # --------------------------------------------------------------- audit reports
 
 head_ "Audit reports"
