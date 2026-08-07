@@ -2,13 +2,13 @@ name: Verify
 
 # This repo is configuration, not an application, so there is little to "test"
 # in the usual sense. What it does have is one file whose breakage is total and
-# silent: a syntax error or a bad case label in shorthand-flags.sh takes out
+# silent: a syntax error or a bad case label in wss-shorthand-flags.sh takes out
 # EVERY flag at once, the hook exits non-zero, Claude Code carries on, and each
 # flag quietly degrades to being matched from a skill description. Nothing
 # surfaces. That is what this workflow is for.
 #
 # It runs on push to any branch EXCEPT main, and on every pull request.
-# Everything here also runs locally — tests/hook-contract.sh and doctor.sh are
+# Everything here also runs locally — tests/wss-hook-contract.sh and wss-doctor.sh are
 # the same scripts, not CI-only copies.
 #
 # Not on push to main, deliberately. Work happens on dev and reaches main only
@@ -38,7 +38,7 @@ jobs:
         # hooks moved out of the root on 2026-08-01 and the glob did not follow
         # them, so for the length of that change the two files this workflow
         # exists to protect were the only shell nothing checked; and
-        # skills/ws-docs/assets/scaffold.sh was never in any of the patterns at all.
+        # skills/wss-docs/assets/wss-scaffold.sh was never in any of the patterns at all.
         # A glob is a silent form of coverage — it reports success by matching
         # nothing. `git ls-files` cannot miss a tracked script, so adding one in
         # a new directory needs no edit here.
@@ -69,13 +69,13 @@ jobs:
           done
 
       - name: Hook contract
-        run: bash tests/hook-contract.sh
+        run: bash tests/wss-hook-contract.sh
 
       - name: Credentials never travel
         # The repo's whole premise is that one file never leaves the machine, and
         # until 2026-08-01 the only thing enforcing it was a sentence in
-        # README.md. doctor.sh now asserts this too, but this step is deliberately
-        # separate and deliberately first: it must hold even if doctor.sh is the
+        # README.md. wss-doctor.sh now asserts this too, but this step is deliberately
+        # separate and deliberately first: it must hold even if wss-doctor.sh is the
         # thing that broke.
         run: |
           if ! git check-ignore --no-index -q .credentials.json; then
@@ -108,29 +108,29 @@ jobs:
           echo "ok   sensitive kinds stay ignored inside every re-included tree"
 
       - name: Doctor (no project in scope)
-        # doctor.sh inspects a config directory and the project in $PWD. Point it
+        # wss-doctor.sh inspects a config directory and the project in $PWD. Point it
         # at the checkout, and run it from a directory with no project of its own
         # so the project-specific checks are correctly skipped rather than
         # spuriously failing.
         #
         # --strict because the warn class carries real drift — "flag maps to a
         # skill that resolves nowhere", "grants disagree between the hook and
-        # ownership.md" — and only `fails` set exit 1, so that drift landed GREEN.
+        # WSS.OWNERSHIP.md" — and only `fails` set exit 1, so that drift landed GREEN.
         run: |
           mkdir -p /tmp/noproject
           cd /tmp/noproject
-          CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/doctor.sh" --strict
+          CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/wss-doctor.sh" --strict
 
       - name: Doctor (from the checkout)
         # The step above runs from an empty directory, so every $PWD-dependent
         # check silently becomes a no-op — skill shadowing, and the whole manifest
-        # section: that workflow.json parses, that its keys are ones manifest.md
+        # section: that WSS.WORKFLOW.json parses, that its keys are ones WSS.MANIFEST.md
         # documents, and that every record path and skill glob it declares still
         # resolves. This repo IS a project under its own workflow, so the checks
         # being skipped were exactly the ones about it. Both scopes matter and
         # only one was covered; no count here, because it moves whenever a check
         # is added.
-        run: CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/doctor.sh" --strict
+        run: CLAUDE_DIR="$GITHUB_WORKSPACE" bash "$GITHUB_WORKSPACE/wss-doctor.sh" --strict
 
       - name: Skill frontmatter
         # A skill with no name or description is invisible: it never matches a
@@ -162,7 +162,7 @@ jobs:
         # A general markdown link checker is NOT wanted here, and a first attempt
         # at one produced ~60 findings of which almost none were real:
         #
-        #   - skills/ws-docs/references/** is teaching material about how to write a
+        #   - skills/wss-docs/references/** is teaching material about how to write a
         #     docs site, so it is full of deliberate placeholders. That skill's
         #     own handoff already documents template placeholders and
         #     page-relative shorthand as known false-positive classes; do not
@@ -175,7 +175,7 @@ jobs:
         # tracked files and skips placeholders.
         #
         # The exemptions are per LINK, not per directory. Excluding
-        # skills/ws-docs/references/ wholesale was the earlier shape, and it meant
+        # skills/wss-docs/references/ wholesale was the earlier shape, and it meant
         # every relative link in that tree — including the live pointers into
         # workflow/ — was verified by nothing, which is the class this step
         # exists to catch. What is actually exempt:
@@ -187,11 +187,11 @@ jobs:
         #     broken link fails the build — so the rule could not be written
         #     down in the repo that enforces it.
         #
-        # Anchors are not checked here. doctor.sh verifies the fragment half
-        # against the target's headings, and this job runs doctor.sh below.
+        # Anchors are not checked here. wss-doctor.sh verifies the fragment half
+        # against the target's headings, and this job runs wss-doctor.sh below.
         #
         # `audits/` is excluded and it is the only directory-wide exemption, for
-        # the argument doctor.sh's `md_files_` sets out at length: those reports
+        # the argument wss-doctor.sh's `md_files_` sets out at length: those reports
         # are kept VERBATIM, so policing them offers only editing a frozen record
         # to quiet a checker, or a permanent red that trains everyone to skim.
         # `audits/README.md` stays in scope — it is the maintained index, not a
@@ -236,13 +236,13 @@ jobs:
         #
         # Inline code spans are stripped first, and tracked files only — all
         # three the same exemptions the cross-link step above makes, for the same
-        # reasons, `audits/` included: doctor.sh's own home-path check exempts
+        # reasons, `audits/` included: wss-doctor.sh's own home-path check exempts
         # those frozen reports already, and a report saying which directory it
         # ran against is an observation nobody follows. Today they survive on
         # backticks alone — `…-pass5.md` carries two — so the first one written
         # in prose turns this step red, which is how the cross-link step above
         # broke.
-        # Widening the class immediately caught TODO.md's own entry ABOUT this
+        # Widening the class immediately caught WSS.TODO.md's own entry ABOUT this
         # bug, which is prose quoting the pattern, not a path anyone will follow.
         # Without the exemption the rule could not be written down in the repo
         # that enforces it.

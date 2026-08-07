@@ -1,13 +1,13 @@
 {
-  "name": "workflow-secretary",
-  "version": "0.7.0",
+  "name": "workflow-secretary-suite",
+  "version": "0.8.0",
   "description": "A secretary to coding, not the coder: skills that keep a project's record, roadmap, docs and tooling honest, with one writer per record file.",
   "author": {
     "name": "qupunto",
     "url": "https://github.com/qupunto"
   },
-  "homepage": "https://github.com/qupunto/workflow-secretary",
-  "repository": "https://github.com/qupunto/workflow-secretary",
+  "homepage": "https://github.com/qupunto/workflow-secretary-suite",
+  "repository": "https://github.com/qupunto/workflow-secretary-suite",
   "license": "MIT",
   "keywords": [
     "workflow",

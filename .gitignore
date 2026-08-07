@@ -41,7 +41,7 @@
 !agents/**
 
 # Slash-command wrappers for the flags whose skill carries a different name —
-# each file's name equals the flag its body fires, and doctor.sh asserts that.
+# each file's name equals the flag its body fires, and wss-doctor.sh asserts that.
 !commands/
 !commands/**
 
@@ -77,7 +77,7 @@
 # than the directory. The first line only lets git DESCEND; without it none of
 # the rest is ever consulted.
 !.claude/
-!.claude/TOOLING.md
+!.claude/WSS.TOOLING.md
 
 # The shared workflow contract every global skill reads. Deliberately outside
 # skills/, since a directory there with no SKILL.md is ignored today but relying
@@ -88,50 +88,51 @@
 # This repo running its own workflow on itself. Every path below is a record
 # file this configuration's skills expect, or the manifest that maps them.
 # Whitelisting is not adoption — these lines only permit the files;
-# `.claude/workflow.json` is what declares which of them are records.
+# `.claude/WSS.WORKFLOW.json` is what declares which of them are records.
 #
-# Deliberately NOT here: `.claude/sweeps.json` and `bug-reports.md`. Both are
+# Deliberately NOT here: `.claude/WSS.SWEEPS.json` and `WSS.BUG-REPORTS.md`. Both are
 # derived or machine-local, and both are safer absent — a missing checkpoint
 # costs one full sweep and can never cost correctness.
 #
-# ROADMAP.md and CHANGELOG.md were forward-looking permits until 2026-08-01, when
-# the manifest began declaring `record.roadmap` and `record.changelog` and both
+# WSS.ROADMAP.md and CHANGELOG.md were forward-looking permits until 2026-08-01, when
+# the manifest began declaring `WSS.record.roadmap` and `WSS.record.changelog` and both
 # files were created. The permits were already right, which is the argument for
 # writing one before the file exists: `git add` declines a new KIND of file
 # silently, so the cost of an unused permit is nothing and the cost of a missing
 # one is a record nobody notices is untracked.
-!TODO.md
-!ROADMAP.md
-!RELEASES.md
+!WSS.TODO.md
+!WSS.ROADMAP.md
+!WSS.RELEASES.md
 !CHANGELOG.md
+!WSS.CHANGELOG.md
 # Assembles and gates the public tree. Tracked here and deliberately NOT on the
 # list of what it copies — it is about producing that repository, so it is
 # meaningless inside it, and it names the Gate needles in the clear.
-!publish.sh
+!wss-publish.sh
 # Blanks every declared record. This one DOES travel: an adopter runs it to start
-# agnostic, and publish.sh runs the copy rather than keeping a second list.
-!reset-records.sh
+# agnostic, and wss-publish.sh runs the copy rather than keeping a second list.
+!wss-reset-records.sh
 # Moves machine-local workflow state (untracked records, the lane selector, the
 # inbox) between machines. Travels: an adopter changing machines is its whole
 # audience. The archives it produces are NOT re-included — they are snapshots.
-!export-records.sh
+!wss-export-records.sh
 # The tidy exit: removes the suite's machinery from a project, records only
 # behind a second flag. Travels — stopping cleanly is an adopter act.
-!retire-workflow.sh
+!wss-retire-workflow.sh
 # Agent audit reports. Tracked so they are BACKED UP — they are the most
 # expensive artifact this repo produces and they existed on one machine only
 # until 2026-08-02, one disk failure from gone.
 #
-# They do NOT travel to the published repo: `publish.sh` deletes them from the
+# They do NOT travel to the published repo: `wss-publish.sh` deletes them from the
 # assembly, and its whitelist would fail the run if it ever missed one. Keeping
 # them out of the public tree is that script's job, not this file's — being
 # untracked was never what protected the publication surface.
 !audits/
 !audits/**
 
-!.claude/workflow.json
-!.claude/HANDOFF.md
-!.claude/HAZARDS.md
+!.claude/WSS.WORKFLOW.json
+!.claude/WSS.HANDOFF.md
+!.claude/WSS.HAZARDS.md
 !.claude/agents/
 !.claude/agents/**
 
