@@ -247,7 +247,7 @@ skill_path_() {
 
 # The leading clause of a skill's own description — what it does, before the
 # shorthand and the trigger phrases. Read from the file rather than restated
-# here: a second copy of sixteen one-liners is an inventory, and this hook has
+# here: a second copy of every one-liner is an inventory, and this hook has
 # a comment at the top about exactly that failure.
 skill_gist_() {
   awk '
@@ -362,23 +362,33 @@ EOF
   --ws-plan)
     cat <<'EOF'
 The user included the `--ws-plan` flag. That is an explicit, unconditional
-instruction to invoke the `ws-plan` skill now — what the next block is, how the
-milestones and their blocks are ordered, or whether one is finished. The rest of
+instruction to invoke the `ws-plan` skill now — what the next GOAL is, how a
+roadmap's blocks are ordered, or whether a milestone is finished. The rest of
 the message is scope, not a question to answer first.
 
 Authorization: none.
 
 Irreversible, in force before the skill loads:
-- COMPLETING A MILESTONE IS THE USER'S CALL, NEVER YOURS. Never mark one complete
-  on the strength of your own reading or an agent's report. Say what the
-  milestone claimed, what landed, and what is still open against it — then ask.
-- BUT ASK WHEN THE LAST BLOCK LANDS. Do not wait to be told.
-- The mark you write is what authorizes `--ws-release` to tag, so write it into the
-  roadmap and not into the conversation: it must survive a `/clear`.
+- TWO RECORDS. `record.roadmap` holds GOALS and their blocks and SPLITS PER LANE.
+  `record.releases` holds the milestones, the version each ships as, and the
+  completion marks, and NEVER splits. NO ROADMAP CARRIES A VERSION OR A MARK —
+  doctor.sh FAILS one that does.
+- READ `.claude/lane` FIRST. Where it names a lane this invocation is
+  goal-setting on that lane's roadmap and NOTHING ELSE: do not ask whether a
+  milestone is done, do not name a version, do not write a mark, do not open
+  `record.releases`. A mark is a checkpoint for the whole project and a lane
+  session sees one lane of it.
+- COMPLETING A MILESTONE IS THE USER'S CALL, NEVER YOURS, and only from the main
+  checkout. Never mark one on the strength of your own reading or an agent's
+  report. Say what the milestone claimed, what landed, and what is still open
+  against it — then ask.
+- BUT ASK WHEN THE LAST GOAL A MILESTONE CITES IS MET. Do not wait to be told.
+- The mark you write is what authorizes `--ws-release` to tag, so write it into
+  `record.releases` and not into the conversation: it must survive a `/clear`.
 - A milestone with an open blocking decision, or with unremediated high-severity
   audit findings, is disqualified however finished it looks. Name it rather than
   letting a release discover it.
-- The roadmap holds milestones, blocks and their order. Not tasks, not design
+- A roadmap holds goals, blocks and their order. Not tasks, not design
   arguments. Breaking a block into tasks is `--ws-todo`'s job.
 - Run the grep that would DISPROVE any "nothing does X" or count before writing
   it here.
@@ -590,6 +600,12 @@ Irreversible, in force before the skill loads:
   includes commits this session did not make.
 - Never force-push, and never resolve a rejected push by force. A rejection
   usually means someone else pushed first, which is a merge decision.
+- In a LANE WORKTREE this also lands the lane on branch.integration, after
+  pushing the lane's own branch: `git push origin <branch>:<integration>` with
+  NO leading `+`, so it fast-forwards or the remote refuses it. A refusal is
+  reported and stops there. Skip this entirely when the wrap fired because the
+  session is ending rather than because the work was approved — half-done work
+  on the branch every other lane syncs from arrives there looking finished.
 - Never rewrite a commit this session did not make unless the user names it.
 - Commit half-done work rather than losing it, but say so — in the message and
   in the summary. Never describe unverified work as done, and state plainly
@@ -597,10 +613,12 @@ Irreversible, in force before the skill loads:
 - Commits and pushes go through git-writer, which owns the history and holds
   these rules. It inherits this grant; it never decides to push.
 - After committing, check whether this session checked off the LAST open block
-  of the current milestone. If it did, invoke --ws-plan so the user is ASKED while
-  the evidence is in front of them, then name --ws-release if they mark it. Do not
+  of a goal, and whether that was the last goal an open milestone in
+  `record.releases` cites. If so, invoke --ws-plan so the user is ASKED while the
+  evidence is in front of them, then name --ws-release if they mark it. Do not
   mark the milestone yourself — that is --ws-plan's, and the mark is what
-  authorizes a tag.
+  authorizes a tag. FROM A LANE WORKTREE, DO NOT ASK AT ALL: a mark is a
+  checkpoint for the whole project.
 EOF
     ;;
   --ws-start)
@@ -648,12 +666,14 @@ to answer first.
 Authorization: COMMIT. The PUSH is NOT covered by this flag.
 
 Irreversible, in force before the skill loads:
-- The precondition is a MILESTONE MARKED COMPLETED in the roadmap, written by
-  --ws-plan. If it looks complete but is not marked, hand to --ws-plan and come back;
-  do not mark it yourself and do not infer the milestone from recent commits.
+- The precondition is a MILESTONE MARKED COMPLETED in `record.releases`, written
+  by --ws-plan. NOT the roadmap: that record holds goals, splits per lane, and
+  carries no mark at all, so a goal being met is not a milestone being complete.
+  If it looks complete but is not marked, hand to --ws-plan and come back; do not
+  mark it yourself and do not infer the milestone from recent commits.
   Two exemptions, both written down rather than judged: a patch on an
-  already-tagged version, and a roadmap that has itself declared an end to
-  milestones. The skill's section 1 holds the cases; say which one applies.
+  already-tagged version, and a `record.releases` that has itself declared an end
+  to milestones. The skill's section 1 holds the cases; say which one applies.
 - Show the commits, the tag name and the branch, then wait for an explicit OK
   IN THAT TURN before pushing either the branch or the tag. Unlike --ws-wrap and
   --ws-stocktake this flag is not standing authorization to publish: a tag another

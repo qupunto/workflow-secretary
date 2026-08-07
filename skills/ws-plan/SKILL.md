@@ -1,39 +1,68 @@
 ---
 name: ws-plan
-description: "Plan and maintain the project's roadmap — milestones and the blocks inside them, their order, when one splits, and when a milestone is complete enough to mark. Marking one authorises `--ws-release` to tag it, and so does declaring an end to milestones. SHORTHAND: `--ws-plan`. Also trigger on \"what should we build next\", \"is this milestone done\", \"reorder the roadmap\"."
+description: "Set the next goal, and keep the release list — `record.roadmap` holds the goals and splits by lane, `record.releases` holds the milestones, their versions and their marks. Marking one authorises `--ws-release` to tag. SHORTHAND: `--ws-plan`. Also on \"what should we build next\", \"what's next for the UI\", \"is this milestone done\", \"reorder the roadmap\"."
 ---
 
-# The roadmap
+# Goals, and the release list
 
-`record.roadmap` holds **milestones**, and inside each, the **blocks** that make
-it up and the order they happen in. This skill is its sole writer.
+This skill is the sole writer of two records, and the split between them is the
+thing to hold onto:
 
-A **milestone is the unit that ships.** It carries the version it intends to
-ship as, and marking one completed authorises a tag. That intended version is a
-*plan*: `--ws-release` confirms the number, and the tag and the changelog entry
-are written by `git-writer` and `changelog-writer` on its say-so.
+| Record | Holds | Splits by lane |
+|---|---|---|
+| `record.roadmap` | **Goals.** What an area of work is trying to achieve, the blocks that get it there, their order. In that area's own terms. | **yes** |
+| `record.releases` | **The release list.** One entry per milestone: the version it intends to ship as, which goals it comprises, whether it is marked completed. | **never** |
 
-It is **not** a task list and **not** a place for design arguments. The
+**No roadmap carries a version number or a completion mark.** Not a lane's, not
+an unsplit project's. That single prohibition is what lets a project hold any
+number of lane roadmaps while still holding exactly one release checkpoint —
+`--ws-release` reads `record.releases` and no other planning record.
+[`record-contract.md`](../../workflow/record-contract.md) holds the rule and the
+reasoning; `doctor.sh` fails on a roadmap that breaks it.
+
+A roadmap is **not** a task list and **not** a place for design arguments. The
 checklist is `record.todo` and the reasoning is `record.decisions`, both
 `--ws-todo`/`--ws-log`'s.
 
 **Project facts come from `.claude/workflow.json`**: `record.roadmap`,
-`record.todo`, `record.openDecisions`, `record.decisionsIndex`, `record.audits`,
-and `agents.roadmap`. Without a manifest, fall back to `ROADMAP.md` and say so.
-Where a `.claude/lane` selector names a lane, `lanes.named.<lane>.records.X`
-overrides `record.X` for `todo` and `openDecisions` —
-[`manifest.md`](../../workflow/manifest.md)'s resolution rule; the roadmap
-itself never splits.
+`record.releases`, `record.todo`, `record.openDecisions`,
+`record.decisionsIndex`, `record.audits`, and `agents.roadmap`. Without a
+manifest, fall back to `ROADMAP.md` and `RELEASES.md` and say so. Where a
+`.claude/lane` selector names a lane, `lanes.named.<lane>.records.X` overrides
+`record.X` for `todo`, `openDecisions`, `handoff` and `roadmap` —
+[`manifest.md`](../../workflow/manifest.md)'s resolution rule. `releases` is
+never among them.
 
 Who owns what is [`workflow/ownership.md`](../../workflow/ownership.md);
 what each record holds is
 [`record-contract.md`](../../workflow/record-contract.md).
 
+## Which mode you are in — read the selector first
+
+**`.claude/lane` decides what this invocation is allowed to be about**, before
+anything else. It is a file, gitignored, one per worktree, holding a lane name.
+
+| Selector | Mode | This skill does |
+|---|---|---|
+| names a lane | **lane** | goal-setting on that lane's roadmap, and nothing else |
+| absent | **project** | goal-setting on the unsplit roadmap, **plus** the release list |
+
+**In lane mode the release machinery does not fire.** Do not ask whether a
+milestone is done, do not name a version, do not write a mark, do not open
+`record.releases`. A session in a lane worktree is planning that lane's work; the
+shipping question belongs to a session that can see the whole project, and asking
+it here produces a checkpoint nobody else agreed to.
+
+Where a lane session genuinely needs a milestone decision, say which lane it is
+in and that the question belongs to the main checkout. That is
+[`ownership.md`](../../workflow/ownership.md)'s route-to-the-owning-lane rule
+applied to a record rather than to a file.
+
 ## Why this is a skill and not only the agent
 
 Same split as `--ws-release` and for the same reason. The agent named in
-`agents.roadmap` does the reading — the roadmap, the backlog, the decision
-index, the audit log, the git history — and returns a proposal.
+`agents.roadmap` does the reading — the roadmaps, the release list, the backlog,
+the decision index, the audit log, the git history — and returns a proposal.
 
 But **completing a milestone requires asking the user, in conversation, and
 waiting for the answer.** A subagent has no channel for that; it can only return
@@ -44,7 +73,7 @@ you did, since it costs context the user should know about.
 
 ## Before proposing anything, check the real state
 
-- `record.roadmap` — what is in progress, next, and completed.
+- **The roadmap this mode resolves** — what is in progress and what is next.
 - `record.todo` — so you don't propose as a "next block" something already
   deliberately deferred.
 - `record.decisionsIndex` — one line per settled decision. Go through the index,
@@ -52,40 +81,83 @@ you did, since it costs context the user should know about.
   open an entry only when you need its reasoning.
 - `record.openDecisions` — **a block whose blocking decision is still open is
   not ready to start.** Say so rather than scheduling it anyway.
-- `record.audits` — a milestone carrying unremediated high-severity findings is
-  not a candidate for completion.
+- `record.audits` — in project mode, a milestone carrying unremediated
+  high-severity findings is not a candidate for completion.
 
-## Deciding a milestone is done
+## Setting the next goal
+
+**This is the job with the most value in it, and the one most often skipped**
+because the release questions below are louder. A goal is not the next unchecked
+box: it is what the area is trying to become, stated so that finishing it is
+recognisable.
+
+A goal proposal names four things:
+
+- **What changes for someone using this area** when the goal is met. A goal
+  phrased as work rather than as an outcome cannot be judged complete.
+- **The blocks that get there**, in order, each a paragraph.
+- **What it depends on** — another lane's goal, an open decision, an audit
+  finding. A dependency on another lane is named, not resolved here.
+- **What it explicitly is not**, where the goal has a tempting adjacent scope.
+
+**Propose in the area's own vocabulary.** An interface lane thinks in flows,
+states and surfaces; a service lane thinks in endpoints, schemas and jobs.
+Translating both into one house style is how a roadmap stops being read by the
+people whose work it describes.
+
+**A goal is not sized by a version.** Do not ask what release it lands in while
+proposing it — in lane mode you cannot answer that, and in project mode the
+answer belongs to the release list, later, deliberately.
+
+## Deciding a milestone is done — project mode only
 
 Checking a block off as it lands is bookkeeping. **A milestone completing is the
 decision**, and it is the one this skill exists to get right.
 
-The user decides — but **you ask at the moment the last block lands.** Do not
-wait to be told; nobody volunteers the word, and a milestone nobody asks about
-is a release that never happens.
+The user decides — but **you ask at the moment the last goal a milestone cites
+is met.** Do not wait to be told; nobody volunteers the word, and a milestone
+nobody asks about is a release that never happens.
 
-So, when the final block of a milestone is checked off:
+So, when the last cited goal is met:
 
 1. Say what the milestone claimed to cover, what actually landed, and what is
-   still open against it.
+   still open against it. **Where the project runs lanes, name which lanes
+   contributed** — a milestone cites goals across roadmaps, and a reader of
+   `record.releases` alone cannot see them.
 2. Name either disqualifier if it applies — **an open blocking decision**, or
    **unremediated high-severity audit findings**. Both are worth catching here,
    because the alternative is a release discovering them.
 3. Ask, once, in conversation.
-4. On yes, **mark it completed in `record.roadmap` with its version**, then name
+4. On yes, **mark it completed in `record.releases` with its version**, then name
    `--ws-release` as the next step and stop.
 
 **The mark is the durable form of the answer** — a spoken "yes" does not survive
-a `/clear`.
+a `/clear`. It goes in `record.releases` and nowhere else: a mark written into a
+roadmap is invisible to `--ws-release`, and a mark written into a *lane's*
+roadmap is a checkpoint one worktree cut for the whole project.
 
 Versions, the changelog and tags themselves are not yours.
 
-## Declaring an end to milestones
+## A milestone cites goals; it does not restate them
 
-A project can finish its planned work. When the roadmap has no next milestone and
-the user says the remaining work is maintenance rather than a next version,
-**write that into `record.roadmap` as a section saying so.** It is this skill's
-write and nobody else's.
+An entry in `record.releases` names the goals it comprises — by name, by roadmap,
+one direction. It does not copy their prose, and nothing derives it: **you write
+which goals a milestone covers, and that authorship is the point.** It is the
+only place a lane's work and the shipping plan are reconciled.
+
+The cost this accepts, and it is worth stating to the user when it bites:
+**nothing aggregates lane roadmaps.** A lane can meet every goal it holds while
+the milestone citing them still reads open, and no check finds that. The
+alternative — deriving milestone completion from N roadmaps — is a release gate
+that waits on the slowest lane, which is the failure that put goals and the
+release list in different files.
+
+## Declaring an end to milestones — project mode only
+
+A project can finish its planned work. When the release list has no next
+milestone and the user says the remaining work is maintenance rather than a next
+version, **write that into `record.releases` as a section saying so.** It is this
+skill's write and nobody else's.
 
 It matters beyond tidiness: `--ws-release` reads that section as one of its four
 preconditions for tagging. Without it, every milestone is completed and tagged,
@@ -105,29 +177,36 @@ Three rules, and the first is the one that gets skipped:
 - **It is reversible.** New planned work means a new milestone and the section
   goes; say so when writing it, so it does not read as a project's obituary.
 
-## Keeping the file honest
+**Ending milestones does not end the roadmaps.** Goals keep being set after the
+last version is planned — that is what a maintenance project does. A roadmap left
+to rot because the release list closed is the predictable misreading of this
+section.
+
+## Keeping the files honest
 
 - Blocks move between in-progress, next-up and completed. A block that has
   quietly stopped being worked on belongs in neither of the first two without a
   note saying why.
-- **Every block belongs to a milestone.** A block with no milestone can never
-  ship, because nothing will ever mark it complete.
+- **Every block belongs to a goal, and every goal is cited by a milestone or is
+  explicitly out of scope for the current plan.** A goal no milestone cites can
+  never ship, because nothing will ever mark it complete — the same failure the
+  orphaned-block rule prevents one level down.
 - **A milestone is a version's worth of work**, not a release-day checklist. If
   it has grown to where completing it is implausible, split it — two shipped
   minors beat one milestone that stays open for months.
 - When an audit reorders priorities, a finding severe enough to jump the queue
-  gets its own block.
+  gets its own block on the roadmap it belongs to.
 - **A roadmap block is a paragraph; a lane needs a file list.** When a block is
   ready to start, do not improvise its task breakdown here — that is
   `--ws-todo`'s, which owns `record.todo` and the format it needs.
 
-## State claims rot, and this file is read to set priorities
+## State claims rot, and these files are read to set priorities
 
-`record.roadmap` is read to set priorities, which makes a false claim in it
+Both records are read to set priorities, which makes a false claim in either
 unusually expensive: it does not just misinform, it redirects work. So "nothing
 does X" and any count go through
 [`record-contract.md`](../../workflow/record-contract.md#negative-claims) before
-they are written here, and a finding dispatched about this file gets the
+they are written here, and a finding dispatched about either file gets the
 re-verification in
 [`ownership.md`](../../workflow/ownership.md#the-inspector-writes-nothing) before
 it is acted on.

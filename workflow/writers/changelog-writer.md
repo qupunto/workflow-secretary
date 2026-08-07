@@ -11,8 +11,8 @@ authority if the two ever disagree.
 
 **Project facts come from `.claude/workflow.json`**: `record.changelog` is the
 file, falling back to `CHANGELOG.md` — say in one line that you used the
-fallback. `record.roadmap` is where a version number comes from when a caller
-does not supply one. A project that declares neither and has no `CHANGELOG.md`
+fallback. `record.releases` is where a version number comes from when a caller
+does not supply one; a roadmap never carries one. A project that declares neither and has no `CHANGELOG.md`
 has no changelog: say so and write nothing rather than creating one, because
 which projects keep a changelog is a decision, not a default.
 
@@ -89,8 +89,8 @@ that wanted a release would have run `--ws-release`.
 ## What this procedure does not do
 
 - **It does not decide the version.** The number comes from the caller, which
-  gets it from `record.roadmap` for a milestone or derives a patch. If a caller
-  supplies none and the roadmap names none, ask rather than deriving one.
+  gets it from `record.releases` for a milestone or derives a patch. If a caller
+  supplies none and the release list names none, ask rather than deriving one.
 - **It does not tag, commit or push.** Tags are `--ws-release`'s and nothing else
   in this workflow writes one. The caller commits under the caller's grant; this
   skill confers nothing, so dispatched from `--ws-check` it writes the file and

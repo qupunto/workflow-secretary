@@ -150,7 +150,7 @@ Everything answerable from the repo should already be answered by now.
   only for projects that will use `--ws-start`; skip it otherwise and say so.
 - **`lanes.named`** — only where the project is worked on from **several git
   worktrees at once**, or the user says it will be. One entry per lane with its
-  `scope` globs, and the three splittable records redirected to lane files for
+  `scope` globs, and the splittable records redirected to lane files, plus that lane's `transfer` queue for
   **all** lanes or none — the resolution rule and the all-or-none constraint
   are [`manifest.md`](../../workflow/manifest.md)'s. A single-worktree project
   never needs this; do not raise it unprompted.

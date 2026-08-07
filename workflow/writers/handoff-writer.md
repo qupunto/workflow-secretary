@@ -182,4 +182,4 @@ effort is not.
   `record.decisions` — those are `--ws-todo`/`--ws-log`'s, and a handoff that starts
   carrying reasoning is how the split collapses.
 - **It does not decide whether a milestone finished.** `--ws-wrap` reads
-  `record.roadmap` for that, and `--ws-plan` is what marks it.
+  `record.releases` for that, and `--ws-plan` is what marks it.

@@ -1,6 +1,6 @@
 ---
 name: ws-release
-description: "Cut a release — confirm the version, have the changelog written, tag, push. Needs a milestone `--ws-plan` marked completed, or a roadmap that has ended milestones. SHORTHAND: `--ws-release`. Always asks before pushing. Also on \"cut a release\", \"tag this version\". TAGS AND PUSHES — not to be inferred from \"ship it\", which is approval, not a request to publish."
+description: "Cut a release — confirm the version, have the changelog written, tag, push. Needs a completed milestone in `record.releases`, or a release list that has ended milestones. SHORTHAND: `--ws-release`. Always asks before pushing. Also on \"cut a release\", \"tag this version\". TAGS AND PUSHES — not to be inferred from \"ship it\", which is approval, not a request to publish."
 ---
 
 # Cutting a release
@@ -10,13 +10,21 @@ the tag itself is written by `git-writer`, the changelog by `changelog-writer`,
 and the milestone mark by `--ws-plan`. Who owns what is
 [`workflow/ownership.md`](../../workflow/ownership.md).
 
-**Project facts come from `.claude/workflow.json`**: `record.roadmap`,
+**Project facts come from `.claude/workflow.json`**: `record.releases`,
 `record.changelog`, `record.audits`, `branch.publish`, and `agents.release` —
 the agent that prepares the material. Without a manifest, fall back to
-`CHANGELOG.md`, `ROADMAP.md` and the current branch, and say so. Where a
-`.claude/lane` selector names a lane, `lanes.named.<lane>.records.todo`
+`CHANGELOG.md`, `RELEASES.md` and the current branch, and say so.
+
+**`record.releases` is the only planning record this skill reads, and that is
+load-bearing.** `record.roadmap` splits by lane and holds goals; it carries no
+version and no completion mark, so there is nothing in it for a release to act
+on — [`record-contract.md`](../../workflow/record-contract.md) holds that rule.
+A project may run any number of lane roadmaps and still have exactly one release
+checkpoint. Reading a roadmap here would undo that.
+
+Where a `.claude/lane` selector names a lane, `lanes.named.<lane>.records.todo`
 overrides `record.todo` — [`manifest.md`](../../workflow/manifest.md)'s
-resolution rule; the changelog and roadmap never split.
+resolution rule; the changelog and the release list never split.
 
 ## The `--ws-release` shorthand
 
@@ -28,9 +36,10 @@ authorization it confers, is in `shorthand-flags.sh` and
 ## 1. The precondition is a mark, not a word
 
 **While a project still has milestones ahead of it, a release requires one marked
-completed in `record.roadmap`.** That is `--ws-plan`'s to write: checkable by
+completed in `record.releases`.** That is `--ws-plan`'s to write: checkable by
 reading one file, and still true after a `/clear` — which a spoken approval is
-not.
+not. **One file, whatever the project's lane count** — a mark exists nowhere
+else, so there is never a second place to look or a second answer to reconcile.
 
 Four cases:
 
@@ -40,25 +49,28 @@ Four cases:
   another skill's record, and it skips the two disqualifier checks `--ws-plan` runs
   (an open blocking decision; unremediated high-severity audit findings).
 - **A patch on an already-tagged version** (§4) — no milestone needed.
-- **The roadmap has declared an end to milestones** — see below.
+- **The release list has declared an end to milestones** — see below.
 
-Never infer the milestone from recent commits.
+Never infer the milestone from recent commits, and never from a roadmap — a goal
+being met is not a milestone being complete, and the roadmap has no way to say
+otherwise.
 
 ### A project that has run out of milestones
 
-A roadmap may say, in its own words, that the planned work is done and what
-follows is maintenance on evidence rather than a next version. Once it does,
+The release list may say, in its own words, that the planned work is done and
+what follows is maintenance on evidence rather than a next version. Once it does,
 **every milestone in it is both completed and already tagged, permanently**, so
 "marked completed, no tag for it" can never be true again and the rule above
 would forbid every future release.
 
 That is not a reason to stop. It is a different gate:
 
-- **The roadmap must say so itself.** A section declaring the end of milestones,
-  written by `--ws-plan`. Not an empty next-up list, not an inference from the
-  last milestone being tagged — those are the ordinary state of a project between
-  blocks, and treating them as this case is how the mark gets skipped while
-  milestones are still owed.
+- **The release list must say so itself.** A section declaring the end of
+  milestones, written by `--ws-plan`. Not an empty next-up list, not an inference
+  from the last milestone being tagged, and **not an empty roadmap** — those are
+  the ordinary state of a project between blocks, and treating them as this case
+  is how the mark gets skipped while milestones are still owed. Goals keep being
+  set after milestones end, so a busy roadmap is no evidence either way.
 - **The evidence goes in the release, not in the reply.** What is being shipped
   and why now — an inbox entry, a defect, an owed publish, accumulated fixes to
   shipped files. `record.todo` is where an owed outward act is recorded, so it is
@@ -77,7 +89,7 @@ this is the last point at which that claim is cheap to test. It runs the
 project's mechanical checks, re-reads every record, docs page and tooling file at
 full scope, and dispatches what it finds to the owner of each file.
 
-Release drift is one of the dimensions it covers: what `record.roadmap` and
+Release drift is one of the dimensions it covers: what `record.releases` and
 `record.changelog` claim shipped, against what `git tag` actually resolves,
 locally and on the remote. Do not reimplement that comparison here — a second
 copy of a check is a second thing to keep true.
@@ -109,9 +121,11 @@ and ask.
 
 Hand the manifest's `agents.release` the milestone being released and have it
 return: the version bump it proposes and why, the changelog entry text, and any
-drift it found. It reads `record.roadmap`, `record.changelog`, `record.todo`,
-`record.audits` and the git history; letting it do that in its own context keeps
-several thousand tokens of history out of yours.
+drift it found. It reads `record.releases`, `record.changelog`, `record.todo`,
+`record.audits` and the git history — **plus the roadmaps the milestone's entry
+cites**, which is where the user-visible substance of the release actually is,
+and under lanes is several files rather than one. Letting it do that in its own
+context keeps several thousand tokens of history out of yours.
 
 Where a project declares no release agent, do the reading here and say that you
 did — it costs context, and the user should know why this turn was expensive.
@@ -125,11 +139,11 @@ Semantic versioning. Below `1.0.0` the leading zero is doing real work:
 **deployed** is not **stable**, and a pre-1.0 project may still change its data
 model or API incompatibly.
 
-- Completed milestone → **minor** (`0.1.0` → `0.2.0`). The roadmap already names
-  the version the milestone intended to ship as — **confirm that number rather
-  than deriving a new one**, and if you disagree with it, say so and ask.
+- Completed milestone → **minor** (`0.1.0` → `0.2.0`). `record.releases` already
+  names the version the milestone intended to ship as — **confirm that number
+  rather than deriving a new one**, and if you disagree with it, say so and ask.
 - Fix or small adjustment on an already-tagged version → **patch**. No milestone
-  needed; this is the one release that does not come from the roadmap.
+  needed; this is the one release that does not come from the release list.
 - `1.0.0` is an explicit decision by the user, never inertia.
 
 Unsure? Ask. A wrong version number is permanent in a way a wrong commit
@@ -151,8 +165,9 @@ when the manifest trails the newest tag.
 is one line and the agent already drafted it. Then have `git-writer` commit it —
 the history is its record, and this skill does not write one by hand.
 
-`record.roadmap` already marks the milestone completed — that was the
-precondition, and it is `--ws-plan`'s file. Do not edit it here either.
+`record.releases` already marks the milestone completed — that was the
+precondition, and it is `--ws-plan`'s file. Do not edit it here either, and do
+not touch a roadmap: a goal met is that record's business, not a release's.
 
 Then **stop and show the user exactly what is about to go out**: the commits,
 the tag name, and the branch. Wait for an explicit OK **in that turn** — not one
@@ -173,7 +188,7 @@ confirmation; that skill performs the act.
 ## 7. Close out
 
 Say what shipped, at which tag, and what the next milestone is per
-`record.roadmap`. If the release surfaced anything unresolved — drift you
+`record.releases`. If the release surfaced anything unresolved — drift you
 corrected, a milestone that wasn't as complete as its mark claimed — say so
 here.
 

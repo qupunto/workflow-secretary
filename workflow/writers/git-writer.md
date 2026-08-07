@@ -161,5 +161,15 @@ fetched it, deleting it locally changes nothing.
   `branch.mergeMethod` and only once `ws-pr` has the user's OK in that turn —
   [`ownership.md`](../ownership.md)'s `merge` row is the authority,
   and it is the reason a merge commit has an owner at all.
+
+  **A lane landing on `branch.integration` is the second thing that looks like a
+  merge and is not one.** `--ws-wrap` hands it
+  `git push origin <worktree-branch>:<branch.integration>` — **never with a
+  leading `+`** — so it resolves as a fast-forward or is refused by the remote.
+  No working tree is touched, no merge commit is written, `branch.mergeMethod`
+  has nothing to choose, and there is no partial state to unwind. **A refusal is
+  handed back, never forced and never resolved here**, which is the ordinary
+  rejected-push rule and not a special case: the divergence it reports is a
+  merge decision, and the caller is a session that is about to be cleared.
 - **It does not clean the tree.** No `git stash`, no `git checkout --` over
   someone's changes, no deleting untracked files.

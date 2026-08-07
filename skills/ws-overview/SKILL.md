@@ -27,7 +27,11 @@ The probe is read-only and offline. It resolves `.claude/workflow.json`
 itself — conventional fallbacks, the `.claude/lane` selector, `lanes.named`
 overrides, all per [`manifest.md`](../../workflow/manifest.md) — counts every
 record, runs `doctor.sh`, computes each sweep baseline's distance from HEAD,
-and locates the roadmap's first heading not marked completed. **Quote its
+locates the roadmap's first goal with open blocks, and locates the release
+list's first milestone not marked completed. **The roadmap is lane-resolved
+and the release list never is** — one release checkpoint per project, however
+many lanes it runs, per
+[`record-contract.md`](../../workflow/record-contract.md). **Quote its
 block rather than re-rendering it**: paste the probe's output as the report,
 then append the judgment lines below — one line each. Every number
 was read at this invocation: never carried forward from a handoff card,
@@ -48,10 +52,16 @@ The probe stops where mechanics stop. On top of its output:
   — mind its read-after-write rule — or reported *not checked* when `gh`,
   the network, or the provider is unreachable. Never dropped: an absent line
   reads as clean.
-- **Interpret the roadmap position.** The probe names the first `## ` heading
-  not marked *completed*; say whether that is a real milestone or a
-  maintenance coda, and where versions name the milestones, which is the
-  nearest minor and which the nearest major.
+- **Interpret both positions, and keep them apart.** The roadmap's is *what
+  this area is working toward* — in a lane worktree, that lane's, and say
+  which lane. The release list's is *what ships next*: name the first
+  milestone not marked completed, whether it is a real milestone or a
+  maintenance coda, and which of its versions is the nearest minor and which
+  the nearest major. **A goal being met is not a milestone being complete**,
+  and nothing derives one from the other.
+- **Say when the probe warns that a roadmap heading carries a version or a
+  completion mark.** That is a release checkpoint in the wrong file — under
+  lanes, one worktree's — and it goes to `--ws-plan`.
 - **Keep the probe's distinct states distinct.** "Undeclared", "missing" and
   "0 open" are three different facts — "no backlog is declared" and "the
   backlog is empty" must never render as the same bare `0`.

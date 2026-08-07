@@ -1162,6 +1162,49 @@ OWNFIX
   says "$cadblind" "no cadence table found in README.md" \
     "a table the parser cannot find is a FAILURE, not a silent agreement"
 
+  # The catalog's method table and workflow/checks/README.md's are the same rows
+  # written twice. Unlike the cadence pair EVERY column must agree — those two
+  # address different readers, these two address the same one — so the fixture
+  # drifts a description rather than a row. What stays free to differ is the
+  # link target, the files sitting at different depths, so the two sides here
+  # carry deliberately different hrefs: an agreeing verdict then proves the
+  # normalisation rather than merely proving the fixture is a copy of itself.
+  mtfix() { # dir, catalog-finds, readme-finds — one row differs, one always agrees
+    docfix "$1"
+    mkdir -p "$1/.claude" "$1/workflow/checks"
+    printf '# record-drift\n' > "$1/workflow/checks/record-drift.md"
+    printf '# docs-audit\n'   > "$1/workflow/checks/docs-audit.md"
+    { printf '# Tooling\n\n## The shared check methods\n\n'
+      printf '| Method | What it finds | Run by |\n|---|---|---|\n'
+      printf '| [`record-drift.md`](../workflow/checks/record-drift.md) | %s | `--alpha` |\n' "$2"
+      printf '| [`docs-audit.md`](../workflow/checks/docs-audit.md) | a docs site | `--beta` |\n'
+    } > "$1/.claude/TOOLING.md"
+    { printf '# The checks\n\n## Method and runner\n\n'
+      printf '| Method | What it finds | Run by |\n|---|---|---|\n'
+      printf '| [`record-drift.md`](record-drift.md) | %s | `--alpha` |\n' "$3"
+      printf '| [`docs-audit.md`](docs-audit.md) | a docs site | `--beta` |\n'
+    } > "$1/workflow/checks/README.md"
+    docommit "$1"
+  }
+  mtok="$TMP/doc-methods-agree"
+  mtfix "$mtok" "the classes of drift" "the classes of drift"
+  printf '%s' "$(doc "$mtok")" | grep -q "both check-method tables carry the same rows (2 checked)" \
+    && ok "the method comparison agrees across two different link targets" \
+    || bad "method comparison reached no verdict, or the differing hrefs broke it"
+  mtdrift="$TMP/doc-methods-drift"
+  mtfix "$mtdrift" "the classes of drift" "the classes of drift in a record"
+  says "$mtdrift" "the two check-method tables disagree" \
+    "a description worded differently in the two method tables is a FAILURE"
+  printf '%s' "$(doc "$mtdrift")" | grep -q "Differing rows in .claude/TOOLING.md: record-drift.md" \
+    && ok "the method failure names the row that drifted, not just that one did" \
+    || bad "method failure did not name record-drift.md as the drifting row"
+  mtblind="$TMP/doc-methods-unreadable"
+  mtfix "$mtblind" "the classes of drift" "the classes of drift"
+  edit_ "$mtblind/workflow/checks/README.md" 's/^| Method | What it finds | Run by |$/| Check | What it finds | Run by |/'
+  docommit "$mtblind"
+  says "$mtblind" "no check-method table found in workflow/checks/README.md" \
+    "a method table the parser cannot find is a FAILURE, not a silent agreement"
+
   # --strict's entire job is an exit code, so nothing but an exit code tests it.
   # Both directions: a clean run must stay 0 under it, or it is just `exit 1`.
   doc "$clean" --bogus >/dev/null 2>&1
@@ -1351,6 +1394,374 @@ OWNFIX
     || bad "a leading plugin version warned or failed"
 
 fi
+
+# ------------------------------------------------------- the transfer queue
+
+head_ "ws-lanes-records-synch is reachable only by slash"
+
+# No flag, no wrapper, and both are design constraints rather than omissions:
+# the run is expensive and it writes into every lane's inbox, so it must never
+# fire from a phrase in a sentence or from another skill's dispatch. A flag
+# added later would remove that property silently — nothing else would fail.
+synch="$_root/skills/ws-lanes-records-synch/SKILL.md"
+[ -f "$synch" ] && ok "the skill exists" || bad "skills/ws-lanes-records-synch/SKILL.md is missing"
+case " $FLAGS " in
+  *lanes-records-synch*)
+    bad "ws-lanes-records-synch has a FLAGS entry — it is slash-only by design" ;;
+  *) ok "no flag serves it" ;;
+esac
+if [ -e "$_root/commands/ws-lanes-records-synch.md" ]; then
+  bad "a commands/ wrapper exists for it — a wrapper must fire a flag, and it has none"
+else
+  ok "no commands/ wrapper for it"
+fi
+# The main-checkout precondition is the one that makes its findings trustworthy:
+# from a lane it would read siblings as the integration branch last delivered
+# them and report a partial picture as a complete one.
+grep -q 'main checkout, never a lane worktree' "$synch" \
+  && ok "it states the main-checkout precondition" \
+  || bad "the main-checkout precondition is gone — a lane run would report a stale picture as complete"
+
+# The four rulings, and the asymmetry that is the only reason two of them are
+# separate answers. Defer and Decline both file nothing; if Decline stops being
+# written down they collapse, every run re-litigates every rejection, and the
+# gate degrades into a prompt the user clears unread — which costs the
+# approvals that actually matter.
+for r in 'Accept as critical' 'Accept' 'Defer' 'Decline'; do
+  grep -q "\*\*$r\*\*" "$synch" \
+    && ok "the '$r' ruling is offered" \
+    || bad "the '$r' ruling is gone from the gate"
+done
+grep -q 'record.decisionsIndex' "$synch" \
+  && ok "a previous run's declines are read back, so they are not re-asked" \
+  || bad "the decline lookup is gone — the skill is stateless and re-litigates every rejection"
+grep -qi 'remembered nowhere' "$synch" \
+  && ok "a deferral is deliberately not remembered" \
+  || bad "the defer semantics are gone — if a deferral is remembered it is just a decline"
+
+head_ "A lane's transfer queue is a sibling of records, not one of them"
+
+# The queue is how a lane files work into another lane WITHOUT writing its
+# records, which is what keeps one-writer-per-record intact. Every assertion
+# here defends that: put it under `records` and it becomes a record with many
+# writers; declare it for some lanes only and the rest get their requests
+# written by hand into their records instead, which is the second writer the
+# queue exists to prevent.
+tq="$TMP/transfer-queue"
+drun_tq() { (cd "$tq" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" \
+                bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); }
+rm -rf "$tq"; mkdir -p "$tq/.claude" "$tq/docs/transfer"
+printf '# Backlog\n' > "$tq/TODO.md"
+printf '# Backlog\n' > "$tq/TODO.design.md"
+printf '# Backlog\n' > "$tq/TODO.data.md"
+printf '# Transfer queue\n' > "$tq/docs/transfer/design.md"
+printf '# Transfer queue\n' > "$tq/docs/transfer/data.md"
+
+lanes_json() { # $1 = design's extra keys, $2 = data's extra keys
+  cat > "$tq/.claude/workflow.json" <<JSON
+{ "manifest": "workflow/v1",
+  "record": { "todo": "TODO.md" },
+  "lanes": { "named": {
+    "design": { "scope": ["d/**"], "records": { "todo": "TODO.design.md" }$1 },
+    "data":   { "scope": ["t/**"], "records": { "todo": "TODO.data.md" }$2 } } } }
+JSON
+}
+
+# Declared for every lane: the ordinary case.
+lanes_json ', "transfer": "docs/transfer/design.md"' ', "transfer": "docs/transfer/data.md"'
+out=$(drun_tq)
+case $out in
+  *"every lane declares a transfer queue and its path exists"*)
+    ok "a queue per lane, each path resolving, passes" ;;
+  *) bad "a correctly declared pair of queues did not pass: $(printf '%s' "$out" | grep -i transfer)" ;;
+esac
+
+# Declared for one lane only. The other lane is one nothing can file to.
+lanes_json ', "transfer": "docs/transfer/design.md"' ''
+out=$(drun_tq)
+case $out in
+  *"transfer queue is declared for 1 of 2 lanes"*)
+    ok "a half-declared queue is a FAILURE, like a half-split record" ;;
+  *) bad "a queue declared for one lane of two passed — the other lane's requests land in its records by hand" ;;
+esac
+
+# Declared, but the file is not there. An absent queue is not an empty one.
+lanes_json ', "transfer": "docs/transfer/design.md"' ', "transfer": "docs/transfer/gone.md"'
+out=$(drun_tq)
+case $out in
+  *"lanes.named.data.transfer is missing"*)
+    ok "a declared queue whose file is absent is a FAILURE" ;;
+  *) bad "a missing queue path passed — a sibling appending to it creates a file nothing reads" ;;
+esac
+
+# Inside `records` rather than beside it. This is the mistake the nesting
+# exists to make impossible, so it gets its own message rather than the
+# generic not-a-splittable-record one.
+cat > "$tq/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "todo": "TODO.md" },
+  "lanes": { "named": {
+    "design": { "scope": ["d/**"],
+      "records": { "todo": "TODO.design.md", "transfer": "docs/transfer/design.md" } },
+    "data": { "scope": ["t/**"], "records": { "todo": "TODO.data.md" } } } } }
+JSON
+out=$(drun_tq)
+case $out in
+  *"the transfer queue is a"*"SIBLING of records"*)
+    ok "transfer under records is refused, and says where it belongs" ;;
+  *) bad "transfer was accepted under records — a record with many writers" ;;
+esac
+
+# No queues at all is legal: an unsplit-in-practice project, or one whose lanes
+# genuinely never file to each other. It must not read as a failure.
+lanes_json '' ''
+out=$(drun_tq)
+case $out in
+  *"no transfer queues declared"*)
+    ok "declaring no queues at all is reported, not failed" ;;
+  *) bad "a project with no queues was failed or went unmentioned" ;;
+esac
+
+# --- the conflict inbox: ONE per project, not one per lane ------------------
+# A contradiction between two lanes belongs to neither, so it is a sibling of
+# `named` rather than a key inside a lane. ws-lanes-records-synch is its only
+# consumer, which is what makes a declared-but-absent path the dangerous case:
+# a session appends and creates a file nothing was told to read.
+printf '# Conflict inbox\n' > "$tq/docs/conflicts.md"
+cat > "$tq/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "todo": "TODO.md" },
+  "lanes": { "named": { "design": { "scope": ["d/**"], "records": {} },
+                        "data":   { "scope": ["t/**"], "records": {} } },
+             "conflicts": "docs/conflicts.md" } }
+JSON
+out=$(drun_tq)
+case $out in
+  *"conflict inbox declared and present"*)
+    ok "a declared conflict inbox that exists passes" ;;
+  *) bad "a valid lanes.conflicts did not pass: $(printf '%s' "$out" | grep -i conflict)" ;;
+esac
+case $out in
+  *"'conflicts' is not a splittable record"*|*"manifest.md does not document"*)
+    bad "lanes.conflicts reads as an unknown key — declaring it is dead config" ;;
+  *) ok "lanes.conflicts is a known manifest key" ;;
+esac
+
+cat > "$tq/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "todo": "TODO.md" },
+  "lanes": { "named": { "design": { "scope": ["d/**"], "records": {} },
+                        "data":   { "scope": ["t/**"], "records": {} } },
+             "conflicts": "docs/gone.md" } }
+JSON
+out=$(drun_tq)
+case $out in
+  *"lanes.conflicts is missing"*)
+    ok "a declared inbox whose file is absent is a FAILURE" ;;
+  *) bad "a missing lanes.conflicts passed — a filed contradiction would go nowhere" ;;
+esac
+
+# Declared with no lanes at all: nothing can write it and the skill refuses to
+# run, so it is dead config rather than a fault.
+cat > "$tq/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "todo": "TODO.md" },
+  "lanes": { "conflicts": "docs/conflicts.md" } }
+JSON
+out=$(drun_tq)
+case $out in
+  *"lanes.conflicts is declared but no lanes are named"*)
+    ok "an inbox with no lanes is warned about as dead config" ;;
+  *) bad "lanes.conflicts with no lanes passed silently" ;;
+esac
+
+# The skill must state that a filed entry is re-verified rather than acted on,
+# and must report both halves of what it did with the inbox. Drop either and the
+# gate becomes a rubber stamp on evidence from a session that is long gone.
+grep -q 'a claim, not a conflict' "$synch" \
+  && ok "the inbox's entries are claims to be re-verified" \
+  || bad "the re-verification rule is gone — synch would act on unchecked reports"
+grep -q 'deleted as not reproducing' "$synch" \
+  && ok "the report covers deletions, not only promotions" \
+  || bad "the report no longer names what was deleted — a rubber stamp reads identically"
+
+# ------------------------------------------------- a lane lands on integration
+
+head_ "A lane wrap fast-forwards onto the integration branch, or is refused"
+
+# --ws-wrap in a lane worktree pushes the lane's branch and then lands it on
+# branch.integration. The whole safety argument is that this is NOT a merge:
+# a refspec push with no leading `+` fast-forwards or the remote refuses it, so
+# a wrap can never hit a conflict at the one moment its context is being
+# cleared. Two things are pinned here — that git really behaves that way, since
+# the design has no conflict handling BECAUSE of it, and that the hook block
+# still says so, since "simplify" on that line means a force push.
+
+out=$(run --ws-wrap)
+case $out in
+  *'NO leading `+`'*) ok "the wrap block spells out the no-force refspec" ;;
+  *) bad "the --ws-wrap block lost the no-leading-plus rule — a lane landing could become a force push" ;;
+esac
+case $out in
+  *"session is ending rather than because the work was approved"*)
+    ok "the wrap block withholds the landing on an unfinished-work wrap" ;;
+  *) bad "the unfinished-work guard is gone — half-done work would land on the branch every lane syncs from" ;;
+esac
+
+# The mechanism itself, against a real remote. If this ever stopped holding,
+# every "report and stop" above would be silently wrong.
+ff="$TMP/lane-ff"
+rm -rf "$ff"; mkdir -p "$ff"
+git init -q --bare "$ff/origin.git" 2>/dev/null
+git init -q "$ff/w" 2>/dev/null
+git -C "$ff/w" config user.email t@test; git -C "$ff/w" config user.name t
+git -C "$ff/w" config commit.gpgsign false
+git -C "$ff/w" remote add origin "$ff/origin.git"
+printf 'base\n' > "$ff/w/f.txt"
+git -C "$ff/w" add -A >/dev/null 2>&1
+git -C "$ff/w" commit -q -m base >/dev/null 2>&1
+git -C "$ff/w" push -q origin HEAD:refs/heads/dev >/dev/null 2>&1
+
+# A lane branched from dev, one commit ahead: the ordinary case, and it lands.
+git -C "$ff/w" checkout -q -b lane 2>/dev/null
+printf 'lane\n' >> "$ff/w/f.txt"
+git -C "$ff/w" commit -qam lane >/dev/null 2>&1
+if git -C "$ff/w" push -q origin lane:dev >/dev/null 2>&1; then
+  ok "a lane ahead of integration fast-forwards onto it"
+else
+  bad "a fast-forwardable lane was refused — the ordinary case does not work"
+fi
+
+# dev moves underneath, as another lane landing would move it. The lane is now
+# divergent, and the push must be REFUSED rather than merged or forced.
+git -C "$ff/w" checkout -q -B other origin/dev 2>/dev/null
+printf 'other\n' > "$ff/w/g.txt"
+git -C "$ff/w" add -A >/dev/null 2>&1
+git -C "$ff/w" commit -q -m other >/dev/null 2>&1
+git -C "$ff/w" push -q origin other:dev >/dev/null 2>&1
+git -C "$ff/w" checkout -q lane 2>/dev/null
+printf 'more\n' >> "$ff/w/f.txt"
+git -C "$ff/w" commit -qam more >/dev/null 2>&1
+if git -C "$ff/w" push -q origin lane:dev >/dev/null 2>&1; then
+  bad "a DIVERGED lane was accepted onto integration — the refusal this design rests on did not happen"
+else
+  ok "a diverged lane is refused, not merged: nothing to conflict, nothing to unwind"
+fi
+# And the refusal left integration exactly where the other lane put it.
+git -C "$ff/w" fetch -q origin >/dev/null 2>&1
+[ "$(git -C "$ff/w" rev-parse origin/dev)" = "$(git -C "$ff/w" rev-parse other)" ] \
+  && ok "the refused push moved nothing on the integration branch" \
+  || bad "a refused push still moved branch.integration"
+
+# ------------------------------------------------------- roadmap vs releases
+
+head_ "Goals split by lane; the release list never does"
+
+# record.roadmap holds goals and may split per lane. record.releases holds the
+# milestones, their versions and their marks, never splits, and is the only
+# planning record --ws-release reads. The prohibition below is the ONLY thing
+# keeping a release checkpoint singular once roadmaps split — a version or a
+# mark in a lane's roadmap is a checkpoint one worktree cut for the whole
+# project, and nothing downstream would ever notice it.
+rvp="$TMP/roadmap-releases"
+drun_rvp() { (cd "$rvp" && CLAUDE_CONFIG_DIR="$TMP/bare" CLAUDE_DIR="$TMP/bare" \
+                bash "$DOCTOR" 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); }
+rm -rf "$rvp"; mkdir -p "$rvp/.claude"
+printf '# Roadmap\n\n## A goal\n\n- [ ] **A block.**\n' > "$rvp/ROADMAP.md"
+printf '# Release list\n\n## `0.1.0` — first — *completed*\n' > "$rvp/RELEASES.md"
+printf '# Roadmap\n\n## Backend goal\n' > "$rvp/ROADMAP.backend.md"
+printf '# Backlog\n' > "$rvp/TODO.md"
+printf '# Backlog\n' > "$rvp/TODO.backend.md"
+
+# 1. record.releases is a key the doctor knows. An unknown key is dead config.
+cat > "$rvp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "roadmap": "ROADMAP.md", "releases": "RELEASES.md" } }
+JSON
+out=$(drun_rvp)
+case $out in
+  *"record.releases"*"nothing reads"*|*"unknown"*"record.releases"*)
+    bad "record.releases reads as an unknown manifest key — declaring it is dead config" ;;
+  *) ok "record.releases is a known manifest key" ;;
+esac
+
+# 2. roadmap may be redirected per lane — it is the fourth splittable record.
+cat > "$rvp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "roadmap": "ROADMAP.md", "releases": "RELEASES.md", "todo": "TODO.md" },
+  "lanes": { "named": { "backend": { "scope": ["b/**"],
+    "records": { "roadmap": "ROADMAP.backend.md", "todo": "TODO.backend.md" } } } } }
+JSON
+out=$(drun_rvp)
+case $out in
+  *"'roadmap' is not a splittable record"*)
+    bad "a lane roadmap was refused — goals are exactly what splits by lane" ;;
+  *) ok "roadmap may be redirected under a lane's records" ;;
+esac
+
+# 3. releases may NOT. This is the rule the whole split rests on.
+cat > "$rvp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "roadmap": "ROADMAP.md", "releases": "RELEASES.md" },
+  "lanes": { "named": { "backend": { "scope": ["b/**"],
+    "records": { "roadmap": "ROADMAP.backend.md", "releases": "RELEASES.backend.md" } } } } }
+JSON
+out=$(drun_rvp)
+case $out in
+  *"the release list never"*"splits"*)
+    ok "a per-lane release list is refused, and says why" ;;
+  *) bad "lanes.named.<lane>.records.releases was accepted — N lanes, N release checkpoints" ;;
+esac
+
+# 4. A version or a completion mark in ANY roadmap heading fails — lane or not.
+#    Heading-anchored: prose may mention a version, a heading may not.
+cat > "$rvp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "roadmap": "ROADMAP.md", "releases": "RELEASES.md" } }
+JSON
+printf '# Roadmap\n\n## A goal — *completed*\n\n- [ ] **A block.**\n' > "$rvp/ROADMAP.md"
+out=$(drun_rvp)
+case $out in
+  *"carries a version number or a completion mark in a heading"*)
+    ok "a completion mark in a roadmap heading FAILS the doctor" ;;
+  *) bad "a roadmap heading carrying *completed* passed — that is a release checkpoint in the wrong file" ;;
+esac
+
+printf '# Roadmap\n\n## `0.7.0` — a goal\n\n- [ ] **A block.**\n' > "$rvp/ROADMAP.md"
+out=$(drun_rvp)
+case $out in
+  *"carries a version number or a completion mark in a heading"*)
+    ok "a version number in a roadmap heading FAILS the doctor" ;;
+  *) bad "a roadmap heading carrying a version passed" ;;
+esac
+
+# The lane's copy is held to the same rule, and it is the one that matters most.
+cat > "$rvp/.claude/workflow.json" <<'JSON'
+{ "manifest": "workflow/v1",
+  "record": { "roadmap": "ROADMAP.md", "releases": "RELEASES.md", "todo": "TODO.md" },
+  "lanes": { "named": { "backend": { "scope": ["b/**"],
+    "records": { "roadmap": "ROADMAP.backend.md", "todo": "TODO.backend.md" } } } } }
+JSON
+printf '# Roadmap\n\n## A goal\n\n- [ ] **A block.**\n' > "$rvp/ROADMAP.md"
+printf '# Roadmap\n\n## Backend goal — *completed*\n' > "$rvp/ROADMAP.backend.md"
+out=$(drun_rvp)
+case $out in
+  *"ROADMAP.backend.md carries a version number or a completion mark"*)
+    ok "a LANE roadmap is held to the rule too — the case the split exists for" ;;
+  *) bad "a mark in a lane roadmap passed: one worktree cutting a checkpoint for the whole project" ;;
+esac
+
+# Prose is not a heading. A block may say a thing ships in 2.x without that
+# being a milestone, and a check that cannot tell them apart gets switched off.
+printf '# Roadmap\n\n## A goal\n\nBlocked until the rewrite ships in 2.1.0.\n\n- [ ] **A block.**\n' \
+  > "$rvp/ROADMAP.md"
+printf '# Roadmap\n\n## Backend goal\n' > "$rvp/ROADMAP.backend.md"
+out=$(drun_rvp)
+case $out in
+  *"carries a version number or a completion mark in a heading"*)
+    bad "a version mentioned in ordinary prose was reported — the check is heading-anchored" ;;
+  *) ok "a version in prose is not a finding" ;;
+esac
 
 # -------------------------------------------------------------------- result
 
@@ -1790,12 +2201,25 @@ else
   # And it must still do its job, or the guards above are satisfied by a script
   # that refuses everything.
   mkdir -p "$rr/ok/.claude"
-  printf '{"record":{"todo":"TODO.md"}}\n' > "$rr/ok/.claude/workflow.json"
+  printf '{"record":{"todo":"TODO.md","roadmap":"ROADMAP.md","releases":"RELEASES.md"}}\n' \
+    > "$rr/ok/.claude/workflow.json"
   printf '# Backlog\n\nsomeone else content\n' > "$rr/ok/TODO.md"
+  # The top-level records are enumerated here rather than derived, so a record
+  # added to the contract and forgotten in this list ships someone's goals and
+  # unreleased plans into the assembled tree — silently, since nothing else
+  # reads the list against the manifest.
+  printf '# Roadmap\n\nsomeone else goals\n' > "$rr/ok/ROADMAP.md"
+  printf '# Release list\n\nsomeone else milestones\n' > "$rr/ok/RELEASES.md"
   bash "$RR" --write --dir "$rr/ok" >/dev/null 2>&1
   [ "$(cat "$rr/ok/TODO.md")" = "# Backlog" ] \
     && ok "a record inside the project is still blanked to its heading" \
     || bad "reset-records.sh refused a legitimate record"
+  [ "$(cat "$rr/ok/ROADMAP.md")" = "# Roadmap" ] \
+    && ok "record.roadmap is blanked" \
+    || bad "reset-records.sh left ROADMAP.md carrying content"
+  [ "$(cat "$rr/ok/RELEASES.md")" = "# Release list" ] \
+    && ok "record.releases is blanked — it is in the enumerated list" \
+    || bad "reset-records.sh left RELEASES.md carrying content: a new record missing from RECORDS"
 
   # Dry run is the default, and a default that writes is a footgun.
   printf '# Backlog\n\nstill here\n' > "$rr/ok/TODO.md"
@@ -1849,9 +2273,11 @@ else
   lp=$(mktemp -d); mkdir -p "$lp/proj/.claude" "$lp/proj/docs"
   printf '{"record":{"todo":"TODO.md","handoff":"CLAUDE.md"},
            "lanes":{"named":{"backend":{"records":{
-             "todo":"TODO.backend.md","handoff":"docs/handoff.backend.md"}}}}}\n' \
+             "todo":"TODO.backend.md","handoff":"docs/handoff.backend.md"},
+             "transfer":"docs/transfer.backend.md"}}}}\n' \
     > "$lp/proj/.claude/workflow.json"
-  for f in TODO.md CLAUDE.md TODO.backend.md docs/handoff.backend.md docs/HAZARDS.md; do
+  for f in TODO.md CLAUDE.md TODO.backend.md docs/handoff.backend.md docs/HAZARDS.md \
+           docs/transfer.backend.md; do
     printf 'PRIVATE\n' > "$lp/proj/$f"
   done
   bash "$RR" --write --dir "$lp/proj" >/dev/null 2>&1
@@ -1865,6 +2291,14 @@ else
   grep -q 'PRIVATE' "$lp/proj/CLAUDE.md" \
     && ok "a CLAUDE.md handoff is kept — it also holds standing instructions" \
     || bad "reset-records.sh blanked a CLAUDE.md handoff (pass 10 F5)"
+  # A transfer queue is declared BESIDE records rather than inside them, so it
+  # is reached by its own arm of the lane walk and would be missed by a reader
+  # that only descends into `.records`. An inherited queue is worse than an
+  # inherited record: the adopter's first --ws-start drains it silently into
+  # their own backlog.
+  [ "$(cat "$lp/proj/docs/transfer.backend.md")" = "# Transfer queue" ] \
+    && ok "a lane transfer queue is blanked too" \
+    || bad "reset-records.sh shipped a lane's transfer queue with its content"
 fi
 
 head_ "export-records.sh moves only what a clone would not bring"
@@ -2324,10 +2758,13 @@ else
   git init -q "$pman" 2>/dev/null
   git -C "$pman" config user.email t@test; git -C "$pman" config user.name t
   git -C "$pman" config commit.gpgsign false
-  printf '{"record":{"todo":"BACKLOG.md","roadmap":"PLAN.md"},"sweeps":".claude/sweeps.json"}\n' \
+  printf '{"record":{"todo":"BACKLOG.md","roadmap":"PLAN.md","releases":"SHIP.md"},"sweeps":".claude/sweeps.json"}\n' \
     > "$pman/.claude/workflow.json"
   printf '# Backlog\n\n- [ ] **One.**\n' > "$pman/BACKLOG.md"
   printf '# Roadmap\n\n## M1 — first\n\n- [ ] **Block A.**\n\n## M2 — second\n' > "$pman/PLAN.md"
+  # The release list is a separate record and is never lane-resolved.
+  printf '# Release list\n\n## `0.1.0` — shipped it — *completed*\n\n## `0.2.0` — next\n' \
+    > "$pman/SHIP.md"
   git -C "$pman" add -A >/dev/null 2>&1
   git -C "$pman" commit -q -m records >/dev/null 2>&1
   base=$(git -C "$pman" rev-parse HEAD)
@@ -2352,11 +2789,31 @@ else
       ok "a sweep entry reports baseline, stamp and distance" ;;
     *) bad "the sweeps block lost baseline/at/distance: $(printf '%s' "$out" | grep stocktake)" ;;
   esac
+  # Goals and milestones are two records and two questions. The roadmap knows
+  # nothing about completion marks — its position is the first goal that still
+  # has open blocks — and the release list is where a mark is read from.
   case $out in
-    *"current (first not marked completed): M1 — first"*)
-      ok "the roadmap block names the current milestone" ;;
+    *"current (first goal with open blocks): M1 — first"*)
+      ok "the roadmap block names the current goal" ;;
     *) bad "the roadmap position line is gone" ;;
   esac
+  case $out in
+    *'current (first not marked completed): `0.2.0` — next'*)
+      ok "the releases block names the current milestone" ;;
+    *) bad "the release-list position line is gone: $(printf '%s' "$out" | grep -A4 '== releases ==')" ;;
+  esac
+
+  # A version or a completion mark in a ROADMAP heading is a release checkpoint
+  # in the wrong file — under lanes, one worktree's. The probe warns; doctor.sh
+  # fails. Both matter: the probe is what a session sees without asking.
+  printf '# Roadmap\n\n## M1 — first — *completed*\n\n- [ ] **Block A.**\n' > "$pman/PLAN.md"
+  out=$(prun "$pman")
+  case $out in
+    *"a heading here carries a version or a completion mark"*)
+      ok "a completion mark in a roadmap heading is warned about" ;;
+    *) bad "a roadmap heading carrying a mark passed silently" ;;
+  esac
+  printf '# Roadmap\n\n## M1 — first\n\n- [ ] **Block A.**\n\n## M2 — second\n' > "$pman/PLAN.md"
 
   # A baseline git cannot resolve is a sweep owed in full, not a crash and not
   # a silent skip.

@@ -102,6 +102,7 @@
 # one is a record nobody notices is untracked.
 !TODO.md
 !ROADMAP.md
+!RELEASES.md
 !CHANGELOG.md
 # Assembles and gates the public tree. Tracked here and deliberately NOT on the
 # list of what it copies — it is about producing that repository, so it is

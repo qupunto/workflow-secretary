@@ -90,7 +90,9 @@ candidates() {
             elif type == "array" then .[]
             else empty end),
         (.record.tooling // {} | .catalog // empty),
-        (.lanes.named // {} | .[]? | (.records // {}) | .[]?)
+        (.lanes.named // {} | .[]? | (.records // {}) | .[]?),
+        (.lanes.named // {} | .[]? | .transfer // empty),
+        (.lanes.conflicts // empty)
       ] | .[] | select(type == "string")' "$MANIFEST" 2>/dev/null
   fi
   echo ".claude/lane"

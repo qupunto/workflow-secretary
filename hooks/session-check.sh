@@ -141,7 +141,7 @@ manifest="$PWD/.claude/workflow.json"
 
 # A worktree of a lane-split project carries `.claude/lane` (gitignored), and
 # `lanes.named.<lane>.records.X` in the manifest then overrides `record.X` for
-# the three splittable records — workflow/manifest.md states the rule once.
+# the splittable records — workflow/manifest.md states the rule once.
 # Read the selector here so every record read below resolves the same way:
 # nudging a lane worktree about the unsplit files would miss the lane's own
 # pending decisions, and the handoff injection must serve the lane's card.

@@ -20,7 +20,7 @@ Delegation is a lookup, not a judgement —
 | `record.reference` | `reference-writer` |
 | `record.todo` (a file, or a provider — see below), `record.openDecisions`, `record.decisions` | `--ws-todo` / `--ws-log` |
 | `record.decisionsIndex` — a stale generated index, per check 4 | `--ws-todo` / `--ws-log`, which owns `commands.indexRegen` |
-| `record.roadmap` | `--ws-plan` |
+| `record.roadmap` — every lane's copy — and `record.releases` | `--ws-plan` |
 | `record.audits` | `audit-writer` |
 | `record.changelog` | `changelog-writer` |
 | `record.tooling.catalog`, `record.tooling.sources` | `--ws-tools` |
@@ -32,7 +32,7 @@ whole procedure would have to run.**
 
 Resolve the paths through the lane selector first: where `.claude/lane` names a
 lane, `lanes.named.<lane>.records.X` overrides `record.X` for `todo`,
-`openDecisions` and `handoff` — [`manifest.md`](../../workflow/manifest.md)'s
+`openDecisions`, `handoff` and `roadmap` — [`manifest.md`](../../workflow/manifest.md)'s
 resolution rule. A finding in a lane file dispatches to the same owner the
 unsplit record has; the lane changes the path, never the writer.
 
@@ -94,6 +94,7 @@ what is specific here is what voids a narrowing:
 | routes, services, domain logic | `record.behaviour` |
 | container, deployment or proxy config, operational scripts, a stated convention | `record.reference` |
 | block scope, order or dependencies | `record.roadmap` |
+| a milestone's scope, its intended version, or which goals it comprises | `record.releases` |
 
 **Check 1 is never incremental.** A negative claim — "nothing does X" — is
 falsified by a file *added anywhere*, including in a directory no previous run

@@ -1280,6 +1280,80 @@ else
   pass "no cadence table pair to compare"
 fi
 
+# ---------------------------------------------- the check-method table, twice
+
+head_ "Check-method tables"
+
+# The catalog's "shared check methods" table and workflow/checks/README.md's
+# "Method and runner" table are the same rows written twice. Single-sourcing is
+# the wrong answer here and was considered: the catalog exists so a reader sees
+# the whole tooling at a glance, and a row saying "see workflow/checks/README.md"
+# defeats the only reason it is there. So what is asserted is that the two
+# hand-copies agree — the same shape as the cadence tables above and CI's two
+# markdown walks below, both of which compare rather than single-source.
+#
+# Unlike the cadence pair, ALL of the columns must agree. Those two tables
+# address different readers, so their wording is free to differ; these two
+# address the same reader and say the same thing, which makes any difference
+# drift rather than register. They had already diverged once in exactly that
+# way — "page accuracy" against "page-level accuracy", and "deleted rather than
+# corrected" against "which are deleted rather than corrected" — with nothing
+# reporting it, and the realignment that fixed it was done by hand.
+#
+# The link target is the one thing free to differ: the two files sit at
+# different depths, so the catalog's href carries a ../workflow/checks/ prefix
+# the README's does not. The method is therefore compared by the name in its
+# backticks rather than by where it points.
+method_rows_() { # file — the "| Method | What it finds | Run by |" table, href normalised away
+  awk '
+    /^\|[[:space:]]*Method[[:space:]]*\|[[:space:]]*What it finds[[:space:]]*\|[[:space:]]*Run by[[:space:]]*\|/ { t = 1; next }
+    t && /^\|[[:space:]]*[-:]/ { next }
+    t && /^\|/ {
+      n = split($0, f, "|")
+      if (n >= 5) {
+        m = f[2]; w = f[3]; r = f[4]
+        if (match(m, /`[^`]+`/)) m = substr(m, RSTART + 1, RLENGTH - 2)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", m)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", w)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", r)
+        print m "|" w "|" r
+      }
+      next
+    }
+    t { t = 0 }
+  ' "$1" | sort
+}
+mt_cat="$CLAUDE_DIR/.claude/TOOLING.md"
+mt_readme="$CLAUDE_DIR/workflow/checks/README.md"
+if [ -f "$mt_cat" ] && [ -f "$mt_readme" ]; then
+  mt_a=$(method_rows_ "$mt_cat")
+  mt_b=$(method_rows_ "$mt_readme")
+  if [ -z "$mt_a" ] || [ -z "$mt_b" ]; then
+    # Same blind-parser failure the cadence check guards: a reader that has gone
+    # blind agrees with everything, and an empty-vs-empty pass is precisely what
+    # this comparison exists to rule out.
+    mt_blind=""
+    [ -z "$mt_a" ] && mt_blind=".claude/TOOLING.md"
+    [ -z "$mt_b" ] && mt_blind="${mt_blind:+$mt_blind and }workflow/checks/README.md"
+    fail "no check-method table found in $mt_blind — the comparison needs a
+        '| Method | What it finds | Run by |' table in both files, and two
+        tables that cannot be read compare equal"
+  elif [ "$mt_a" = "$mt_b" ]; then
+    pass "both check-method tables carry the same rows ($(printf '%s\n' "$mt_a" | grep -c .) checked)"
+  else
+    mt_only_a=$(comm -23 <(printf '%s\n' "$mt_a") <(printf '%s\n' "$mt_b") | cut -d'|' -f1 | sort -u | tr '\n' ' ')
+    mt_only_b=$(comm -13 <(printf '%s\n' "$mt_a") <(printf '%s\n' "$mt_b") | cut -d'|' -f1 | sort -u | tr '\n' ' ')
+    fail "the two check-method tables disagree.
+        Differing rows in .claude/TOOLING.md: ${mt_only_a:-none}
+        Differing rows in workflow/checks/README.md: ${mt_only_b:-none}
+        A method named on one side only is a missing row; one named on both is a
+        wording drift in 'What it finds' or 'Run by'. Only the link target may
+        differ between the two files."
+  fi
+else
+  pass "no check-method table pair to compare"
+fi
+
 # --------------------------------------------------------------- audit reports
 
 head_ "Audit reports"
@@ -1382,7 +1456,7 @@ else
   KNOWN_KEYS='manifest branch record commands gate agents lanes audit
 onSchemaChange hazards commitTrailer
 branch.integration branch.publish branch.mergeMethod
-record.todo record.roadmap record.changelog record.handoff record.decisions
+record.todo record.roadmap record.releases record.changelog record.handoff record.decisions
 record.decisionsIndex record.openDecisions record.behaviour record.reference
 record.audits record.toolbelt record.tooling
 record.tooling.catalog record.tooling.sources
@@ -1391,7 +1465,7 @@ commands.testConsentEnv commands.ci
 sweeps
 agents.architecture agents.implement agents.infra agents.test agents.exploit
 agents.audit agents.roadmap agents.release
-lanes.exclusive lanes.serialize lanes.generated lanes.named
+lanes.exclusive lanes.serialize lanes.generated lanes.named lanes.conflicts
 audit.dimensions audit.invalidates
 gate.coverage'
 
@@ -1475,7 +1549,7 @@ fi
 
 head_ "Worktree lanes"
 
-# `lanes.named` splits the three forward-looking records into per-lane files —
+# `lanes.named` splits the four forward-looking records into per-lane files —
 # the resolution rule is workflow/manifest.md's, the splittable set is
 # record-contract.md's. Everything that can go wrong with a split is silent
 # from inside a session: a selector naming a lane nobody declared resolves to
@@ -1498,6 +1572,15 @@ if [ -z "$lane_names" ]; then
   else
     pass "no lanes.named — project is unsplit"
   fi
+  # Declaring the inbox with no lanes is dead config: a contradiction BETWEEN
+  # lanes needs lanes to exist, and ws-lanes-records-synch refuses to run below
+  # two, so nothing writes it and nothing would consume it.
+  if [ -f "$PWD/.claude/workflow.json" ] &&
+     jq -e '.lanes.conflicts != null' "$PWD/.claude/workflow.json" >/dev/null 2>&1; then
+    warn "lanes.conflicts is declared but no lanes are named, so nothing can
+        file a cross-lane contradiction and ws-lanes-records-synch refuses to
+        run. Declare the lanes or drop the key."
+  fi
 else
   n_lanes=$(printf '%s\n' "$lane_names" | grep -c . || true)
 
@@ -1507,12 +1590,29 @@ else
   while IFS=$'\t' read -r lname key val; do
     [ -n "$lname" ] || continue
     case $key in
-      todo | openDecisions | handoff) ;;
+      todo | openDecisions | handoff | roadmap) ;;
+      transfer)
+        fail "lanes.named.$lname.records.transfer — the transfer queue is a
+        SIBLING of records, not a key inside it. Everything under records has
+        exactly one writer and a queue has many, which is what the nesting
+        says. Move it to lanes.named.$lname.transfer.
+        workflow/record-contract.md."
+        lane_bad=$((lane_bad + 1))
+        continue ;;
+      releases)
+        fail "lanes.named.$lname.records.releases — the release list never
+        splits. It holds the milestones, their versions and their marks, and
+        --ws-release reads it and no other planning record; a per-lane copy
+        is a release checkpoint one worktree cut for the whole project. Goals
+        split by lane, in roadmap. workflow/record-contract.md."
+        lane_bad=$((lane_bad + 1))
+        continue ;;
       *)
         fail "lanes.named.$lname.records.$key — '$key' is not a splittable
-        record. Only todo, openDecisions and handoff may split by lane:
-        the append-only logs are single timelines, and roadmap, behaviour
-        and reference describe one system. workflow/record-contract.md."
+        record. Only todo, openDecisions, handoff and roadmap may split by
+        lane: the append-only logs are single timelines, releases must be
+        singular to stay a release checkpoint, and behaviour and reference
+        describe one system. workflow/record-contract.md."
         lane_bad=$((lane_bad + 1))
         continue ;;
     esac
@@ -1531,7 +1631,7 @@ else
   # the rest sharing the unsplit file — two writers on one path, the exact
   # collision lanes exist to remove, reintroduced one lane at a time.
   half_split=0
-  for k in todo openDecisions handoff; do
+  for k in todo openDecisions handoff roadmap; do
     c=$(jq -r --arg k "$k" \
           '[.lanes.named[] | select(.records[$k] != null)] | length' \
           "$PWD/.claude/workflow.json" 2>/dev/null || echo 0)
@@ -1544,6 +1644,55 @@ else
   done
   [ "$half_split" -eq 0 ] &&
     pass "no half-split records — each splits for all lanes or none"
+
+  # The transfer queue: one inbox per lane, where every OTHER lane files work it
+  # believes this lane owns. Declared for all lanes or none — a lane with no
+  # queue is a lane nothing can file to, which reads as "nobody needs anything
+  # from them" and is almost never true. Tracked, unlike the selector, because
+  # an entry has to travel to the worktree it is addressed to.
+  n_tr=$(jq -r '[.lanes.named[] | select(.transfer != null)] | length' \
+           "$PWD/.claude/workflow.json" 2>/dev/null || echo 0)
+  if [ "${n_tr:-0}" -eq 0 ]; then
+    pass "no transfer queues declared — lanes cannot file work to each other"
+  elif [ "${n_tr:-0}" -ne "$n_lanes" ]; then
+    fail "a transfer queue is declared for $n_tr of $n_lanes lanes. Declare one
+        for every named lane or none: a lane without a queue is one no sibling
+        can file to, and the request goes into that lane's records by hand
+        instead — which is the second writer the queue exists to prevent."
+  else
+    tr_bad=0
+    while IFS=$'\t' read -r lname val; do
+      [ -n "$lname" ] || continue
+      if [ ! -e "$PWD/$val" ]; then
+        fail "lanes.named.$lname.transfer is missing: $val. An absent queue is
+        not an empty one — a sibling appending to it creates a file nothing
+        was told to read."
+        tr_bad=$((tr_bad + 1))
+      fi
+    done < <(jq -r '.lanes.named | to_entries[]
+                      | select(.value.transfer != null)
+                      | "\(.key)\t\(.value.transfer)"' \
+               "$PWD/.claude/workflow.json" 2>/dev/null)
+    [ "$tr_bad" -eq 0 ] &&
+      pass "every lane declares a transfer queue and its path exists ($n_lanes lane(s))"
+  fi
+
+  # The second queue: ONE per project, consumed by ws-lanes-records-synch. A
+  # contradiction between two lanes belongs to neither, so it is not a per-lane
+  # key — filing it to one of the two would pick a side before anyone has ruled.
+  # Absent is legal (nothing has been filed and the skill derives its own), but a
+  # declared path that does not exist is the silent case: a session appends and
+  # creates a file nothing was told to read.
+  confl=$(jq -r '.lanes.conflicts // empty' "$PWD/.claude/workflow.json" 2>/dev/null || true)
+  if [ -z "$confl" ]; then
+    pass "no conflict inbox declared — synch derives its own conflicts only"
+  elif [ ! -e "$PWD/$confl" ]; then
+    fail "lanes.conflicts is missing: $confl. A session filing a contradiction
+        would create a file nothing reads, and the only consumer is
+        ws-lanes-records-synch."
+  else
+    pass "conflict inbox declared and present: $confl"
+  fi
 
   # The selector, where this checkout carries one. Its absence is normal — the
   # main checkout of a split project legitimately reads the unsplit records.
@@ -1560,6 +1709,59 @@ else
     fi
   else
     pass "no .claude/lane selector — this checkout reads the unsplit records"
+  fi
+fi
+
+# ------------------------------------------------------------ roadmap purity
+
+head_ "Roadmap purity"
+
+# A roadmap holds goals; record.releases holds the milestones, their versions
+# and their marks. That prohibition is the ONLY thing keeping a release
+# checkpoint singular once roadmaps split by lane — --ws-release reads
+# record.releases and no other planning record, so a version or a mark written
+# into a lane's roadmap is a checkpoint one worktree cut for the whole project,
+# and nothing downstream would ever notice it. record-contract.md states the
+# rule; this is what makes it a mechanism.
+#
+# Heading-anchored on purpose. A roadmap block may legitimately mention a
+# version in prose ("blocked until the auth rewrite ships in 2.x"); a version
+# or a *completed* mark in a HEADING is the milestone shape and nothing else.
+roadmap_paths=""
+if [ -f "$PWD/.claude/workflow.json" ]; then
+  roadmap_paths=$(jq -r '[.record.roadmap // empty]
+                          + [(.lanes.named // {})[] | .records.roadmap // empty]
+                          | .[]' "$PWD/.claude/workflow.json" 2>/dev/null || true)
+elif [ -f "$PWD/ROADMAP.md" ]; then
+  roadmap_paths="ROADMAP.md"
+fi
+
+if [ -z "$roadmap_paths" ]; then
+  pass "no roadmap declared — nothing to check"
+else
+  roadmap_dirty=0; roadmap_seen=0
+  while IFS= read -r rp; do
+    [ -n "$rp" ] || continue
+    [ -f "$PWD/$rp" ] || continue
+    roadmap_seen=$((roadmap_seen + 1))
+    hit=$(grep -nE '^#{1,6} .*(\*completed\*|v?[0-9]+\.[0-9]+\.[0-9]+)' \
+            "$PWD/$rp" 2>/dev/null | head -3 || true)
+    if [ -n "$hit" ]; then
+      fail "$rp carries a version number or a completion mark in a heading:
+$(printf '%s\n' "$hit" | sed 's/^/          /')
+        Those belong in record.releases. A roadmap holds goals only — it is
+        what may split by lane, and a mark in a lane's copy is a release
+        checkpoint one worktree cut for the whole project.
+        workflow/record-contract.md."
+      roadmap_dirty=$((roadmap_dirty + 1))
+    fi
+  done <<EOF
+$roadmap_paths
+EOF
+  if [ "$roadmap_seen" -eq 0 ]; then
+    pass "no roadmap file present — nothing to check"
+  elif [ "$roadmap_dirty" -eq 0 ]; then
+    pass "no roadmap carries a version or a completion mark ($roadmap_seen file(s))"
   fi
 fi
 

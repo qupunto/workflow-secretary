@@ -49,7 +49,8 @@ before a single skill runs.
 ├── .claude/TOOLING.md     record.tooling.catalog — source for the annex page
 ├── .claude/sweeps.json    the sweep checkpoint cache — gitignored, machine-local
 ├── TODO.md                record.todo
-├── ROADMAP.md             record.roadmap — milestones, and what authorises a tag
+├── ROADMAP.md             record.roadmap — goals; splits by lane, carries no version
+├── RELEASES.md            record.releases — milestones, versions, and what authorises a tag
 ├── CHANGELOG.md           record.changelog
 │
 ├── audits/                frozen agent audit reports — `audits/README.md` is the maintained index
@@ -107,10 +108,11 @@ The lever above has a hard limit, and which shape the suite is in decides whethe
 you have it at all.
 
 **As a checkout**, `skillOverrides` in `settings.json` controls each skill
-individually. This repository sets its dispatch-only primitives to `name-only` —
-today the single skill `ws-contracts` — so their descriptions do not load
-in sessions that can never invoke them: a dispatched skill is reached only by
-another skill, so a description is pure cost. Read the current set out of
+individually. This repository sets to `name-only` any skill a
+session cannot usefully be routed to by description — one reached only by
+another skill's dispatch, and one reachable only by an explicit slash. In both
+cases the description is pure cost, since noticing a match can never be what
+invokes it. Read the current set out of
 `settings.json` rather than a count here; it shrank once already, when the
 record procedures left `skills/` for `workflow/writers/` and stopped being
 skills at all. `doctor.sh` guards the arrangement: its dispatch-only check (the

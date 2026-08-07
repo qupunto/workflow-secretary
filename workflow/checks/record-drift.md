@@ -38,7 +38,8 @@ diff-shaped: a diff-shaped obligation is mechanically checkable.
 | routes, services, domain logic — where it changes an auth rule, an ownership rule, a state transition, a visibility rule, an error status, or ordering | `record.behaviour` |
 | the schema | `record.reference` (data model) |
 | container, deployment or proxy config, operational scripts, or a stated convention | `record.reference` (overview) |
-| block scope, order or dependencies | `record.roadmap` |
+| block scope, order or dependencies | `record.roadmap` — the lane's, where a `.claude/lane` selector resolves one |
+| a milestone's scope, its intended version, or which goals it comprises | `record.releases` |
 | a skill or agent file added, removed, or changed in purpose | `record.tooling.catalog`, and the docs site's Claude-tooling annex page, which is derived from it |
 
 The last row is two findings, not one: the catalog and the annex page derived
@@ -91,14 +92,19 @@ git ls-remote --tags origin
 
 Both, because they answer different questions: a tag that exists locally and
 not on the remote means nothing to anyone else's checkout. Compare against the
-versions `record.changelog` and `record.roadmap` claim shipped.
+versions `record.changelog` and `record.releases` claim shipped.
 
-Two distinct findings live here:
+Three distinct findings live here:
 
 - `record.changelog` describes a version no tag resolves — the entry's
   released status is wrong.
-- `record.roadmap` claims a milestone *shipped*, rather than that it is
+- `record.releases` claims a milestone *shipped*, rather than that it is
   *completed* — a tag is the only proof a version shipped.
+- **A roadmap carries a version number or a completion mark.** Neither belongs
+  in that record, and under lanes it is a release checkpoint one worktree cut
+  for the whole project. `doctor.sh` catches this mechanically; report it here
+  when a sweep reads the file anyway, and dispatch it to `--ws-plan` like any
+  other finding about its records.
 
 **Report it; never resolve it by tagging.** Choosing between tagging the commit
 a milestone completed at and recording the work as unreleased is a release

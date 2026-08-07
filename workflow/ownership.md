@@ -106,7 +106,7 @@ while it stays easy to state.
 | track | `--ws-track` | `ws-track` | primitive | the session task list | — |
 | defer | `--ws-todo` | `ws-record` | primitive | `record.todo`, `record.openDecisions`, `record.decisions` + index | — |
 | record | `--ws-log` | `ws-record` *(same skill as `--ws-todo`)* | primitive | `record.decisions` + index — **and the delete from `record.openDecisions`** that settling an entry entails, which is the same skill's file and so not a second writer | — |
-| order | `--ws-plan` | `ws-plan` | primitive | `record.roadmap` | — |
+| order | `--ws-plan` | `ws-plan` | primitive | `record.roadmap` — every lane's copy — **and** `record.releases`, the release list, which never splits | — |
 | scout | `--ws-scout` | `ws-scout` | primitive | `record.toolbelt` — the registry of adopted capabilities; the reasoning behind each row goes through `--ws-log`, which is `ws-record`'s file | — |
 | catalog | `--ws-tools` | `ws-tools` | primitive | `record.tooling.catalog`, plus stale claims and the prose prune inside `record.tooling.sources` | commit, **not** push |
 | build | `--ws-start` | `ws-start` | orchestrator | source code | commit, **not** push |
@@ -126,8 +126,9 @@ while it stays easy to state.
 | take stock | `--ws-stocktake` `--ws-full-stocktake` | `ws-stocktake` | orchestrator | **nothing** — the entry goes through `audit-writer` | commit **and** push, **its own record only** |
 | merge | `--ws-pr` | `ws-pr` | orchestrator | **nothing** — the merge goes through `git-writer` | commit; push needs a fresh OK |
 | publish | `--ws-release` | `ws-release` | orchestrator | **nothing** — the entry goes through `changelog-writer`, the tag through `git-writer` | commit; push needs a fresh OK |
-| hand off | `--ws-wrap` | `ws-wrap` | orchestrator | **nothing** — the handoff goes through `handoff-writer` | commit **and** push |
+| hand off | `--ws-wrap` | `ws-wrap` | orchestrator | **nothing** — the handoff goes through `handoff-writer` | commit **and** push, the latter including fast-forwarding a lane worktree's branch onto `branch.integration` |
 | report upstream | `--ws-report` | `ws-report` | orchestrator | **nothing with an owner** — it appends to the machine-local inbox, which any session in any project may write | none — opening the upstream issue needs a fresh OK in that turn |
+| synch lanes | — | `ws-lanes-records-synch` | orchestrator | **nothing with an owner** — every finding is appended to the addressed lane's transfer queue, which has no single writer; it drains `lanes.conflicts`, the queue it is the sole consumer of; and the run's entry goes through `audit-writer` | none — **and it has no flag by design.** Slash-invoked only, so it can never fire from a phrase, a batch or another skill |
 
 `record.*` keys resolve through the project's `.claude/workflow.json`. A project
 without one falls back to conventional names and skips what it cannot resolve.
@@ -164,17 +165,50 @@ Read the rule above without this one and the overflow file falls through to
 "ordinary work", which is the opposite of what its owner says: `handoff-writer`
 claims it as sole writer, and the matrix must not quietly license anyone else.
 
+**A transfer queue has many writers, and that does not touch the invariant
+above.** `lanes.named.<lane>.transfer` is a lane's inbox: every *other* lane
+appends to it, and the owning lane's `--ws-start` is the only thing that
+consumes it, moving each entry into the record it names. So the queue is
+many-writer and every **record** still has exactly one — an entry becomes part
+of `record.todo` when that lane's own session puts it there, not when a sibling
+files it.
+
+**This is not a carve-out, because a queue is not a record.** A record holds
+state and is read; a queue holds messages in flight and is empty in the steady
+state. [`record-contract.md`](record-contract.md) draws the line and holds the
+entry shape. The invariant is unchanged and still has no exceptions — which is
+the whole reason the queue was put beside `records` in the manifest rather than
+inside it.
+
+The same append-only argument the defect inbox rests on is what makes many
+writers safe here: an append is additive, so a wrong entry is merely wrong and
+nothing true is lost.
+
+**`lanes.conflicts` is the same shape with a different consumer.** One per
+project, written by any session that notices two lanes' records contradicting
+each other, and consumed by `ws-lanes-records-synch` — which re-verifies each
+claim before acting on it, per [the inspector rule](#the-inspector-writes-nothing)
+below. Neither queue has a row in the matrix, because neither is a record.
+
 **One handoff between owners is worth stating here, because it crosses two
-files.** `--ws-plan` marks a milestone completed in `record.roadmap`; that mark is
+files.** `--ws-plan` marks a milestone completed in `record.releases`; that mark is
 `--ws-release`'s precondition for tagging. The mark is deliberately a written state
 rather than a spoken approval — a conversation does not survive a `/clear`, and a
 precondition nobody can check is one that never fires. `--ws-release` never writes
 that mark, and `--ws-plan` never writes a tag.
 
-**A roadmap that has declared an end to milestones satisfies that precondition a
-second way**, and it is still `--ws-plan`'s written state rather than a spoken
-one — the declaration is a section in `record.roadmap`. `--ws-release`'s §1 holds
-the cases and the rule that a release names which one it is.
+**A release list that has declared an end to milestones satisfies that
+precondition a second way**, and it is still `--ws-plan`'s written state rather
+than a spoken one — the declaration is a section in `record.releases`.
+`--ws-release`'s §1 holds the cases and the rule that a release names which one
+it is.
+
+**`record.roadmap` is not in that path at all**, and one skill owning both files
+is what makes that safe to state: `--ws-plan` writes the goals a lane is working
+toward and, separately, the milestone that cites them. A roadmap never carries a
+version or a mark — [`record-contract.md`](record-contract.md) holds that rule —
+so a session in a lane worktree cannot produce a release checkpoint even by
+accident.
 
 ## The inspector writes nothing
 
@@ -337,7 +371,11 @@ Three grants recur, and the distinction between them is deliberate:
   separate decision. (`--ws-start`, `--ws-tools`)
 - **commit and push.** The flag *is* the decision to publish. (`--ws-wrap`;
   `--ws-stocktake`, but scoped to its own record — never to remediation code written
-  afterwards, which stays ordinary work.)
+  afterwards, which stays ordinary work.) **`--ws-wrap` from a lane worktree also
+  lands that lane on `branch.integration`**, and that stays inside this grant
+  rather than needing a fresh OK for one reason: it is a fast-forward or a
+  refusal, never a merge, so it publishes the lane's own commits and can destroy
+  nothing. Moving work onto `branch.publish` is the gated act and is `--ws-pr`'s.
 - **commit; push needs a fresh OK in that turn.** For anything effectively
   permanent, or anything that moves work onto `branch.publish`. A tag another
   checkout has fetched cannot be recalled, and a merge another checkout has

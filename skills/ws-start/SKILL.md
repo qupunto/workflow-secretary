@@ -9,8 +9,9 @@ description: "Pick up the project's pending work and do it — settle the open d
 `gate`, `agents.*`, `lanes.*`, `hazards.*`. Read it first. Without a manifest,
 fall back to conventional names, skip what you cannot resolve, and say so in one
 line rather than guessing. Where a `.claude/lane` selector names a lane,
-`lanes.named.<lane>.records.X` overrides `record.X` for `todo`, `openDecisions`
-and `handoff` — [`manifest.md`](../../workflow/manifest.md)'s resolution rule —
+`lanes.named.<lane>.records.X` overrides `record.X` for `todo`, `openDecisions`,
+`handoff` and `roadmap` — [`manifest.md`](../../workflow/manifest.md)'s
+resolution rule —
 and that lane's `scope` globs bound the batch: partition within them, and treat
 work outside them as another worktree's.
 
@@ -20,7 +21,11 @@ Three records hold the pending work and they answer different questions:
 |---|---|---|
 | `record.openDecisions` | What can't responsibly start until a choice is made | **First, always** |
 | `record.todo` | What could start today, with the detail to do it | Second |
-| `record.roadmap` | What order the blocks go in | Only when the first two are dry |
+| `record.roadmap` — this lane's, where a selector resolves one | What goal is being worked toward, and what order its blocks go in | Only when the first two are dry |
+
+Under lanes there is a step before all three: **the transfer queue is drained in
+Phase 0**, so what a sibling lane filed is already sitting in the records above
+by the time this table applies. It is never read as a fourth source here.
 
 Decisions come first because an open decision is not a task that can wait — it
 is a choice that **gets made anyway**, silently, by whoever writes the first line
@@ -73,7 +78,62 @@ what the lanes are for.
    executed there, the lane handoff being the copy that bites. Where the two
    branches have genuinely diverged, stop and report: reconciling them is a
    merge decision, not a batch's first step. The wrap-side twin lives in
-   `--ws-wrap`'s worktree section: a lane wrap syncs back after its push.
+   `--ws-wrap`'s worktree section: a lane wrap pushes its branch, lands it on
+   `branch.integration` by fast-forward, then syncs back. **This sync-forward is
+   what keeps that landing possible** — a lane that never catches up diverges,
+   and the landing push is then refused rather than merged.
+
+   **Drain the lane's transfer queue, after the sync-forward and before
+   anything below reads a record.** `lanes.named.<lane>.transfer` is this lane's
+   inbox: what every *other* lane filed as work it believes this lane owns.
+   Nothing else consumes it, and an undrained queue is work that has been
+   delivered and is invisible.
+
+   The order is not arbitrary — **the sync-forward is what delivers the
+   entries.** A sibling lane appends on its own branch, so its entry arrives
+   here only once that lane has landed on `branch.integration` and step 1 has
+   pulled it in. A queue that looks empty on a lane that has not synced forward
+   proves nothing.
+
+   Per entry, in file order:
+
+   - **Move it into the record its `[target]` names** — `todo`,
+     `openDecisions` or `roadmap`, resolved through this lane's own paths — and
+     delete it from the queue. The write goes through that record's owner, the
+     same as any other: `--ws-todo` for the first two, `--ws-plan` for a
+     roadmap goal.
+   - **A queue entry is a request, not an instruction.** Where it does not
+     belong here, delete it with one line saying why rather than leaving it to
+     be re-read every run. Say so in the orientation; the filing lane is
+     entitled to know its request was declined.
+   - **Carry `[critical → why]` across unchanged**, and never add one. A lane
+     may not set another lane's priority; only the **user** may, which in
+     practice means an entry arrives marked from one of
+     `ws-lanes-records-synch`'s two gates — a mediated conflict, or an *accept
+     as critical* ruling.
+
+   **Eligibility follows provenance; priority follows the marker.** An entry
+   that came through `ws-lanes-records-synch`'s approval gate was already ruled
+   on by the user, so it is eligible for *this* batch as soon as it lands in
+   `record.todo`. An entry a lane appended outside that gate is drained,
+   **announced, and waits a run** — derived work reaching a batch with nobody
+   between is exactly the failure the gate exists to prevent, and an inbox is
+   not a gate.
+
+   Say in one line what was drained, where each entry went, and which are
+   eligible now. An empty queue is the ordinary state and is said in one line
+   too, never silently.
+
+   **A contradiction found mid-batch goes to `lanes.conflicts`, not into the
+   work.** Where this lane's records and a sibling's cannot both be right —
+   a data shape, an endpoint, a contract — append an entry there and carry on
+   with what is unaffected. Do not resolve it: a session in one lane cannot
+   mediate between two, and picking whichever reading unblocks this batch is
+   how one lane's assumption becomes the project's by default.
+   `ws-lanes-records-synch` is the only consumer, and it re-verifies the claim
+   rather than acting on it —
+   [`record-contract.md`](../../workflow/record-contract.md) holds the entry
+   shape. Filing is the whole action; say that you filed it.
 2. **Check the pipeline before adding to it.** Where the manifest names a CI
    workflow, query it. A pipeline can sit red for days before anyone notices, and
    a batch merged onto a red one hides which change broke it. If it is red,
@@ -115,8 +175,15 @@ past it is how it gets made by accident.
 
 ## Phase 2 — Choose the batch
 
-From `record.todo`, in section order (it is severity- and dependency-ordered
-already). Not everything in it is eligible.
+**Critical first, then section order.** Any item whose body carries
+`[critical → why]` is taken before section ordering applies, in file order among
+themselves, and **named as critical in the batch statement** — an item that
+jumps the queue silently is indistinguishable from one that was simply near the
+top. There is one marker and no other grades;
+[`record-contract.md`](../../workflow/record-contract.md) holds why.
+
+Then the rest from `record.todo`, in section order (it is severity- and
+dependency-ordered already). Not everything in it is eligible.
 
 **`record.todo` may be a provider rather than a file** — an object with a
 `provider` key, per
@@ -133,7 +200,10 @@ batch rather than failing:
 
 - **Rank has to come from content, not position.** Read the items and judge
   severity and dependency yourself. The first row is the most recent, and the
-  most recent is frequently the least urgent.
+  most recent is frequently the least urgent. **`[critical → why]` still
+  applies and is read out of the body**, exactly as `[blocked → …]` is — that
+  is why the marker lives in the body rather than in a section heading, and it
+  is the only ordering signal that survives here.
 - **Deferral is a marker, not a place.** The "explicitly deferred" exclusion
   below is written for a `## Later` section that does not exist here; under a
   provider it is `[later → why]` on the first line of the body, alongside
@@ -159,8 +229,11 @@ seven that need serializing. One backlog item touching disjoint code can split
 into two lanes; two separate items touching one file must merge into one.
 
 **If the backlog and open decisions both yield nothing eligible** — which will
-happen, and is a good sign — go to `record.roadmap` and take the first item under
-next-up. Do not improvise its breakdown here: hand the block to `--ws-plan`, which
+happen, and is a good sign — go to the roadmap this checkout resolves and take the
+first open block of the current goal. **In a lane worktree that is that lane's
+roadmap**, and a goal belonging to another lane is that worktree's work rather
+than a fallback for this one.
+Do not improvise its breakdown here: hand the block to `--ws-plan`, which
 turns it into concrete backlog items with dependencies, then run Phase 2 again
 over what that produced. **A roadmap block is a paragraph; a lane needs a file
 list.**
@@ -371,9 +444,12 @@ is the read/write race Phase 3 describes.
    architecture. Straight to the owning primitive, not through `--ws-docs`, which
    owns the site and no longer writes either record. Invoke `--ws-docs` separately
    where the change also earns a page.
-4. **`--ws-plan`** — only if a block advanced or completed. `--ws-plan` is what asks
-   the user and marks a milestone completed; that mark is what authorises a
-   release, and it is never inferred from lane reports.
+4. **`--ws-plan`** — only if a block advanced or completed. **From a lane
+   worktree that is the whole of it**: a lane session records the goal's
+   progress and never raises the milestone question, because a mark is a
+   checkpoint for the whole project. From the main checkout, `--ws-plan` is what
+   asks the user and marks a milestone completed in `record.releases`; that mark
+   is what authorises a release, and it is never inferred from lane reports.
 5. **New open decisions.** A batch that surfaced a choice and settled it silently
    has done the thing Phase 1 exists to prevent. Route it through `--ws-todo`, to the
    open-decisions record if still open.
