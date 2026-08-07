@@ -1,6 +1,6 @@
 - [Home](/)
-- [Overview](/overview.md)
+- [Overview](/WSS.OVERVIEW.md)
 
 - **Annex**
-- [Claude tooling](/annex/claude-tooling.md)
+- [Claude tooling](/annex/WSS.CLAUDE-TOOLING.md)
 - [Lane synching](/annex/lane-synching.md)

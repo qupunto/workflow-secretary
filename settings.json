@@ -17,9 +17,9 @@
       "Bash(gh repo delete*)",
       "Edit(~/.claude/.gitignore)",
       "Edit(~/.claude/settings.json)",
-      "Edit(~/.claude/doctor.sh)",
-      "Edit(~/.claude/hooks/session-check.sh)",
-      "Edit(~/.claude/hooks/shorthand-flags.sh)",
+      "Edit(~/.claude/wss-doctor.sh)",
+      "Edit(~/.claude/hooks/wss-session-check.sh)",
+      "Edit(~/.claude/hooks/wss-shorthand-flags.sh)",
       "Edit(~/.claude/hooks/hooks.json)",
       "Edit(~/.claude/.claude-plugin/**)",
       "Edit(.claude/*.sh)",
@@ -32,8 +32,9 @@
     "defaultMode": "auto"
   },
   "skillOverrides": {
-    "ws-contracts": "name-only",
-    "ws-lanes-records-synch": "name-only"
+    "wss-contracts": "name-only",
+    "wss-lane-record-sync": "name-only",
+    "wss-retire": "name-only"
   },
   "hooks": {
     "UserPromptSubmit": [
@@ -41,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/shorthand-flags.sh"
+            "command": "~/.claude/hooks/wss-shorthand-flags.sh"
           }
         ]
       }
@@ -51,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/session-check.sh"
+            "command": "~/.claude/hooks/wss-session-check.sh"
           }
         ]
       }
@@ -61,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/alert.sh"
+            "command": "~/.claude/hooks/wss-alert.sh"
           }
         ]
       }
@@ -71,7 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/alert.sh"
+            "command": "~/.claude/hooks/wss-alert.sh"
           }
         ]
       }
@@ -82,10 +83,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/alert.sh"
+            "command": "~/.claude/hooks/wss-alert.sh"
           }
         ]
       }
     ]
-  }
+  },
+  "model": "fable"
 }

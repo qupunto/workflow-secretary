@@ -1,0 +1,46 @@
+{
+  "WSS": {
+    "manifest": "workflow/v2",
+    "branch": {
+      "integration": "dev",
+      "publish": "main"
+    },
+    "commitTrailer": "Claude-Session",
+    "record": {
+      "todo": "WSS.TODO.md",
+      "roadmap": "WSS.ROADMAP.md",
+      "releases": "WSS.RELEASES.md",
+      "changelog": "WSS.CHANGELOG.md",
+      "handoff": ".claude/WSS.HANDOFF.md",
+      "decisions": "docs/WSS.DECISIONS.md",
+      "decisionsIndex": "docs/WSS.DECISIONS-INDEX.md",
+      "openDecisions": "docs/WSS.OPEN-DECISIONS.md",
+      "stocktake": "docs/WSS.STOCKTAKE.md",
+      "audits": "docs/WSS.AUDITS.md",
+      "reference": [
+        "README.md"
+      ],
+      "tooling": {
+        "catalog": ".claude/WSS.TOOLING.md",
+        "sources": [
+          "skills/*/SKILL.md",
+          "skills/*/references/*.md",
+          "workflow/writers/*.md",
+          "workflow/checks/*.md",
+          "commands/*.md"
+        ]
+      }
+    },
+    "commands": {
+      "typecheck": "while read -r f; do bash -n \"$f\" || exit 1; done < <(git ls-files '*.sh')",
+      "test": "bash tests/wss-hook-contract.sh",
+      "indexRegen": "bash skills/wss-record/assets/wss-index-decisions.sh",
+      "indexCheck": "bash skills/wss-record/assets/wss-index-decisions.sh --check",
+      "ci": {
+        "tool": "gh",
+        "workflow": "Verify"
+      }
+    },
+    "sweeps": ".claude/WSS.SWEEPS.json"
+  }
+}

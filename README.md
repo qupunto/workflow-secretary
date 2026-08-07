@@ -1,4 +1,12 @@
-# workflow-secretary
+# Workflow Secretary Suite
+
+> **Suite-maintained.** This repository's manifest maps this file to
+> `WSS.record.reference`, so `reference-writer` keeps it current and may rewrite
+> sections of it. That mapping is deliberate — it is also the landing page — and
+> it is *opt-in*: the suite writes a `README.md` only where a manifest names
+> one. Your project's README is not touched unless you ask for it.
+> Release notes for users are [`CHANGELOG.md`](CHANGELOG.md); the engineering
+> log is `WSS.CHANGELOG.md`.
 
 A suite of Claude Code skills that keep a project's record, roadmap, docs and
 tooling honest — a secretary to coding, not the coder. Anything needing stack
@@ -10,8 +18,8 @@ deliberately not here.
 **As a plugin**, if you want the skills in your own projects and nothing else:
 
 ```bash
-claude plugin marketplace add qupunto/workflow-secretary
-claude plugin install workflow-secretary
+claude plugin marketplace add qupunto/workflow-secretary-suite
+claude plugin install workflow-secretary-suite
 ```
 
 This repository is its own marketplace — `.claude-plugin/marketplace.json` sits
@@ -50,30 +58,29 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 | Path | What |
 |---|---|
 | `settings.json` | Permissions and hook wiring |
-| `hooks/shorthand-flags.sh` | `UserPromptSubmit` hook — the `--flag` shorthands |
-| `hooks/session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `doctor.sh` failure, a sweep or a record gone stale, an open bug report, an unread upstream filing (counted only in the suite's own checkout). It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
-| `hooks/alert.sh` | `Notification`/`Stop`/`PreToolUse(AskUserQuestion)` hook — a sound cue when a session waits for input. Ships silent; `--ws-alerts on\|off` toggles it per machine via a state file in the config directory |
+| `hooks/wss-shorthand-flags.sh` | `UserPromptSubmit` hook — the `--flag` shorthands |
+| `hooks/wss-session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `wss-doctor.sh` failure, a sweep or a record gone stale, an open bug report, an unread upstream filing (counted only in the suite's own checkout). It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
+| `hooks/wss-alert.sh` | `Notification`/`Stop`/`PreToolUse(AskUserQuestion)` hook — a sound cue when a session waits for input. Ships silent; `--wss-alerts on\|off` toggles it per machine via a state file in the config directory |
 | `hooks/hooks.json` | Wires those same events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The plugin manifest. `claude plugin validate` reads it |
-| `doctor.sh` | Read-only health check for this config and the current project. Stays at the root rather than moving into `hooks/`, because it is run by hand as often as by the hook |
-| `reset-records.sh` | Blanks every record the manifest declares back to its heading. Dry-run by default; `--write` to do it. What makes a fork yours rather than an inheritance — see below |
-| `bug-reports.md` | Inbox for defects in this config found from *other* projects. Gitignored, so it is not in the repo — `doctor.sh` surfaces open entries |
+| `wss-doctor.sh` | Read-only health check for this config and the current project. Stays at the root rather than moving into `hooks/`, because it is run by hand as often as by the hook |
+| `wss-reset-records.sh` | Blanks every record the manifest declares back to its heading. Dry-run by default; `--write` to do it. What makes a fork yours rather than an inheritance — see below |
+| `WSS.BUG-REPORTS.md` | Inbox for defects in this config found from *other* projects. Gitignored, so it is not in the repo — `wss-doctor.sh` surfaces open entries |
 | `skills/` | User-level skills, available in every project |
-| `commands/` | Slash-command wrappers for the flags whose skill carries a different name — the filename is the flag, so `/ws-todo` autocompletes and fires `--ws-todo`. `doctor.sh` asserts every wrapper fires the flag its name promises |
+| `commands/` | Slash-command wrappers for the flags whose skill carries a different name — the filename is the flag, so `/wss-todo` autocompletes and fires `--wss-todo`. `wss-doctor.sh` asserts every wrapper fires the flag its name promises |
 | `.claude/skills/` | Where a project's own skills go, resolved before the global suite. This repo keeps none — see the annex for why both of the ones it had turned out to be global concerns with local paths baked in |
 | `workflow/` | The authority files every skill links to instead of carrying its own copy — who may write what, what each record holds, which manifest keys exist, and how a sweep narrows itself — plus the record-writer procedures under `workflow/writers/` and the shared check methods under `workflow/checks/` |
-| `workflow/providers/` | Where a record lives somewhere that is not a file. Only `record.todo` takes one, and `github-issues.md` is the only one that exists — see below |
+| `workflow/providers/` | Where a record lives somewhere that is not a file. Only `WSS.record.todo` takes one, and `WSS.GITHUB-ISSUES.md` is the only one that exists — see below |
 
 ## What you can turn off, and what you cannot
 
 **As a checkout** — cloning into `~/.claude`, which is what the section below
 does, and the form this suite is developed in — `skillOverrides` in
-`settings.json` controls each skill individually. This repository sets its
-dispatch-only primitives to `name-only` so their descriptions do not load in
-every session — `ws-contracts` is the only such skill since the record
-procedures moved to `workflow/writers/` and stopped being skills; `doctor.sh`
-warns when a skill no flag maps to has no entry. Read the current set out of
-`settings.json` rather than a count here.
+`settings.json` controls each skill individually. This repository sets every
+skill no flag maps to — the dispatch-reached and the slash-only alike — to
+`name-only`, so their descriptions do not load in every session;
+`wss-doctor.sh` warns when such a skill has no entry. Read the current set out
+of `settings.json` rather than a count here.
 
 **As a plugin, the harness ignores that lever** — `skillOverrides` does not reach
 plugin skills, at `off` as well as `name-only`, under bare and namespaced keys
@@ -106,7 +113,7 @@ always-on cost, rather than counting bytes.
 the record procedures leaving `skills/`; the structure holds even where the
 figure has moved.
 
-Neither the overrides nor the `doctor.sh` check that guards them is dead code —
+Neither the overrides nor the `wss-doctor.sh` check that guards them is dead code —
 both are correct for the checkout shape, which stays supported. And
 `claude plugin marketplace add` accepts a local path as well as a repository, so
 you can install and measure a fork without publishing anything.
@@ -120,32 +127,32 @@ keep its own record straight has no business keeping yours.
 
 But what those records *say* is about that repository. So a published copy ships
 them **present and empty**, carrying only their canonical heading. Which files
-those are is `reset-records.sh`'s `RECORDS` table plus any overflow sibling a
+those are is `wss-reset-records.sh`'s `RECORDS` table plus any overflow sibling a
 handoff declares — read the script rather than a list here, since a list is one
 record away from being wrong and this one already was. Empty rather
-than absent, because `doctor.sh` fails on a declared record whose file is missing,
+than absent, because `wss-doctor.sh` fails on a declared record whose file is missing,
 and a fresh clone has to pass its own health check.
 
 **Read that emptiness as a decision, not an omission.** Shipping the populated
 originals as a worked example was the obvious alternative and was rejected: a
-session in your clone would read that backlog and *believe* it — `--ws-start` would
-pick work off someone else's project, and `--ws-check` would verify those claims
-against the wrong repository. `--ws-adopt`'s own rule applies, that the owning skill
+session in your clone would read that backlog and *believe* it — `--wss-start` would
+pick work off someone else's project, and `--wss-check` would verify those claims
+against the wrong repository. `--wss-adopt`'s own rule applies, that the owning skill
 writes the first real line so that it is a true one.
 
-**If you fork this, or inherit records from anywhere, run `reset-records.sh`.**
+**If you fork this, or inherit records from anywhere, run `wss-reset-records.sh`.**
 It blanks every record the manifest declares back to its heading, and it is the
 same script the publishing step runs, so the state you get is the state a fresh
 install gets. It is a dry run unless you pass `--write`:
 
 ```bash
-./reset-records.sh              # list what would be blanked, change nothing
-./reset-records.sh --write      # do it
+./wss-reset-records.sh              # list what would be blanked, change nothing
+./wss-reset-records.sh --write      # do it
 ```
 
-It never touches `README.md` or `.claude/TOOLING.md` even though the manifest
+It never touches `README.md` or `.claude/WSS.TOOLING.md` even though the manifest
 calls them records — those describe the **tooling**, which is the part that
-should travel. And where `record.todo` names a GitHub Issues provider rather than
+should travel. And where `WSS.record.todo` names a GitHub Issues provider rather than
 a file, it skips it and says so: emptying somebody's issue tracker is not a thing
 a reset script gets to decide.
 
@@ -153,18 +160,18 @@ a reset script gets to decide.
 
 Every record above is a markdown file, with one exception. A team already living
 in GitHub Issues cannot adopt a workflow whose backlog is a file — they would be
-maintaining two, and the second one loses. So `record.todo` alone may name a
-**provider** instead of a path, and then `--ws-todo` files an issue, `--ws-start`
-reads the open ones, and `--ws-wrap` counts them:
+maintaining two, and the second one loses. So `WSS.record.todo` alone may name a
+**provider** instead of a path, and then `--wss-todo` files an issue, `--wss-start`
+reads the open ones, and `--wss-wrap` counts them:
 
 ```json
 "record": { "todo": { "provider": "github-issues", "repo": "owner/name", "label": "backlog" } }
 ```
 
 Declare a `label` unless you genuinely mean *every* open issue including user bug
-reports. `doctor.sh` checks the provider is implemented and the repo resolves, and
+reports. `wss-doctor.sh` checks the provider is implemented and the repo resolves, and
 fails rather than quietly writing to a file instead.
-[`workflow/providers/github-issues.md`](workflow/providers/github-issues.md) is
+[`workflow/providers/WSS.GITHUB-ISSUES.md`](workflow/providers/WSS.GITHUB-ISSUES.md) is
 the authority on the mapping — closing an issue is how an item leaves the
 backlog, and an issue without the label is somebody else's.
 
@@ -173,7 +180,7 @@ decisions are prose read months later, and an issue thread is a conversation.
 And be aware of the maturity gap — **the file form is the battle-tested path**,
 used by the suite on its own repository since the beginning; the provider is
 newer and has
-far fewer miles on it. `--ws-adopt` offers the choice when it finds open issues.
+far fewer miles on it. `--wss-adopt` offers the choice when it finds open issues.
 
 ## Adopting the repo on a new machine
 
@@ -229,7 +236,7 @@ git check-ignore -q .credentials.json \
 # 6. Hooks are useless unless executable. They live under hooks/, not at the
 #    root — a *.sh glob at the root would silently skip them.
 (cd ~/.claude && chmod +x $(git ls-files '*.sh'))
-~/.claude/doctor.sh    # doctor:checkout-only — this block is building the checkout
+~/.claude/wss-doctor.sh    # doctor:checkout-only — this block is building the checkout
 ```
 
 **Step 4 will stop on any file that already exists locally and differs** —
@@ -241,7 +248,7 @@ must not inherit.
 If the local `skills/` already holds a skill that is also in the repo, the same
 applies. Move it aside rather than letting the checkout fail, then compare.
 
-**Do not skip `doctor.sh`.** A hook that is missing, unwired or non-executable
+**Do not skip `wss-doctor.sh`.** A hook that is missing, unwired or non-executable
 fails *silently* — the event fires, nothing happens, and every `--flag` quietly
 degrades to being matched from a skill description instead of being injected
 deterministically. That state persisted unnoticed on one machine for weeks.
@@ -249,31 +256,40 @@ deterministically. That state persisted unnoticed on one machine for weeks.
 ### Machine-local state does not clone — export it
 
 A clone brings every tracked file and nothing else. What it leaves behind on
-the old machine: record files a project keeps **untracked**, the `.claude/lane`
-worktree selector, and — in the config directory — `bug-reports.md`, the one
-file whose loss is unrecoverable. `export-records.sh` moves exactly that set:
+the old machine: record files a project keeps **untracked**, the `.claude/WSS.LANE`
+worktree selector, and — in the config directory — `WSS.BUG-REPORTS.md`, the one
+file whose loss is unrecoverable. `wss-export-records.sh` moves exactly that set:
 
 ```bash
-export-records.sh                      # on the old machine, per project
-export-records.sh --import <archive>   # on the new one, after the clone
+wss-export-records.sh                      # on the old machine, per project
+wss-export-records.sh --import <archive>   # on the new one, after the clone
 ```
 
 It skips tracked records (the clone brings them) and the sweep checkpoint (a
-cache), refuses archive entries that escape the project, and refuses to
-overwrite a non-empty file unless given `--force`. `--ws-adopt` runs the import
+cache) — except under `--all`, the retirement snapshot, which keeps tracked
+records in and adds the docs tree. It refuses archive entries that escape the
+project, and refuses to overwrite a non-empty file unless given `--force`. `--wss-adopt` runs the import
 when handed an archive during adoption.
 
-### Stopping cleanly — retirement is also a script
+### Stopping cleanly — `/wss-retire`, or the script it drives
 
-`claude plugin uninstall workflow-secretary` removes the skills and hooks and
+`claude plugin uninstall workflow-secretary-suite` removes the skills and hooks and
 touches no project — the manifest, sweep cache and records a project
-accumulated all stay behind. `retire-workflow.sh` is the tidy exit, run per
-project, dry-run by default:
+accumulated all stay behind. **`/wss-retire` is the guided exit**, run per
+project: one checkbox dialog — a full snapshot (`WSS.RETIREMENT-PLAN.tar.gz`,
+made by `wss-export-records.sh --all`, restorable at re-adoption) asked first,
+then the actions to run — delete the machinery, delete the records, wipe the
+records, uninstall the plugin — executed in dependency order. It is
+slash-invoked only and has no `--flag`: a deletion should never fire because a
+sentence contained the right words.
+
+`wss-retire-workflow.sh` is the script underneath, usable on its own, dry-run
+by default:
 
 ```bash
-retire-workflow.sh            # show what would go
-retire-workflow.sh --write    # remove the machinery: manifest, sweep cache, lane selector
-retire-workflow.sh --write --records   # ...and the workflow-shaped records
+wss-retire-workflow.sh            # show what would go
+wss-retire-workflow.sh --write    # remove the machinery: manifest, sweep cache, lane selector
+wss-retire-workflow.sh --write --records   # ...and the workflow-shaped records
 ```
 
 Records hide behind the second flag because they hold the project's own
@@ -300,13 +316,13 @@ cost is one check whenever the shape of the repo changes.
 
 ## The `--flag` shorthands
 
-`hooks/shorthand-flags.sh` injects an explicit instruction for each flag, so
+`hooks/wss-shorthand-flags.sh` injects an explicit instruction for each flag, so
 invoking a skill by flag is deterministic rather than a judgement call.
 
-**Type `--ws-flags` to get this list from the hook itself**, computed at run time
-and marked up with what actually resolves where you are standing. `--ws-help` does
-the same, and `--ws-alerts on|off` is the third flag the hook serves without a
-skill — it toggles the sound cue `hooks/alert.sh` plays when a session waits
+**Type `--wss-flags` to get this list from the hook itself**, computed at run time
+and marked up with what actually resolves where you are standing. `--wss-help` does
+the same, and `--wss-alerts on|off` is the third flag the hook serves without a
+skill — it toggles the sound cue `hooks/wss-alert.sh` plays when a session waits
 for input. Everything below is the curated version — which one you want, and how
 often — and it is the only part of this section that a machine does not generate.
 
@@ -317,20 +333,20 @@ difference is **what they read**, not how hard they try:
 
 | You want to know | Flag | Reads | Writes |
 |---|---|---|---|
-| Where do we stand, at a glance? | `--ws-overview` | branch and lane, record counts, sweep freshness, nearest milestones — fresh, never from memory | nothing at all — the report is the reply |
-| Is what we wrote down still true? | `--ws-check` | the records only, and only those whose code moved | nothing — dispatches to each record's owner |
-| Is the whole configuration sound? | `--ws-full-check` | records + the docs site + the tooling files, every one, ignoring checkpoints | nothing with an owner; fixes unowned files directly |
-| Where is this project? | `--ws-stocktake` | all of the above plus conventions, public surface, safety nets, and the code via the project's own analysis skill | rebuilds the backlog, writes an audit entry |
-| Is this document true and well-formed? | `--ws-docs` | one docs site — paths, links, anchors, claims against source | the pages it fixes |
+| Where do we stand, at a glance? | `--wss-overview` | branch and lane, record counts, sweep freshness, nearest milestones — fresh, never from memory | nothing at all — the report is the reply |
+| Is what we wrote down still true? | `--wss-check` | the records only, and only those whose code moved | nothing — dispatches to each record's owner |
+| Is the whole configuration sound? | `--wss-full-check` | records + the docs site + the tooling files, every one, ignoring checkpoints | nothing with an owner; fixes unowned files directly |
+| Where is this project? | `--wss-stocktake` | all of the above plus conventions, public surface, safety nets, and the code via the project's own analysis skill | rebuilds the backlog, writes an audit entry |
+| Is this document true and well-formed? | `--wss-docs` | one docs site — paths, links, anchors, claims against source | the pages it fixes |
 
-`--ws-full-check` is **not** a bigger `--ws-check`. It is `--ws-check` plus five unrelated
+`--wss-full-check` is **not** a bigger `--wss-check`. It is `--wss-check` plus five unrelated
 jobs — the docs site, the tooling files, the defect inbox, the prune, the
 catalog refresh. Reach for it when you distrust the configuration, not when you
 want a thorough record sweep.
 
 Running two of them against one request pays twice for the same answers, so the
-hook drops the narrower flag when a wider one is present: `--ws-full-check` absorbs
-`--ws-check`, and either stocktake absorbs it too. `--ws-docs` and `--ws-tools` are never
+hook drops the narrower flag when a wider one is present: `--wss-full-check` absorbs
+`--wss-check`, and either stocktake absorbs it too. `--wss-docs` and `--wss-tools` are never
 dropped, because each has a second job that is a *write* request and silently
 skipping one to save a read is the wrong way to be wrong.
 
@@ -342,18 +358,19 @@ behind.
 
 | When | Flag | Why then |
 |---|---|---|
-| Starting anything non-trivial | `--ws-track` | before the work, so the list is the plan rather than a summary |
-| Facing a capability-shaped task | `--ws-scout` | the toolbelt registry answers before anything is hand-built, and the search runs before the first failed attempt rather than after the third |
-| The moment you decide *not* to build something | `--ws-todo` | the reasoning is perishable; it is gone by tomorrow |
-| A decision made with no task attached | `--ws-log` | the same, minus the backlog entry |
-| Settling how the system behaves | `--ws-describe` | the rule goes to the behaviour record while it is still checkable against the code; `--ws-log` takes the reasoning, and the two are routinely conflated into one entry that ages badly |
-| Finishing a unit of work, or before `/clear` | `--ws-wrap` | the handoff is what the next session inherits |
-| Every week or so, or after a refactor | `--ws-check` | cheap, incremental, and catches the records the code just falsified |
-| Before a release, or when you stop trusting the record | `--ws-full-check` | the expensive one; earns its cost when the answer might be "no" |
-| Every month or so, or when picking a project back up | `--ws-stocktake` | rebuilds the backlog around where things actually are |
-| After editing any skill or agent file | `--ws-tools` | immediately, before ending the turn — it is the one with a deadline |
+| Starting anything non-trivial | `--wss-track` | before the work, so the list is the plan rather than a summary |
+| Facing a capability-shaped task | `--wss-scout` | the toolbelt registry answers before anything is hand-built, and the search runs before the first failed attempt rather than after the third |
+| The moment you decide *not* to build something | `--wss-todo` | the reasoning is perishable; it is gone by tomorrow |
+| A decision made with no task attached | `--wss-log` | the same, minus the backlog entry |
+| Settling how the system behaves | `--wss-describe` | the rule goes to the behaviour record while it is still checkable against the code; `--wss-log` takes the reasoning, and the two are routinely conflated into one entry that ages badly |
+| Settling what the project *is* — stack, data model, a convention | `--wss-reference` | the reference record is what a later reader trusts instead of checking, so write it while the claim is still checkable; where the manifest maps `README.md` into it, this reaches the landing page and the writer's consent rules apply |
+| Finishing a unit of work, or before `/clear` | `--wss-wrap` | the handoff is what the next session inherits |
+| Every week or so, or after a refactor | `--wss-check` | cheap, incremental, and catches the records the code just falsified |
+| Before a release, or when you stop trusting the record | `--wss-full-check` | the expensive one; earns its cost when the answer might be "no" |
+| Every month or so, or when picking a project back up | `--wss-stocktake` | rebuilds the backlog around where things actually are |
+| After editing any skill or agent file | `--wss-tools` | immediately, before ending the turn — it is the one with a deadline |
 
-**If you only ever use three, use `--ws-track`, `--ws-todo` and `--ws-wrap`.** They are
+**If you only ever use three, use `--wss-track`, `--wss-todo` and `--wss-wrap`.** They are
 the ones that pay on the first day; everything else pays back over weeks.
 
 **Exact decomposition is the whole signal.** A flag counts anywhere in the
@@ -361,17 +378,17 @@ message; what gates it is that the token decomposes entirely into flags, with
 nothing left over:
 
 ```
---ws-wrap                            invoke
---ws-stocktake--ws-release--ws-wrap            invoke all three, in that order
-that's everything --ws-docs          invoke
-commit it, then --ws-todo the rest    invoke — position does not matter
-git branch --track origin/dev     does NOT invoke — --track is not a ws- flag
-see the --ws-wrapper module          does NOT invoke — does not decompose
+--wss-wrap                            invoke
+--wss-stocktake--wss-release--wss-wrap            invoke all three, in that order
+that's everything --wss-docs          invoke
+commit it, then --wss-todo the rest    invoke — position does not matter
+git branch --track origin/dev     does NOT invoke — --track is not a wss- flag
+see the --wss-wrapper module          does NOT invoke — does not decompose
 ```
 
 Position used to matter — flags were read only from the start or end of a
-message — because unprefixed flags collided with pasted commands. The `ws-`
-prefix removed that collision: no real command carries a `--ws-*` option. The
+message — because unprefixed flags collided with pasted commands. The `wss-`
+prefix removed that collision: no real command carries a `--wss-*` option. The
 one consequence to know: a message that *quotes* a flag as its own bare token
 fires it. With the prefix, an exact token is taken as intent, wherever it sits.
 
@@ -396,53 +413,54 @@ Current flags:
 
 | Flag | Skill | Tier |
 |---|---|---|
-| `--ws-adopt` | `ws-adopt` | orchestrator |
-| `--ws-track` | `ws-track` | primitive |
-| `--ws-todo` | `ws-record` | primitive |
-| `--ws-log` | `ws-record` | primitive |
-| `--ws-plan` | `ws-plan` | primitive |
-| `--ws-tools` | `ws-tools` | primitive |
-| `--ws-check` | `ws-check` | orchestrator — writes nothing; dispatches |
-| `--ws-full-check` | `ws-full-check` | orchestrator — writes no record; dispatches. `--ws-release` runs it before a tag |
-| `--ws-docs` | `ws-docs` | orchestrator |
-| `--ws-start` | `ws-start` | orchestrator |
-| `--ws-stocktake` / `--ws-full-stocktake` | `ws-stocktake` | orchestrator |
-| `--ws-pr` | `ws-pr` | orchestrator |
-| `--ws-release` | `ws-release` | orchestrator |
-| `--ws-wrap` | `ws-wrap` | orchestrator |
-| `--ws-report` | `ws-report` | orchestrator — appends to the machine-local inbox, then opens an upstream issue on a fresh OK |
-| `--ws-overview` | `ws-overview` | orchestrator — reads and reports, writes nothing at all |
-| `--ws-scout` | `ws-scout` | primitive |
-| `--ws-describe` | `ws-describe` | primitive — dispatches to `behaviour-writer`, which is `record.behaviour`'s sole writer |
+| `--wss-adopt` | `wss-adopt` | orchestrator |
+| `--wss-track` | `wss-track` | primitive |
+| `--wss-todo` | `wss-record` | primitive |
+| `--wss-log` | `wss-record` | primitive |
+| `--wss-plan` | `wss-plan` | primitive |
+| `--wss-tools` | `wss-tools` | primitive |
+| `--wss-check` | `wss-check` | orchestrator — writes nothing; dispatches |
+| `--wss-full-check` | `wss-full-check` | orchestrator — writes no record; dispatches. `--wss-release` runs it before a tag |
+| `--wss-docs` | `wss-docs` | orchestrator |
+| `--wss-start` | `wss-start` | orchestrator |
+| `--wss-stocktake` / `--wss-full-stocktake` | `wss-stocktake` | orchestrator |
+| `--wss-pr` | `wss-pr` | orchestrator |
+| `--wss-release` | `wss-release` | orchestrator |
+| `--wss-wrap` | `wss-wrap` | orchestrator |
+| `--wss-report` | `wss-report` | orchestrator — appends to the machine-local inbox, then opens an upstream issue on a fresh OK |
+| `--wss-overview` | `wss-overview` | orchestrator — reads and reports, writes nothing at all |
+| `--wss-scout` | `wss-scout` | primitive |
+| `--wss-describe` | `wss-describe` | primitive — dispatches to `behaviour-writer`, which is `WSS.record.behaviour`'s sole writer |
+| `--wss-reference` | `wss-reference` | primitive — dispatches to `reference-writer`, which is `WSS.record.reference`'s sole writer |
 
 **What each flag authorizes is deliberately not a column here.** A grant is
-written by hand in two places — the block `shorthand-flags.sh` injects, and the
-matrix in [`workflow/ownership.md`](workflow/ownership.md) — and `doctor.sh`
+written by hand in two places — the block `wss-shorthand-flags.sh` injects, and the
+matrix in [`workflow/WSS.OWNERSHIP.md`](workflow/WSS.OWNERSHIP.md) — and `wss-doctor.sh`
 compares exactly those two on every run. A third copy in this file would be
 compared against neither while being the one a newcomer treats as
 authoritative, so the matrix is the single answer to *what may this flag do*.
 Three grants recur there: commit but not push, commit and push, and commit with
 a push that needs a fresh OK in the same turn.
 
-**`--ws-pr` is the only thing that moves work between the two branches.**
-`--ws-wrap` pushes `branch.integration` and stops; this drafts the PR body from the
+**`--wss-pr` is the only thing that moves work between the two branches.**
+`--wss-wrap` pushes `WSS.branch.integration` and stops; this drafts the PR body from the
 branch range rather than from what the session remembers doing, opens it, watches
-its CI, and merges once you confirm in that turn. `--ws-pr`'s short form has a
+its CI, and merges once you confirm in that turn. `--wss-pr`'s short form has a
 history: no flag may be a prefix of another — a token would decompose into the
-shorter flag plus junk, and `doctor.sh` fails the list on it — and `--ws-pr`
+shorter flag plus junk, and `wss-doctor.sh` fails the list on it — and `--wss-pr`
 sat inside the old prune flag, which was renamed and later retired when its
-skill merged into `ws-tools`. The invariant held throughout; the neighbours
+skill merged into `wss-tools`. The invariant held throughout; the neighbours
 moved.
 
-Two flags reach one skill where that skill does two jobs: `--ws-todo` parks an idea
-and `--ws-log` records a decision, both through `ws-record`.
+Two flags reach one skill where that skill does two jobs: `--wss-todo` parks an idea
+and `--wss-log` records a decision, both through `wss-record`.
 
 Two pairs are one job at two scopes, and the wider one wins when both are typed:
-`--ws-stocktake` / `--ws-full-stocktake`, and `--ws-check` / `--ws-full-check`.
+`--wss-stocktake` / `--wss-full-stocktake`, and `--wss-check` / `--wss-full-check`.
 
 A third suppression is absorption rather than scope: either stocktake flag drops
-`--ws-check`, because `ws-stocktake` runs that sweep as its own record
-dimension. `--ws-full-check` survives alongside a stocktake, since it also covers
+`--wss-check`, because `wss-stocktake` runs that sweep as its own record
+dimension. `--wss-full-check` survives alongside a stocktake, since it also covers
 the docs site and the tooling files that no stocktake reads.
 
 **Some primitives have no flag**, deliberately, and are invoked by other skills
@@ -450,22 +468,25 @@ rather than by you. Nobody wants to "record a baseline", "write the handoff" or
 "make a commit"; they want a sweep, a wrap, a landed batch, a release — and
 these are steps inside those. They are **procedure files under
 `workflow/writers/`, not skills** — a caller reads the file and follows it.
-`workflow/writers/README.md` is the index and the ownership matrix names each
+(Two *skills* are also flagless — `/wss-lane-record-sync` and `/wss-retire` —
+for the opposite reason: they are invoked only by you, never by a phrase or
+another skill.)
+`workflow/writers/WSS.WRITERS.md` is the index and the ownership matrix names each
 one's record; four are worth knowing by name:
 
-- **`sweep-tracker`** owns `.claude/sweeps.json`, the gitignored cache recording
+- **`sweep-tracker`** owns `.claude/WSS.SWEEPS.json`, the gitignored cache recording
   which commit each sweep last verified and what it actually covered. Its shape
   and its rules are
-  [`workflow/sweep-checkpoint.md`](workflow/sweep-checkpoint.md).
-- **`handoff-writer`** owns `record.handoff`, the compressed state a fresh
-  session inherits. `--ws-wrap` calls it for a full currency pass, `--ws-start` for
-  what a batch changed, `--ws-stocktake` for the warnings an audit created or
-  resolved, and `--ws-check` for a single stale claim.
-- **`changelog-writer`** owns `record.changelog`. `--ws-release` calls it for the
-  entry that goes with a version, and `--ws-check` when the changelog claims a
+  [`workflow/WSS.SWEEP-CHECKPOINT.md`](workflow/WSS.SWEEP-CHECKPOINT.md).
+- **`handoff-writer`** owns `WSS.record.handoff`, the compressed state a fresh
+  session inherits. `--wss-wrap` calls it for a full currency pass, `--wss-start` for
+  what a batch changed, `--wss-stocktake` for the warnings an audit created or
+  resolved, and `--wss-check` for a single stale claim.
+- **`changelog-writer`** owns `WSS.record.changelog`. `--wss-release` calls it for the
+  entry that goes with a version, and `--wss-check` when the changelog claims a
   version no tag resolves.
 - **`git-writer`** owns the git history — commits, tags, and the merge
-  `--ws-pr` asks for. Every skill that may commit calls it, which is what
+  `--wss-pr` asks for. Every skill that may commit calls it, which is what
   keeps the rules that make a commit safe in one place rather than in whichever
   caller happened to think of them.
 
@@ -479,18 +500,18 @@ good as the reader applying the rule correctly.
 That is why a skill which both decides something and writes the record of it
 gets split: the deciding half keeps the flag, because it is the half that has to
 reach the user, and the writing half becomes a flagless primitive anything can
-call. `--ws-release` is the worked example — it holds the publish gate and writes
-nothing. [`workflow/ownership.md`](workflow/ownership.md) is the authority on all
+call. `--wss-release` is the worked example — it holds the publish gate and writes
+nothing. [`workflow/WSS.OWNERSHIP.md`](workflow/WSS.OWNERSHIP.md) is the authority on all
 of it, including when a split is *not* worth making.
 
 **Every flag here maps to a global skill.** A project whose own skill wants a
 flag adds it to that project's hook — a global block guarding a skill only one
-project has is a permanent warning in `doctor.sh` and a set of rules that project
+project has is a permanent warning in `wss-doctor.sh` and a set of rules that project
 cannot edit.
 
 The rule holds with no exceptions today, and the one it once had was resolved
 the right way round — by generalising the skill rather than dropping its flag.
-`ws-tools`'s prune reads `record.tooling.sources` from whatever project it runs in,
+`wss-tools`'s prune reads `WSS.record.tooling.sources` from whatever project it runs in,
 so it is global like the rest.
 
 ## Finding a bug in this suite from another project
@@ -502,15 +523,15 @@ justification at the next `/clear`. Installed as a plugin it is worse: the write
 succeeds and is destroyed at the next plugin update, silently.
 
 This does **not** restrict your project's own skills and agents. Those are what
-`record.tooling.sources` globs and what `--ws-tools` exists to maintain. The rule
+`WSS.record.tooling.sources` globs and what `--wss-tools` exists to maintain. The rule
 draws the line at the installation, not around skill files in general.
 
-So a session files instead: one append to `bug-reports.md` in your config
+So a session files instead: one append to `WSS.BUG-REPORTS.md` in your config
 directory (`$CLAUDE_CONFIG_DIR`, else `~/.claude`), the single file any session
 in any project may write to. Append-only, which is what makes many writers safe
 on it — an append is additive, so concurrent entries cannot destroy each other.
 Gitignored, so filing never dirties a tree and your private project names never
-travel with the repo. `doctor.sh` counts the open entries, since nothing else
+travel with the repo. `wss-doctor.sh` counts the open entries, since nothing else
 would ever surface them. Because it is gitignored it ships with no template:
 
 ```
@@ -522,10 +543,10 @@ File: <path within the suite> · Detail: <what is wrong, what you expected>
 Triage them from a session whose working directory is a **checkout** of this
 suite, re-verifying each before acting. Running it as a plugin you have no such
 checkout, so the entry is your own record and the fix is an issue upstream at
-[`qupunto/workflow-secretary`](https://github.com/qupunto/workflow-secretary).
+[`qupunto/workflow-secretary-suite`](https://github.com/qupunto/workflow-secretary-suite).
 
-Who may write which file is [`workflow/ownership.md`](workflow/ownership.md);
+Who may write which file is [`workflow/WSS.OWNERSHIP.md`](workflow/WSS.OWNERSHIP.md);
 what each record holds is
-[`workflow/record-contract.md`](workflow/record-contract.md). Every skill links
+[`workflow/WSS.RECORD-CONTRACT.md`](workflow/WSS.RECORD-CONTRACT.md). Every skill links
 there rather than carrying its own copy.
 

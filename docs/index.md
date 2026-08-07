@@ -1,6 +1,6 @@
-# workflow-secretary — Documentation
+# Workflow Secretary Suite — Documentation
 
-**workflow-secretary** is a suite of Claude Code skills that act as a *secretary to
+**Workflow Secretary Suite** is a suite of Claude Code skills that act as a *secretary to
 coding rather than a coder*: they keep a project's backlog, decision log,
 roadmap, documentation and tooling catalog matching what the code actually does.
 Anything needing stack knowledge — architecture, correctness, security, the data
@@ -18,11 +18,11 @@ directory is the working tree.
 
 | File | Description |
 |---|---|
-| [overview.md](overview.md) | Repository layout, what a session loads and when, what can be switched off and what cannot, the scripts, and the verification commands |
+| [WSS.OVERVIEW.md](WSS.OVERVIEW.md) | Repository layout, what a session loads and when, what can be switched off and what cannot, the scripts, and the verification commands |
 
 ## Annex
 
 | File | Description |
 |---|---|
-| [annex/lane-synching.md](annex/lane-synching.md) | How work crosses between lanes without any lane writing another's records — the transfer queue, the `[critical → why]` marker, and `/ws-lanes-records-synch` |
-| [annex/claude-tooling.md](annex/claude-tooling.md) | Every skill and script, what each is for, the tier diagram, and who invokes whom |
+| [annex/lane-synching.md](annex/lane-synching.md) | How work crosses between lanes without any lane writing another's records — the transfer queue, the `[critical → why]` marker, and `/wss-lane-record-sync` |
+| [annex/WSS.CLAUDE-TOOLING.md](annex/WSS.CLAUDE-TOOLING.md) | Every skill and script, what each is for, the tier diagram, and who invokes whom |

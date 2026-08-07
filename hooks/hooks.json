@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/shorthand-flags.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/wss-shorthand-flags.sh"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-check.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/wss-session-check.sh"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/alert.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/wss-alert.sh"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/alert.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/wss-alert.sh"
           }
         ]
       }
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/alert.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/wss-alert.sh"
           }
         ]
       }
