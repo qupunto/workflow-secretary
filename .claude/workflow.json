@@ -8,6 +8,7 @@
   "record": {
     "todo": "TODO.md",
     "roadmap": "ROADMAP.md",
+    "releases": "RELEASES.md",
     "changelog": "CHANGELOG.md",
     "handoff": ".claude/HANDOFF.md",
     "decisions": "docs/decisions.md",

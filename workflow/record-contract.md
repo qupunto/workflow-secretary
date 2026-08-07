@@ -21,7 +21,8 @@ belongs where, and why putting it elsewhere breaks something.
 | `record.behaviour` | What the system **currently does** at runtime, by topic. | Why it does it. Decided-but-unbuilt behaviour. |
 | `record.reference` | Current state — stack, architecture, data model, conventions. | Decision history. |
 | `record.audits` | What was examined, when, against which commit, and what was found. Each entry carries an [`audit-coverage`](audit-coverage.md) block. | The resulting tasks — those go to `record.todo`. |
-| `record.roadmap` | Milestones and the blocks inside them, their order and dependencies, the version each milestone intends to ship as, and which milestones are completed. | Design arguments. The claim that a version *shipped* — a tag is the only proof of that. |
+| `record.roadmap` | **Goals.** What an area of work is trying to achieve, the blocks that get it there, their order and dependencies. Written in that area's own terms. | Design arguments. **A version number or a completion mark** — those are `record.releases`', and a roadmap carrying one is the failure the split below exists to prevent. |
+| `record.releases` | **The release list.** One entry per milestone: the version it intends to ship as, which goals it comprises, and whether it is marked completed. Plus the declaration, where one has been made, that milestones have ended. | Goal prose or task breakdowns — it *cites* the goals a milestone comprises rather than restating them. The claim that a version *shipped* — a tag is the only proof of that. |
 | `record.changelog` | What someone *using* the project would notice, per released version. | Unreleased work. |
 | `record.handoff` | What a fresh session must know **before it touches code**, compressed, plus pointers to everything else. | Anything it can look up when the topic comes up. |
 | `record.toolbelt` | One row per **adopted capability**: task shape → package → pointer into the `record.decisions` entry that adopted it. Consulted before building any capability. | The reasoning — that goes to `record.decisions` via `--ws-log` at the moment of adoption, so the registry stays a lookup table rather than a second decision log. |
@@ -73,7 +74,7 @@ is stale", and the exemption is the whole reason the file can be trusted as a lo
 | Mode | Files | Failure if done badly |
 |---|---|---|
 | **Append-only** | `decisions`, `audits`, `changelog` | Additive. A wrong entry is a wrong entry; nothing true was lost. |
-| **Rewritten in place** | `behaviour`, `reference`, `handoff`, `todo`, `roadmap`, `toolbelt` | Destroys the previous true statement. |
+| **Rewritten in place** | `behaviour`, `reference`, `handoff`, `todo`, `roadmap`, `releases`, `toolbelt` | Destroys the previous true statement. |
 
 Appending a dated entry and rewriting a topic section have different blast radii.
 That is why `record.decisions` belongs to the append-record primitive and
@@ -111,13 +112,14 @@ cover of updating its status is the failure this table exists to name.
 A project worked on from several git worktrees at once may split a record into
 per-lane files, declared under the manifest's `lanes.named` and resolved by
 [`manifest.md`](manifest.md)'s resolution rule. **Splittable: `todo`,
-`openDecisions`, `handoff`** — forward-looking records, lane-scoped by nature,
-and the three every concurrent session wants to write, which is exactly where
-the merge conflicts were. **Never: `decisions`, `audits`, `changelog`** — the
-append-only single timelines; three branches appending at EOF conflict
-trivially and resolve as "keep both" — **nor `roadmap`, `behaviour`,
-`reference`**, which describe one system, **nor `toolbelt`** — which tool does a
-job is a property of the project, not of a worktree. A lane-local decision log is the
+`openDecisions`, `handoff`, `roadmap`** — forward-looking records, lane-scoped by
+nature, and the ones every concurrent session wants to write, which is exactly
+where the merge conflicts were. **Never: `decisions`, `audits`, `changelog`** —
+the append-only single timelines; three branches appending at EOF conflict
+trivially and resolve as "keep both" — **nor `releases`**, which is the release
+list and must be singular for the reason below, **nor `behaviour`, `reference`**,
+which describe one system, **nor `toolbelt`** — which tool does a job is a
+property of the project, not of a worktree. A lane-local decision log is the
 failure this rule exists to prevent: the why of a choice fragments across
 files nobody reads together.
 
@@ -126,6 +128,133 @@ appends *candidate* entries to its own openDecisions file, and the merge to
 the integration branch is what promotes settled ones into `record.decisions`.
 One writer per file still holds — each lane file has the same owner its
 unsplit record has, per [`ownership.md`](ownership.md).
+
+## The transfer queue — a lane's inbox, and not a record
+
+**A lane never writes another lane's records.** What it writes instead is that
+lane's **transfer queue**, declared as `lanes.named.<lane>.transfer` — a sibling
+of `records`, deliberately outside it, because everything in this file's tables
+has one writer and a queue has many.
+
+| | A record | A transfer queue |
+|---|---|---|
+| Writers | exactly one | **any lane** |
+| Holds | state — what is true, planned or decided | **messages in flight** |
+| Steady state | whatever it says | **empty** |
+| Write mode | append-only or rewritten in place | append-only, always |
+| Consumed by | nothing — it is read | the owning lane's `--ws-start`, which moves each entry into the record it names and deletes it |
+
+**Append-only is what makes many writers safe**, the same argument the defect
+inbox rests on: an append is additive, so a wrong entry is merely wrong and
+nothing true is lost. **One consumer is what keeps the records' invariant
+intact** — an entry becomes part of `record.todo` only when that lane's own
+session moves it there, so `todo` still has exactly one writer.
+
+An entry names the record it is bound for, because one queue serves every
+destination it can reach:
+
+```
+## [todo] <one-line summary>
+From: <originating lane> · <what it came from — a block, a conflict, an entry>
+Why: <what makes this the receiving lane's work>
+```
+
+`[todo]`, `[openDecisions]` and `[roadmap]` are the only targets — three of the
+four splittable records, since a lane's handoff is written by that lane alone
+and nothing files into it. **A queue entry
+is a request, never an instruction**: the receiving lane's session is what
+decides the entry belongs, and an entry it rejects is deleted with a line saying
+so rather than silently dropped.
+
+**Delivery rides the integration branch.** A lane appends on its own branch, so
+the entry reaches another worktree only once the writing lane lands on
+`branch.integration` and the receiving one syncs forward. Two lanes appending to
+different queues never collide; two appending to the *same* queue conflict at
+EOF and resolve as "keep both", which is the trivial case the append-only
+records already accept.
+
+### The conflict inbox — `lanes.conflicts`
+
+**The second queue, and it differs from the first in who it is addressed to.**
+A transfer queue is addressed to a *lane*: work one lane believes another owns.
+The conflict inbox is addressed to a *skill*: a contradiction between two lanes'
+records, noticed by a session that was doing something else, which needs
+mediation nobody in that session can perform.
+
+There is **one per project**, not one per lane, because a contradiction is not
+any single lane's property — and routing it to one of the two lanes involved
+would be picking a side before anyone has ruled.
+
+| | Transfer queue | Conflict inbox |
+|---|---|---|
+| Declared | `lanes.named.<lane>.transfer`, one per lane | `lanes.conflicts`, one per project |
+| Addressed to | that lane | `ws-lanes-records-synch` |
+| Consumed by | that lane's `--ws-start` | that skill, on its next run |
+| Holds | work believed to be that lane's | a suspected contradiction between two lanes |
+
+Every queue rule above applies unchanged: append-only, any session may write,
+empty in the steady state, and an entry is deleted when it has been handled.
+
+```
+## <one-line statement of the contradiction>
+Lanes: <one lane> vs <the other>
+Found: <the lane that filed it> · <what it was doing when it noticed>
+Claim: <what each side's record says, cited so it can be checked>
+```
+
+**A filed entry is a claim, not a conflict.** The skill re-verifies it against
+the records before promoting it — the same second look
+[`ownership.md`](ownership.md#the-inspector-writes-nothing) requires of any
+finding that crosses skills, and for the same reason: a meaningful share do not
+reproduce as reported, and one that was already resolved reads exactly like one
+that is live. What the reporting session contributes is **evidence**, not a
+verdict.
+
+**Nothing else empties it.** A session that files an entry and a session that
+would act on it are different sessions, so an inbox nobody consumes is a
+contradiction somebody already found and nobody will see again.
+
+### `[critical → why]`
+
+**One priority marker, not a ladder.** It goes on the first line of an entry's
+body — the same place and shape as `[blocked → …]` and `[later → …]`, so there
+is one convention rather than two, and it survives a provider-backed backlog
+where sections do not exist. Everything else is unmarked. `--ws-start` takes
+critical items first, before any section ordering applies.
+
+Two levels rather than four because dependency ordering already outranks
+priority when a batch is partitioned, so finer grades mostly lose to it — and
+every extra grade is a judgment call on every write, with "mid" and "unmarked"
+meaning the same thing in practice.
+
+**A lane may not mark its own request critical in another lane's queue.** The
+marker is written only where **the user said so in that turn** —
+`ws-lanes-records-synch`'s mediation of a conflict, or its *accept as critical*
+ruling on a dependency. Priority inflation is the standard failure of every
+ladder, and here it is worse than usual: a lane marking its own asks critical is
+one lane setting another lane's order. The user setting it is not that, which is
+why the rule names the *writer* rather than the route.
+
+## Why the roadmap and the release list are two records
+
+**A roadmap sets the next goal. A release list is a gate.** They were one file
+while a project had one area of work, and pulling them apart is what lets the
+roadmap split.
+
+**No roadmap carries a version number or a completion mark** — not a lane's, not
+an unsplit project's. `record.releases` is the only file either appears in, and
+`--ws-release` reads no other planning record. That is the whole mechanism: a
+project may hold any number of lane roadmaps without ever holding more than one
+release checkpoint.
+
+A goal that becomes ship-facing does not acquire a version where it sits. A
+milestone in `record.releases` **cites** it — one direction, by name. So the
+milestone entry is where lane work and the shipping plan are reconciled, and it
+is reconciled because somebody wrote it there. **Nothing aggregates lane
+roadmaps**, and nothing detects a lane whose goals are all met while the
+milestone citing them still reads open. That is a cost of the split, accepted
+rather than covered: the alternative is a release gate that waits on the slowest
+lane.
 
 ## The mutable-claim rule
 

@@ -50,6 +50,7 @@ command -v jq >/dev/null 2>&1 || { echo "reset-records.sh needs jq" >&2; exit 1;
 RECORDS='
 todo|# Backlog
 roadmap|# Roadmap
+releases|# Release list
 changelog|# Changelog
 handoff|# Handoff
 decisions|# Decision log
@@ -153,6 +154,14 @@ EOF
 while IFS=$'\t' read -r lkey lrec rel; do
   [ -n "$rel" ] || continue
   heading=$(printf '%s\n' "$RECORDS" | awk -F'|' -v k="$lrec" '$1 == k {print $2; exit}')
+  # The transfer queue is not in RECORDS and must not be: that table drives the
+  # TOP-LEVEL loop, which resolves each key against `.record[…]`, and a queue is
+  # declared beside `records` rather than in it. It reaches this loop only as a
+  # lane key, so its heading is named here. A queue carries one project's
+  # cross-lane requests, which is exactly the content an adopter must not
+  # inherit — and unlike a record, an inherited one would be silently drained
+  # into that adopter's backlog by the first `--ws-start`.
+  [ "$lrec" = "transfer" ] && heading="# Transfer queue"
   [ -n "$heading" ] || heading="# ${lrec}"
   if [ "$lrec" = "handoff" ]; then
     case "$rel" in CLAUDE.md|./CLAUDE.md)
@@ -191,9 +200,31 @@ while IFS=$'\t' read -r lkey lrec rel; do
     fi
   fi
 done < <(jq -r '.lanes.named // {} | to_entries[] | .key as $l
-    | (.value.records // {}) | to_entries[]
-    | select(.value | type == "string")
-    | ["lane:" + $l + "." + .key, .key, .value] | @tsv' "$MANIFEST" 2>/dev/null)
+    | ( ((.value.records // {}) | to_entries[]
+          | select(.value | type == "string")
+          | ["lane:" + $l + "." + .key, .key, .value]),
+        ((.value.transfer // empty)
+          | ["lane:" + $l + ".transfer", "transfer", .]) )
+    | @tsv' "$MANIFEST" 2>/dev/null)
+
+# The conflict inbox is project-level rather than per-lane, so it is reached by
+# neither loop above. An inherited one is one project's cross-lane disputes, and
+# the adopting project's first synch run would mediate them as its own.
+conf_rel=$(jq -r '.lanes.conflicts // empty' "$MANIFEST" 2>/dev/null || true)
+if [ -n "$conf_rel" ] && [ -f "$DIR/$conf_rel" ]; then
+  if abs=$(contained "$conf_rel" "lanes.conflicts"); then
+    before=$(wc -c < "$abs" | tr -d ' ')
+    if [ "$WRITE" -eq 1 ]; then
+      printf '# Conflict inbox\n' > "$abs"
+      printf '  blank  %-14s %s (was %s bytes)\n' "lanes.conflicts" "$conf_rel" "$before"
+    else
+      printf '  would  %-14s %s (%s bytes -> 17)\n' "lanes.conflicts" "$conf_rel" "$before"
+    fi
+    changed=$((changed + 1))
+  else
+    refused=1; skipped=$((skipped + 1))
+  fi
+fi
 
 # The hazards file is not a record, but it carries standing warnings about
 # whichever repository wrote them — which is exactly the content an adopter

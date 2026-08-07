@@ -32,7 +32,7 @@ skill needs the user is the finding-by-finding review.
 **Project facts come from `.claude/workflow.json`**: the record paths under
 `record.*` — where a `.claude/lane` selector names a lane,
 `lanes.named.<lane>.records.X` overrides `record.X` for `todo`,
-`openDecisions` and `handoff`, per
+`openDecisions`, `handoff` and `roadmap`, per
 [`manifest.md`](../../workflow/manifest.md)'s resolution rule, and the rebuilt
 backlog goes to the resolved file; `agents.audit` for the fan-out and the remediation owners under
 `agents.*`; `commands.typecheck`, `commands.test`, `commands.testConsentEnv`,
@@ -419,11 +419,15 @@ supplies the dispositions and the approved shape.
 3. **Nothing disappears without a home.** Every deleted item is either
    demonstrably done (say where), moved to `record.decisions`, or moved to
    `record.openDecisions`. If you cannot name the home, it stays.
-4. **`record.roadmap` if priorities moved — propose, don't write.** `--ws-plan` is
-   its sole writer, including milestone boundaries and the version a milestone
-   intends to ship as. A finding severe enough to reorder the roadmap gets its own
-   block; hand the reorder to `--ws-plan` even when you have the whole picture and
-   the edit looks trivial. **A finding about a version or a tag is `--ws-release`'s
+4. **`record.roadmap` and `record.releases` if priorities moved — propose, don't
+   write.** `--ws-plan` is sole writer of both: goals and their order in the first
+   — every lane's copy — and milestone boundaries, the version a milestone intends
+   to ship as, and the marks in the second. A finding severe enough to reorder a
+   roadmap gets its own block; hand the reorder to `--ws-plan` even when you have
+   the whole picture and the edit looks trivial. **A version or a completion mark
+   found in a roadmap is a finding, not a detail to preserve** — it belongs in
+   `record.releases`, and under lanes it is a release checkpoint one worktree cut
+   for the whole project. **A finding about a version or a tag is `--ws-release`'s
    decision**, and a correction to `record.changelog` is `changelog-writer`'s
    write — including drift between what the documents claim shipped and what
    `git tag` actually has.
@@ -504,7 +508,7 @@ different role's agent:
 | Containers, networking, infra scripts, CI workflows | `agents.infra` |
 | A test gap, or missing regression coverage | `agents.test` |
 | A security finding that needs proving before anyone fixes it | `agents.exploit` |
-| A roadmap block or milestone to add, reorder or reprioritise | `--ws-plan` |
+| A goal or roadmap block to add, reorder or reprioritise, or a milestone in `record.releases` | `--ws-plan` |
 | A version or a tag, or drift between the documents and `git tag` | `--ws-release` — it decides; `changelog-writer` and `--ws-plan` write |
 | A stale claim in **this project's** skill or agent file | `--ws-tools`, which owns them — dispatch, do not fix it here |
 | A defect in a file belonging to **this suite** — including one this audit is running | **File it and stop.** Not `--ws-tools`, not a fix in place — destination and reasoning in [`ownership.md`](../../workflow/ownership.md#a-file-belonging-to-the-installation-is-never-edited-from-a-project-session) |

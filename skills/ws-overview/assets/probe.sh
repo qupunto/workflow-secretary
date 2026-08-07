@@ -136,36 +136,81 @@ else
 fi
 
 echo
-echo "== roadmap =="
+echo "== roadmap (goals) =="
+# Lane-aware: a lane worktree reports its own goals. Milestones are NOT here —
+# a roadmap carries no version and no completion mark, per record-contract.md.
 ROADMAP="$(resolve_record roadmap ROADMAP.md)"
 if [ -z "$ROADMAP" ]; then
   echo "roadmap: undeclared"
 elif [ ! -f "$ROADMAP" ]; then
   echo "roadmap: $ROADMAP — missing"
 else
+  printf 'roadmap: %s%s\n' "$ROADMAP" "${LANE:+ (lane: $LANE)}"
   awk '
     /^## / {
-      m++; title = substr($0, 4)
-      comp[m] = (title ~ /\*completed\*/) ? 1 : 0
-      miles[m] = title
+      g++; goals[g] = substr($0, 4)
       next
     }
     /^[[:space:]]*- \[ \]/ {
-      if (m > 0) { open[m]++; total++ }
-      if (m > 0 && firstblock[m] == "") {
-        b = $0; sub(/^[[:space:]]*- \[ \][[:space:]]*/, "", b); firstblock[m] = b
+      total++
+      if (g > 0) {
+        open[g]++
+        if (firstblock[g] == "") {
+          b = $0; sub(/^[[:space:]]*- \[ \][[:space:]]*/, "", b); firstblock[g] = b
+        }
       }
     }
     END {
-      printf "milestones (## headings): %d, open blocks total: %d\n", m, total + 0
+      printf "goals (## headings): %d, open blocks total: %d\n", g + 0, total + 0
+      if (g == 0) { print "current: none — no ## headings"; exit }
       cur = 0
-      for (i = 1; i <= m; i++) if (!comp[i]) { cur = i; break }
-      if (cur == 0 && m > 0) { print "current: none — every heading is marked completed"; exit }
-      if (m == 0) { print "current: none — no ## headings"; exit }
-      printf "current (first not marked completed): %s\n", miles[cur]
+      for (i = 1; i <= g; i++) if (open[i] > 0) { cur = i; break }
+      if (cur == 0) { print "current: none — every goal has its blocks checked off"; exit }
+      printf "current (first goal with open blocks): %s\n", goals[cur]
       printf "  open blocks here: %d\n", open[cur] + 0
       if (firstblock[cur] != "") printf "  next unchecked block: %s\n", firstblock[cur]
-      if (cur < m) printf "next after it: %s\n", miles[cur + 1]
+      if (cur < g) printf "next after it: %s\n", goals[cur + 1]
     }
   ' "$ROADMAP"
+  # Heading-anchored, so a version mentioned in prose is not a finding.
+  if grep -qE '^#{1,6} .*(\*completed\*|v?[0-9]+\.[0-9]+\.[0-9]+)' "$ROADMAP"; then
+    echo "WARNING: a heading here carries a version or a completion mark — those"
+    echo "         belong in record.releases; doctor.sh fails on it"
+  fi
+fi
+
+echo
+echo "== releases =="
+# Never lane-resolved: one release list per project, however many lanes it runs.
+RELEASES="$(mget '.record.releases' 'RELEASES.md')"
+if [ -z "$RELEASES" ]; then
+  echo "releases: undeclared"
+elif [ ! -f "$RELEASES" ]; then
+  echo "releases: $RELEASES — missing"
+else
+  printf 'releases: %s\n' "$RELEASES"
+  awk '
+    /^## / {
+      m++; title = substr($0, 4)
+      miles[m] = title
+      comp[m] = (title ~ /\*completed\*/) ? 1 : 0
+      if (title ~ /[Mm]aintenance|no (further|more) milestones|end(ed)? milestones/) ended = 1
+      next
+    }
+    END {
+      printf "milestones (## headings): %d\n", m + 0
+      if (m == 0) { print "current: none — no ## headings"; exit }
+      cur = 0
+      for (i = 1; i <= m; i++) if (!comp[i]) { cur = i; break }
+      if (cur == 0) {
+        print "current: none — every milestone is marked completed"
+        if (ended) print "  a section reads as an end-of-milestones declaration — --ws-release case 4"
+        else print "  and NO end-of-milestones declaration was recognised — --ws-release cannot cut a"
+        if (!ended) print "  further release until --ws-plan writes one (its case 4)"
+        exit
+      }
+      printf "current (first not marked completed): %s\n", miles[cur]
+      if (cur < m) printf "next after it: %s\n", miles[cur + 1]
+    }
+  ' "$RELEASES"
 fi

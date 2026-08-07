@@ -19,7 +19,7 @@ format is [`sweep-checkpoint.md`](../../workflow/sweep-checkpoint.md).
 `commands.indexCheck`. Without a manifest, fall back to conventional names, skip
 what you cannot resolve, and say so in one line rather than guessing. Where a
 `.claude/lane` selector names a lane, `lanes.named.<lane>.records.X` overrides
-`record.X` for `todo`, `openDecisions` and `handoff` —
+`record.X` for `todo`, `openDecisions`, `handoff` and `roadmap` —
 [`manifest.md`](../../workflow/manifest.md)'s resolution rule. Other lanes'
 files are still records with the same owners; sweep them too where the check
 covers the whole record.
@@ -31,7 +31,8 @@ wrong rather than merely old when they stop matching reality:
 
 | Covered | Checked for |
 |---|---|
-| `record.todo`, `record.roadmap` | items already done, claims about state, ordering that no longer reflects dependencies |
+| `record.todo`, `record.roadmap` | items already done, claims about state, ordering that no longer reflects dependencies, **a version number or completion mark that does not belong in a roadmap at all** |
+| `record.releases` | a milestone citing a goal that no roadmap holds, an intended version overtaken by a tag, a mark whose milestone is not actually complete |
 | `record.behaviour`, `record.reference` | claims contradicted by source; updates the code owed and never got |
 | `record.handoff` | resolved warnings still present, pointers that no longer resolve |
 | the docs site | every check in `--ws-docs` audit mode, including the page-by-page accuracy pass |

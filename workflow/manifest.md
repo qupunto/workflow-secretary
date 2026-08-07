@@ -43,6 +43,7 @@ Every key is optional. A skill that cannot resolve one says so and continues.
 |---|---|---|
 | `record.todo` | path, **or a provider object** | `TODO.md` |
 | `record.roadmap` | path | `ROADMAP.md` |
+| `record.releases` | path | `RELEASES.md` |
 | `record.changelog` | path | `CHANGELOG.md` |
 | `record.handoff` | path | `CLAUDE.md` |
 | `record.decisions` | path | `docs/decisions.md` |
@@ -136,14 +137,22 @@ and says so — it never substitutes a different role's agent.**
 ### `lanes` — concurrent-write collision, and named worktree lanes
 
 Consumed by `--ws-start` when partitioning parallel work — and, for `lanes.named`,
-by every reader of the three splittable records.
+by every reader of the splittable records.
 
 | Key | Rule |
 |---|---|
 | `lanes.exclusive` | At most one lane in a batch, and it runs first, alone |
 | `lanes.serialize` | A lane *modifying* one runs alone or first; lanes merely *calling* it run in parallel |
 | `lanes.generated` | No lane writes these; the orchestrator regenerates once |
-| `lanes.named` | Map of lane name → `{"scope": [globs], "records": {…}}`, one entry per lane for a project worked on from several git worktrees at once |
+| `lanes.named` | Map of lane name → `{"scope": [globs], "records": {…}, "transfer": path}`, one entry per lane for a project worked on from several git worktrees at once |
+| `lanes.conflicts` | path — **one per project**, the conflict inbox `ws-lanes-records-synch` consumes |
+
+**`record.releases` is the release list and `record.roadmap` is not.** Milestones,
+the version each intends to ship as and the completion marks live in the first;
+goals and the blocks that reach them live in the second, which may split by lane.
+[`record-contract.md`](record-contract.md) holds why, and holds the rule that
+makes a split roadmap safe: **no roadmap, lane or unsplit, carries a version
+number or a completion mark.** `doctor.sh` fails on one that does.
 
 **`lanes.named` holds the worktree lanes**, nested so lane names cannot collide
 with the three reserved keys above. Each entry's `scope` globs are the paths the
@@ -156,16 +165,43 @@ them — and its `records` object may redirect a record to a lane-scoped file:
     "backend": { "scope": ["backend/**"],
                  "records": { "todo": "TODO.backend.md",
                               "openDecisions": "docs/open-decisions.backend.md",
-                              "handoff": "docs/handoff/backend.md" } },
-    "frontend": { "scope": ["frontend/**"], "records": {} }
+                              "handoff": "docs/handoff/backend.md",
+                              "roadmap": "ROADMAP.backend.md" } },
+    "frontend": { "scope": ["frontend/**"], "records": {},
+                  "transfer": "docs/transfer/frontend.md" }
   }
 }
 ```
 
-Only `todo`, `openDecisions` and `handoff` may appear under a lane's `records` —
-which records may split by lane and which must never is
+**`transfer` is a sibling of `records`, never a key inside it**, and the nesting
+is the point rather than tidiness: everything under `records` has exactly one
+writer, and a transfer queue has many. It is the lane's **inbox** — where every
+*other* lane files work it believes this lane owns, so that no lane ever writes
+another's records. [`record-contract.md`](record-contract.md) holds what it may
+contain, why append-only makes many writers safe, and the `[critical → why]`
+marker. `doctor.sh` fails on `transfer` appearing under `records`.
+
+Like the splittable records it is **declared for all named lanes or none** — a
+lane with no queue is a lane nothing can file to, which reads as "nobody needs
+anything from them" and is almost never true. It is tracked, unlike the
+`.claude/lane` selector, because an entry has to travel to the worktree it is
+addressed to.
+
+**`lanes.conflicts` is the second queue and there is exactly one**, a sibling of
+`named` rather than a key inside a lane. It takes a contradiction between two
+lanes' records that some session noticed while doing something else, and
+`ws-lanes-records-synch` is what consumes it. One per project because a
+contradiction belongs to neither lane involved — filing it to one of them would
+be picking a side before anyone has ruled.
+[`record-contract.md`](record-contract.md) holds the entry shape and the rule
+that a filed entry is a claim to be re-verified rather than a conflict to act
+on. Declaring it without `lanes.named` is meaningless and `doctor.sh` says so.
+
+Only `todo`, `openDecisions`, `handoff` and `roadmap` may appear under a lane's
+`records` — which records may split by lane and which must never is
 [`record-contract.md`](record-contract.md)'s rule, and `doctor.sh` fails on any
-other key there. A splittable record is split for **all** named lanes or none:
+other key there. **`releases` is not among them**, and that is what keeps a
+release checkpoint singular however many lanes a project runs. A splittable record is split for **all** named lanes or none:
 a half-split is how two writers land on one file, and `doctor.sh` fails on that
 too. Name lane files by **lane**, which is durable (`TODO.backend.md`), never by
 worktree, which is litter that outlives the worktree.

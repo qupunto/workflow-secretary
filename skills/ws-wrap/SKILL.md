@@ -6,12 +6,16 @@ description: "Close out a unit of work or a session — task-list cleanup, hando
 # Wrapping up an approved task
 
 **Project facts come from `.claude/workflow.json`**: `branch.integration` is what
-this skill pushes, `record.roadmap` is what step 6 reads, and `commitTrailer`
+this skill pushes — and, from a lane worktree, what it fast-forwards that lane
+onto — `record.roadmap` and `record.releases` are what step 6 reads,
+and `commitTrailer`
 names the session trailer. Without a manifest, fall back to the current branch
 and say in one line that you did. Where a `.claude/lane` selector names a lane,
-`lanes.named.<lane>.records.X` overrides `record.X` for `todo`, `openDecisions`
-and `handoff` — [`manifest.md`](../../workflow/manifest.md)'s resolution rule —
-so a lane worktree wraps into its own three files.
+`lanes.named.<lane>.records.X` overrides `record.X` for `todo`, `openDecisions`,
+`handoff` and `roadmap` — [`manifest.md`](../../workflow/manifest.md)'s
+resolution rule — so a lane worktree wraps into its own four files.
+`record.releases` is never among them, which is why step 6 below asks the
+milestone question only from the main checkout.
 
 **This skill writes no record file.** The handoff — the part that makes this the
 handoff — belongs to `handoff-writer`, which step 3 invokes. Who owns what is
@@ -94,17 +98,26 @@ session that is not over.
    the working tree alone but throws away the only cheap explanation of it, so
    this is the last moment a commit message can be written honestly. See the
    section below.
-6. **Check whether this session finished a milestone.** Read `record.roadmap`:
-   if the work just committed checked off the last open block of the current
-   milestone, **invoke `ws-plan`** so the question is put to the user now, while
-   the evidence is in front of them. Do **not** mark it completed yourself —
-   that file is `--ws-plan`'s, and whether a milestone is done is the user's call,
-   which `--ws-plan` asks and the two disqualifier checks it runs are part of.
-   If the user marks it, name `--ws-release` as the next step; if they don't, that
-   is a complete outcome and the wrap continues.
+6. **Check whether this session finished a goal, and whether that finished a
+   milestone.** Two records and two questions — read the roadmap this checkout
+   resolves, then `record.releases`:
+
+   - If the work just committed checked off the last open block of a goal, say
+     so. In a lane worktree that is where it stops: **a lane session never asks
+     the milestone question**, because a mark is a checkpoint for the whole
+     project and this session can see one lane of it.
+   - In the main checkout, if that goal was the last one an open milestone in
+     `record.releases` cites, **invoke `ws-plan`** so the question is put to the
+     user now, while the evidence is in front of them.
+
+   Do **not** mark it completed yourself — `record.releases` is `--ws-plan`'s, and
+   whether a milestone is done is the user's call, which `--ws-plan` asks and the
+   two disqualifier checks it runs are part of. If the user marks it, name
+   `--ws-release` as the next step; if they don't, that is a complete outcome and
+   the wrap continues.
 
    **A mark written here lands after step 5's commit**, so commit it too rather
-   than leaving `record.roadmap` dirty for a `/clear` to strip the context from.
+   than leaving `record.releases` dirty for a `/clear` to strip the context from.
    It is `--ws-plan`'s write and this skill's commit, which is the normal division.
 7. **Report where the project now stands**, in four numbers, read from the
    records after step 5's commit and step 6's mark so they describe the tree the
@@ -114,8 +127,8 @@ session that is not over.
    |---|---|---|
    | open backlog items | `record.todo` | how many remain |
    | decisions nobody has made | `record.openDecisions` | how many are pending, and **name them** — an unmade decision gets made by accident by whoever writes the first line of code that depends on it |
-   | the next milestone | `record.roadmap` | which one is current, and its next unchecked block |
-   | milestones outstanding | `record.roadmap` | how many are not yet completed |
+   | the next goal | `record.roadmap` — this checkout's, and **name the lane** where one is selected | which goal is current, and its next unchecked block |
+   | milestones outstanding | `record.releases` | how many are not yet completed |
 
    **Count what the record actually contains — never carry a number forward from
    earlier in the session.** The batch just committed is exactly what moves these,
@@ -127,7 +140,7 @@ session that is not over.
    once, by someone who is about to decide whether to stop.
 
    Where a record is undeclared or absent, say so in its place rather than
-   printing a zero. "No roadmap is declared" and "no milestones remain" are
+   printing a zero. "No release list is declared" and "no milestones remain" are
    opposite facts and a bare `0` renders them identically.
 
    **`record.todo` may be a provider rather than a file.** Where the value
@@ -183,7 +196,10 @@ need the session's own knowledge:
 
 If a push is rejected, `git-writer` stops and hands back. Report it rather than
 resolving it: a rejection usually means another session pushed first, and that
-is a merge decision, not a wrap-up step.
+is a merge decision, not a wrap-up step. **This holds for the lane's landing
+push in the worktree section below too** — that one is refused rather than
+forced by design, and a rejection there is the same fact wearing a different
+shape.
 
 **Where the pushed branch is now ahead of `branch.publish`, name `--ws-pr`
 and stop.** Do not open one: a session ending and work being ready to merge are
@@ -209,26 +225,60 @@ instead of duplicating hundreds of megabytes or needing a fresh install. Where
 it does not, a worktree is expensive and may arrive unable to run anything —
 confirm before treating one as cheap.
 
-Then a wrap pushes only that session's branch, which is what makes "only my
-commits" achievable at all. The cost is a merge step: those branches have to go
-into `branch.integration` afterwards. The integration branch stays the
-integration branch; worktree branches are short-lived.
+Then a wrap pushes that session's branch, which is what makes "only my commits"
+achievable at all. The integration branch stays the integration branch;
+worktree branches are short-lived.
 
-**Wrapping inside a worktree**: push the worktree's own branch, never the
-integration branch, and say in the summary that it still needs merging —
-otherwise the work is pushed but invisible to the deploy path, which is worse
-than uncommitted because it looks finished.
+**Wrapping inside a worktree, in order.** All three steps go through
+`git-writer` under this skill's grant:
 
-**Then sync the worktree back from `branch.integration`, after the push.**
-`git fetch`, then `git merge --ff-only` the integration branch into the
-worktree's branch: where the worktree's work has already been merged there —
-this session or an earlier one — that fast-forwards and costs nothing. Where it
-cannot fast-forward, **report the divergence plainly and stop**; a merge with
-real deltas is a decision, not a wrap step. The lane records are why: an at-merge
-obligation already executed on the integration branch but surviving in the
-lane's copy reads as an instruction to execute it again. The start-side twin
-lives in `--ws-start`'s Phase 0:
-a lane worktree also syncs forward before a batch runs.
+1. **Push the worktree's own branch.** Unchanged, and it happens first: it is
+   the step that must succeed even when everything below is refused.
+2. **Land it on `branch.integration`.** `git fetch origin`, then
+
+   ```bash
+   git push origin <worktree-branch>:<branch.integration>
+   ```
+
+   **No leading `+`, ever.** That is the entire safety property, and it is why
+   this is not a merge: git resolves the push as a fast-forward or **refuses it
+   server-side**. There is no working tree involved, no conflict to hit, and
+   nothing half-applied to clean up. The lane normally *is* the integration
+   branch plus this session's commits — `--ws-start`'s Phase 0 syncs forward
+   before a batch reads anything — so the fast-forward is the ordinary case.
+
+   **On a rejected push, report and stop. Never force, never resolve it here.**
+   A rejection means the integration branch moved: another lane landed while
+   this session ran. Say which branch is behind and that the lane needs syncing
+   forward before it can land — the next `--ws-start` does exactly that. A wrap
+   is the worst moment to resolve a divergence, because it is the moment the
+   context that would explain it is about to be cleared.
+
+   **`branch.mergeMethod` does not apply.** It governs the one merge
+   `--ws-pr` hands `git-writer`, integration onto `branch.publish`. A
+   fast-forward writes no merge commit, so there is no method to choose, and
+   wiring one in here would create the merge commit this step exists to avoid.
+
+3. **Sync the worktree back**, as before: `git merge --ff-only` the integration
+   branch into the worktree's branch. In the happy path step 2 already made
+   the two identical and this costs nothing. Where it cannot fast-forward,
+   **report the divergence plainly and stop**; a merge with real deltas is a
+   decision, not a wrap step. The lane records are why: an at-merge obligation
+   already executed on the integration branch but surviving in the lane's copy
+   reads as an instruction to execute it again. The start-side twin lives in
+   `--ws-start`'s Phase 0: a lane worktree also syncs forward before a batch
+   runs.
+
+**Step 2 does not fire on an unfinished-work wrap.** Where this ran because the
+session is ending rather than because the work was approved — the third trigger
+above — push the lane branch and **say plainly that it was deliberately not
+landed**. Half-done work on a branch only this session reads is safe; the same
+work on the branch every other lane syncs forward from is not, and it arrives
+there looking finished.
+
+**Why the push refspec rather than checking out the integration branch and
+merging**: `branch.integration` is checked out in the main checkout, and git
+refuses to check out a branch that another worktree holds.
 
 ## What this skill does not do
 
@@ -243,6 +293,7 @@ each one holds is
 - **It does not commit, tag or push by hand**, and duplicates none of the rules
   that govern those. They go through the history's owner under this skill's grant.
 - **It does not decide that a milestone finished.** Step 6 puts the question to
-  the user through the roadmap's owner and never answers it. That dispatch is
+  the user through `record.releases`' owner and never answers it — and never
+  puts it at all from a lane worktree. That dispatch is
   safe because an invoked skill inherits **this** skill's grant and never its own
   flag's.

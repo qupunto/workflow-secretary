@@ -17,7 +17,7 @@
 #   All suite-owned, all regenerable by re-adopting. Losing them costs nothing.
 #
 #   RECORDS (--write --records): the files the manifest declares for todo,
-#   roadmap, decisions, decisionsIndex, openDecisions, audits, the lane record
+#   roadmap, releases, decisions, decisionsIndex, openDecisions, audits, the lane record
 #   files, and the handoff where it is NOT CLAUDE.md (plus its HAZARDS.md
 #   sibling). These hold the PROJECT'S OWN KNOWLEDGE — a backlog, a decision
 #   log — which is why they hide behind a second flag and a dry run.
@@ -119,10 +119,13 @@ if [ "$RECORDS" -eq 1 ]; then
     esac
   done < <(jq -r '
       [ (.record // {} | to_entries[]
-          | select(.key | IN("todo","roadmap","decisions","decisionsIndex",
+          | select(.key | IN("todo","roadmap","releases","decisions","decisionsIndex",
                              "openDecisions","audits","handoff"))
           | select(.value | type == "string")
           | [.key, .value]),
+        (.lanes.named // {} | to_entries[] | .key as $l
+          | (.value.transfer // empty) | ["lane:" + $l + ".transfer", .]),
+        ((.lanes.conflicts // empty) | ["lanes.conflicts", .]),
         (.lanes.named // {} | to_entries[] | .key as $l
           | (.value.records // {}) | to_entries[]
           | ["lane:" + $l + "." + .key, .value])

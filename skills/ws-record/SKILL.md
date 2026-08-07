@@ -155,6 +155,18 @@ would bite the implementer. **Not the argument for or against.**
 If a decision blocks it, mark it `[blocked → <what's undecided>]` pointing at
 `record.openDecisions`.
 
+**`[critical → why]` is the one priority marker**, same line, same shape. It
+means `--ws-start` takes this before section order applies. Everything else is
+unmarked — there is no "high" and no "mid", because dependency ordering already
+outranks priority when a batch is partitioned, and a grade that changes nothing
+is a judgment call paid for on every write.
+
+**Do not mark an entry critical in another lane's transfer queue.** Filing into
+a sibling lane's inbox is a request; marking it critical is setting that lane's
+order for them. The marker is written only where the **user** said so in that
+turn, which in practice means `ws-lanes-records-synch`'s two gates —
+[`record-contract.md`](../../workflow/record-contract.md)'s queue section.
+
 **Never write the reasoning here.** That is the whole point of the split.
 
 ## Writing to `record.decisions`
@@ -194,7 +206,8 @@ and `record.reference`.
 - **It does not decide.** It records what the user decided. If you find yourself
   writing an entry for a choice nobody actually made, that belongs in
   `record.openDecisions` instead.
-- **It does not touch `record.roadmap`** — that is `--ws-plan`'s — or
+- **It does not touch `record.roadmap` or `record.releases`** — both are
+  `--ws-plan`'s — or
   `record.changelog`, which is `changelog-writer`'s, or tags, which are
   `git-writer`'s and only ever on `--ws-release`'s say-so. A task *about* releasing
   something is fine; a task that *is* a release is not.

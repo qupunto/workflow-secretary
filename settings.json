@@ -32,7 +32,8 @@
     "defaultMode": "auto"
   },
   "skillOverrides": {
-    "ws-contracts": "name-only"
+    "ws-contracts": "name-only",
+    "ws-lanes-records-synch": "name-only"
   },
   "hooks": {
     "UserPromptSubmit": [

@@ -81,9 +81,14 @@ Three checks, and all three are cheap:
 
   **`lanes.named.*.records` paths are record paths like any other**, with three
   constraints of their own that `doctor.sh` enforces: only the splittable keys
-  (`todo`, `openDecisions`, `handoff`) may appear, every declared path exists,
-  and each record splits for **all** named lanes or none. Refuse a lane map
-  that breaks any of the three rather than writing it.
+  (`todo`, `openDecisions`, `handoff`, `roadmap`) may appear, every declared
+  path exists, and each record splits for **all** named lanes or none. Refuse a
+  lane map that breaks any of the three rather than writing it.
+
+  **`transfer` is a sibling of `records`, never a key inside it** — a lane's
+  queue, which many lanes write and `records` never does. It carries the same
+  all-lanes-or-none rule and its path must exist.
+  [`manifest.md`](../manifest.md) is the authority on both.
 - **The name is the existing one where one fits.** Two names for one concept is
   the failure `manifest.md` exists to end — `indexCheck` where every consumer
   wants `indexRegen`.
