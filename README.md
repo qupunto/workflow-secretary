@@ -32,7 +32,10 @@ already have — a plugin never owns your `settings.json`. The one thing it cost
 you is granularity: **plugin skills are all-or-nothing.** `skillOverrides` does
 not reach them, so it is the whole suite or none of it, and `claude plugin
 disable` is the only switch. That was a deliberate trade for one manifest, one
-version and cross-links that keep working; the reasoning is in the decision log.
+version and cross-links that keep working; the reasoning is in the decision
+log — which in a published copy of this repository ships blank on purpose,
+like every record, so the full entry is only readable from the development
+tree.
 
 **As a checkout**, if you want to develop, fork or audit the suite: it becomes
 your `~/.claude`, and you get the tests, the docs site and the records too. Go
@@ -59,7 +62,7 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 |---|---|
 | `settings.json` | Permissions and hook wiring |
 | `hooks/wss-shorthand-flags.sh` | `UserPromptSubmit` hook — the `--flag` shorthands |
-| `hooks/wss-session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `wss-doctor.sh` failure, a sweep or a record gone stale, an open bug report, an unread upstream filing (counted only in the suite's own checkout). It also injects the project's handoff where a manifest maps it away from `CLAUDE.md`, which is the one case where nothing else would load it |
+| `hooks/wss-session-check.sh` | `SessionStart` hook — the only thing here that speaks unasked, so it is built to stay silent unless something is worth a session's attention: a `wss-doctor.sh` failure, a sweep or a record gone stale, an open bug report, an unread upstream filing (counted only in the suite's own checkout). It also injects the project's handoff wherever the resolved file is not `CLAUDE.md` — a declared mapping, or the `WSS.HANDOFF.md` fallback when the key or the manifest is absent — since the harness loads only `CLAUDE.md` on its own |
 | `hooks/wss-alert.sh` | `Notification`/`Stop`/`PreToolUse(AskUserQuestion)` hook — a sound cue when a session waits for input. Ships silent; `--wss-alerts on\|off` toggles it per machine via a state file in the config directory |
 | `hooks/hooks.json` | Wires those same events when this is installed as a plugin instead of cloned. `settings.json` is the user's in that case and a plugin never owns it; plugin hooks merge with the user's rather than replacing them |
 | `.claude-plugin/plugin.json` | The plugin manifest. `claude plugin validate` reads it |
@@ -76,11 +79,14 @@ and in one case (`.credentials.json`) must never leave the machine at all.
 
 **As a checkout** — cloning into `~/.claude`, which is what the section below
 does, and the form this suite is developed in — `skillOverrides` in
-`settings.json` controls each skill individually. This repository sets every
-skill no flag maps to — the dispatch-reached and the slash-only alike — to
-`name-only`, so their descriptions do not load in every session;
-`wss-doctor.sh` warns when such a skill has no entry. Read the current set out
-of `settings.json` rather than a count here.
+`settings.json` controls each skill individually, and `/wss-toggle` is the
+slash-only editor of that block. This repository uses two levels: `name-only`
+for dispatch-reached skills (the description unloads, the dispatch still
+works) and `user-invocable-only` for heavyweights invoked by slash alone —
+under which the skill's *flag* is deliberately inert too, since the flag hook
+honours the same override. `wss-doctor.sh` warns when a skill no flag maps to
+has no entry. Read the current set out of `settings.json` rather than a count
+here.
 
 **As a plugin, the harness ignores that lever** — `skillOverrides` does not reach
 plugin skills, at `off` as well as `name-only`, under bare and namespaced keys
@@ -422,6 +428,7 @@ Current flags:
 | `--wss-check` | `wss-check` | orchestrator — writes nothing; dispatches |
 | `--wss-full-check` | `wss-full-check` | orchestrator — writes no record; dispatches. `--wss-release` runs it before a tag |
 | `--wss-docs` | `wss-docs` | orchestrator |
+| `--wss-diagram` | `wss-docs` | orchestrator — one ad-hoc diagram, drawn under the style guide's rules and landed as an annex page |
 | `--wss-start` | `wss-start` | orchestrator |
 | `--wss-stocktake` / `--wss-full-stocktake` | `wss-stocktake` | orchestrator |
 | `--wss-pr` | `wss-pr` | orchestrator |
@@ -468,9 +475,9 @@ rather than by you. Nobody wants to "record a baseline", "write the handoff" or
 "make a commit"; they want a sweep, a wrap, a landed batch, a release — and
 these are steps inside those. They are **procedure files under
 `workflow/writers/`, not skills** — a caller reads the file and follows it.
-(Two *skills* are also flagless — `/wss-lane-record-sync` and `/wss-retire` —
-for the opposite reason: they are invoked only by you, never by a phrase or
-another skill.)
+(Three *skills* are also flagless — `/wss-lane-record-sync`, `/wss-retire` and
+`/wss-toggle` — for the opposite reason: they are invoked only by you, never
+by a phrase or another skill.)
 `workflow/writers/WSS.WRITERS.md` is the index and the ownership matrix names each
 one's record; four are worth knowing by name:
 

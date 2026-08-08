@@ -1359,6 +1359,122 @@ else
   pass "no check-method table pair to compare"
 fi
 
+# ------------------------------------------------------- the lane tables, twice
+
+head_ "Lane tables"
+
+# Two lane tables each exist as a pair of hand-copies, filed by audit pass 11's
+# F8 and given a check on the owner's ruling. Single-sourcing is the wrong
+# answer for the same reason as the check-method tables above: each copy exists
+# so its own reader sees the rule in place.
+#
+# The four-rulings table (skills/wss-lane-record-sync/SKILL.md and
+# docs/annex/lane-synching.md) addresses the same reader on both sides, so ALL
+# columns must agree — the shape of the check-method comparison. What is free
+# to differ is a trailing "— see below" pointer: it is intra-document
+# navigation, this pair's analogue of the method tables' link target, and is
+# normalised away before comparing.
+rulings_rows_() { # file — the "| Ruling | Files to the queue | Next run |" table
+  awk '
+    /^\|[[:space:]]*Ruling[[:space:]]*\|[[:space:]]*Files to the queue[[:space:]]*\|[[:space:]]*Next run[[:space:]]*\|/ { t = 1; next }
+    t && /^\|[[:space:]]*[-:]/ { next }
+    t && /^\|/ {
+      n = split($0, f, "|")
+      if (n >= 5) {
+        r = f[2]; q = f[3]; x = f[4]
+        sub(/[[:space:]]*—[[:space:]]*see below[[:space:]]*$/, "", q)
+        sub(/[[:space:]]*—[[:space:]]*see below[[:space:]]*$/, "", x)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", r)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", q)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", x)
+        print r "|" q "|" x
+      }
+      next
+    }
+    t { t = 0 }
+  ' "$1" | sort
+}
+rl_skill="$CLAUDE_DIR/skills/wss-lane-record-sync/SKILL.md"
+rl_annex="$CLAUDE_DIR/docs/annex/lane-synching.md"
+if [ -f "$rl_skill" ] && [ -f "$rl_annex" ]; then
+  rl_a=$(rulings_rows_ "$rl_skill")
+  rl_b=$(rulings_rows_ "$rl_annex")
+  if [ -z "$rl_a" ] || [ -z "$rl_b" ]; then
+    # The blind-parser guard both siblings carry: two tables that cannot be
+    # read compare equal, and empty-vs-empty is what the agreement rules out.
+    rl_blind=""
+    [ -z "$rl_a" ] && rl_blind="skills/wss-lane-record-sync/SKILL.md"
+    [ -z "$rl_b" ] && rl_blind="${rl_blind:+$rl_blind and }docs/annex/lane-synching.md"
+    fail "no four-rulings table found in $rl_blind — the comparison needs a
+        '| Ruling | Files to the queue | Next run |' table in both files, and
+        two tables that cannot be read compare equal"
+  elif [ "$rl_a" = "$rl_b" ]; then
+    pass "both four-rulings tables carry the same rows ($(printf '%s\n' "$rl_a" | grep -c .) checked)"
+  else
+    rl_only_a=$(comm -23 <(printf '%s\n' "$rl_a") <(printf '%s\n' "$rl_b") | cut -d'|' -f1 | sort -u | tr '\n' ' ')
+    rl_only_b=$(comm -13 <(printf '%s\n' "$rl_a") <(printf '%s\n' "$rl_b") | cut -d'|' -f1 | sort -u | tr '\n' ' ')
+    fail "the two four-rulings tables disagree.
+        Differing rows in skills/wss-lane-record-sync/SKILL.md: ${rl_only_a:-none}
+        Differing rows in docs/annex/lane-synching.md: ${rl_only_b:-none}
+        A ruling named on one side only is a missing row; one named on both is
+        a wording drift in its cells. Only a trailing '— see below' pointer may
+        differ between the two files."
+  fi
+else
+  pass "no four-rulings table pair to compare"
+fi
+
+# The record-vs-queue table (workflow/WSS.RECORD-CONTRACT.md and
+# docs/annex/lane-synching.md) is the cadence pair's shape instead: the
+# contract is the authority with the full wording, the annex a condensed copy
+# for the docs-site reader — both born that way in 8b28491, so forcing the
+# cells into step would collapse two documents into one. What may not diverge
+# is the row labels: every property the annex teaches must still be one the
+# contract asserts, or the docs page is teaching a rule the authority renamed
+# or dropped. A contract-only row (Write mode, today) is condensation, not
+# drift, and stays free.
+rvq_labels_() { # file — the label column of the "| | A record | A transfer queue |" table
+  awk '
+    /^\|[[:space:]]*\|[[:space:]]*A record[[:space:]]*\|[[:space:]]*A transfer queue[[:space:]]*\|/ { t = 1; next }
+    t && /^\|[[:space:]]*[-:]/ { next }
+    t && /^\|/ {
+      n = split($0, f, "|")
+      if (n >= 4) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", f[2])
+        if (f[2] != "") print f[2]
+      }
+      next
+    }
+    t { t = 0 }
+  ' "$1" | sort
+}
+rvq_contract="$CLAUDE_DIR/workflow/WSS.RECORD-CONTRACT.md"
+if [ -f "$rvq_contract" ] && [ -f "$rl_annex" ]; then
+  rvq_a=$(rvq_labels_ "$rvq_contract")
+  rvq_b=$(rvq_labels_ "$rl_annex")
+  if [ -z "$rvq_a" ] || [ -z "$rvq_b" ]; then
+    rvq_blind=""
+    [ -z "$rvq_a" ] && rvq_blind="workflow/WSS.RECORD-CONTRACT.md"
+    [ -z "$rvq_b" ] && rvq_blind="${rvq_blind:+$rvq_blind and }docs/annex/lane-synching.md"
+    fail "no record-vs-queue table found in $rvq_blind — the comparison needs a
+        '| | A record | A transfer queue |' table in both files, and two
+        tables that cannot be read compare equal"
+  else
+    rvq_extra=$(comm -13 <(printf '%s\n' "$rvq_a") <(printf '%s\n' "$rvq_b") | tr '\n' ' ')
+    if [ -z "$rvq_extra" ]; then
+      pass "the annex's record-vs-queue rows all exist in the contract ($(printf '%s\n' "$rvq_b" | grep -c .) checked)"
+    else
+      fail "docs/annex/lane-synching.md's record-vs-queue table carries rows
+        workflow/WSS.RECORD-CONTRACT.md's does not: ${rvq_extra}
+        The annex condenses the contract's table, so the contract may hold
+        rows the annex skips — never the reverse. A label only the annex has
+        is a property the authority renamed or dropped."
+    fi
+  fi
+else
+  pass "no record-vs-queue table pair to compare"
+fi
+
 # --------------------------------------------------------------- audit reports
 
 head_ "Audit reports"
@@ -1466,7 +1582,7 @@ else
   # Containers with project-chosen sub-keys — hazards, gate.coverage,
   # audit.invalidates, WSS.lanes.named — are deliberately not descended into.
   KNOWN_KEYS='WSS.manifest WSS.branch WSS.record WSS.commands WSS.gate WSS.agents WSS.lanes WSS.audit
-WSS.onSchemaChange WSS.hazards WSS.commitTrailer WSS.sweeps
+WSS.onSchemaChange WSS.hazards WSS.commitTrailer WSS.sweeps WSS.localCI
 WSS.branch.integration WSS.branch.publish WSS.branch.mergeMethod
 WSS.record.todo WSS.record.roadmap WSS.record.releases WSS.record.changelog WSS.record.handoff WSS.record.decisions
 WSS.record.decisionsIndex WSS.record.openDecisions WSS.record.behaviour WSS.record.reference

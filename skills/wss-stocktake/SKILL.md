@@ -279,65 +279,31 @@ matching a **fixed** item is a *regression* — re-open it one severity higher a
 name the commit that was supposed to have fixed it. A finding matching a **still-open** item is
 not new: fold it into the carry-over count rather than listing it twice.
 
-### Then run the suite — once
+### Then run the suite — once, and read CI
 
-**Where there is no suite to run**, say so plainly and carry Phase 0's standing
-`high` finding into the report. Do not quietly omit this section — silence reads
-as "the tests pass".
+**The mechanics are
+[`workflow/checks/WSS.MECHANICAL-GAUNTLET.md`](../../workflow/checks/WSS.MECHANICAL-GAUNTLET.md)**
+— the doctor-first sequence, the full-suite-with-coverage rule, the consent
+budget, the `test-run` carry-forward, and CI's four outcomes on the audited
+SHA, all of them in the report. Run the project's schema-validation and
+dependency-audit commands alongside, where it declares them.
 
-**Check nothing else is mid-run first.** Where test runs share state, a collision
-produces failures indistinguishable from real defects. Grep the process table for
-the project's test runner; if a run is live, wait and say so rather than retrying
-into it.
+What stays this skill's, because it is an orchestrator's:
 
-**One case permits not running it.** Ask `sweep-tracker` for the `test-run`
-entry; when it licenses a carry-forward, report the previous result and count and
-say it was carried forward. The conditions, and the two things that void them,
-are [`WSS.SWEEP-CHECKPOINT.md`](../../workflow/WSS.SWEEP-CHECKPOINT.md)'s.
-
-Afterwards, hand `sweep-tracker` the entry — the sha, the result and the runtime
-count. Hand it over rather than writing the file here: the checkpoint has one
-writer.
-
-Then, in order:
-
-```
-WSS.commands.typecheck
-WSS.commands.test        # the FULL suite, with coverage. Never a subset.
-```
-
-Plus whatever schema-validation and dependency-audit commands the project
-declares.
-
-**Always the full suite, and always the coverage command rather than a bare test
-run** — a green suite says nothing about `gate.coverage`, which is what CI
-enforces. If the suite fails, re-run once in full before treating any failure as
-a finding.
-
-**Where the project gates the suite behind a consent token**
-(`WSS.commands.testConsentEnv`), only the orchestrating session can supply it. Never
-delegate that to a subagent, and budget for one run.
-
-Record the runtime test count from the run's own output, not a count of test call
-sites — parameterised helpers expand at runtime and undercount. Compare against
-the previous audit's figure; a suite that grew more slowly than the code did is a
-finding the test dimension should be asked about directly.
-
-### And check what CI thinks of this exact commit
-
-A green local run says nothing about whether the tests gate anything. Resolve the
-audited SHA against CI — where the project uses GitHub Actions:
-
-```
-gh run list --limit 20 --json headSha,conclusion,workflowName,createdAt
-```
-
-Otherwise the project's own CI query. Four outcomes, all of them in the report.
-**Green** — say so. **Red** — a finding on its own, outranking most of what the
-auditors found. **No run at all for this SHA** — either the commit was never
-pushed or the pipeline's triggers don't cover the path that produced it. **No CI
-at all** — Phase 0's standing `high` finding; carry it. Never quietly treat a
-missing run as a pass.
+- **Where there is no suite to run**, say so plainly and carry Phase 0's
+  standing `high` finding — silence reads as "the tests pass". A missing CI run
+  is Phase 0's finding the same way.
+- **Check nothing else is mid-run first.** Grep the process table for the
+  project's test runner; a collision produces failures indistinguishable from
+  real defects, so wait and say so rather than retrying into it.
+- **Consent is the orchestrating session's alone** — never a subagent's.
+- **Afterwards, hand `sweep-tracker` the `test-run` entry** — the sha, the
+  result and the runtime count. Hand it over rather than writing the file here:
+  the checkpoint has one writer.
+- **Record the runtime count from the run's own output**, not a count of call
+  sites — parameterised helpers expand at runtime and undercount. Compare
+  against the previous audit's figure; a suite that grew more slowly than the
+  code did is a finding the test dimension should be asked about directly.
 
 ### Save the findings before talking to the user
 

@@ -71,10 +71,10 @@ than by convention**, and that manifest is the first file both `--wss-adopt` and
 needs one at all. A project without a manifest still works: skills fall back to
 the conventional names in `workflow/WSS.MANIFEST.md` and skip what they cannot
 resolve. The fallback worth knowing is `WSS.record.handoff`'s, which is
-`CLAUDE.md` — under it
-the handoff is loaded by the harness with no wiring, and then paid for in every
-session of that project. This repo maps it to `.claude/WSS.HANDOFF.md` instead, and
-that mapping is exactly the condition under which `wss-session-check.sh` injects it.
+`WSS.HANDOFF.md` — a file the harness never loads on its own, so
+`wss-session-check.sh` injects whatever the handoff resolves to, declared or
+fallback, whenever that file exists and is not `CLAUDE.md`. This repo maps it
+to `.claude/WSS.HANDOFF.md`.
 
 ## What a session loads, and when
 
@@ -88,7 +88,7 @@ is paid for far more often than a byte in another.
 | A skill's **body** | only when that skill is invoked | length here is cheap by comparison |
 | `skills/wss-docs/references/*.md` | only when the `wss-docs` skill reads one | reference detail belongs here, not in a body |
 | A `wss-shorthand-flags.sh` block | when its flag fires | injected into the prompt |
-| The project's `WSS.record.handoff` — or just its **card**, where the file carries a `<!-- handoff:card-ends -->` marker | every session in **any** project whose manifest maps it away from `CLAUDE.md`, via `wss-session-check.sh` | so *card* length is the permanent per-session cost of adopting, not file length. Without the marker the whole file is injected, which is what the split exists to escape |
+| The project's `WSS.record.handoff` — or just its **card**, where the file carries a `<!-- handoff:card-ends -->` marker | every session in **any** project whose resolved handoff — declared, or the `WSS.HANDOFF.md` fallback when the key or the manifest is absent — is an existing file other than `CLAUDE.md`, via `wss-session-check.sh` | so *card* length is the permanent per-session cost of adopting, not file length. Without the marker the whole file is injected, which is what the split exists to escape |
 
 Two rules follow. **A description must carry every case that should trigger the
 skill, and nothing else** — no procedure summary, no inventory of callers, since
@@ -109,11 +109,14 @@ The lever above has a hard limit, and which shape the suite is in decides whethe
 you have it at all.
 
 **As a checkout**, `skillOverrides` in `settings.json` controls each skill
-individually. This repository sets to `name-only` any skill a
-session cannot usefully be routed to by description — one reached only by
-another skill's dispatch, and one reachable only by an explicit slash. In both
-cases the description is pure cost, since noticing a match can never be what
-invokes it. Read the current set out of
+individually, and `/wss-toggle` is the slash-only editor of exactly that block
+— it lists effective levels, refuses a level that would break a
+dispatch-reached skill, and warns when a change silences a flag. This
+repository uses two levels: `name-only` for a skill a session cannot usefully
+be routed to by description yet must stay dispatch-reachable, and
+`user-invocable-only` for the heavyweights the owner invokes by slash alone —
+under which a skill's *flag* is deliberately inert as well, since the flag
+hook honours the same override. Read the current set out of
 `settings.json` rather than a count here; it shrank once already, when the
 record procedures left `skills/` for `workflow/writers/` and stopped being
 skills at all. `wss-doctor.sh` guards the arrangement: its dispatch-only check (the
@@ -223,10 +226,11 @@ replacing them, so an adopter's own hooks keep firing.
   would make "unreachable" and "zero" identical. Age is counted in **commits, not dates** — no date
   semantics exist anywhere else in this workflow, and a hook is the wrong place
   to introduce one. Two outputs are not warnings at all. It injects the project's
-  handoff, and only where that project mapped `WSS.record.handoff` away from
-  `CLAUDE.md`. Where the handoff *is* `CLAUDE.md`, or undeclared, or absent, it
-  stays silent — the harness has already loaded it, or there is nothing to load,
-  so injecting would put the same file in context twice. And **the first session
+  handoff — the declared path, or the `WSS.HANDOFF.md` fallback where the key
+  or the whole manifest is absent. It stays silent only where the resolved
+  handoff *is* `CLAUDE.md` (the harness has already loaded it, and injecting
+  would put the same file in context twice), where the resolved file does not
+  exist, or where a manifest is present but unreadable. And **the first session
   after a plugin install gets one orientation block**, since a plugin has no
   channel to speak at install time and `SessionStart` is the documented
   alternative; it is gated by a marker in the config directory rather than under

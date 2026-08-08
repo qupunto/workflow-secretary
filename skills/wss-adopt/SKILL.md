@@ -41,6 +41,15 @@ in the request → worktree setup for a declared lane, which skips to its own
 section below. Say which in one line before doing anything, because the modes
 have different blast radii.
 
+**Then the wizard's first question, before anything else it does — y/N,
+default no: "An archive to restore first?"** A `wss-export-records.sh` export
+or a retirement snapshot (`WSS.RETIREMENT-PLAN.tar.gz`) is the machine-change
+and re-adoption path back in. No is the default because most adoptions have
+no other machine — a plain no closes the subject for the rest of the run. On
+yes, take the path and run §8b's import **now**, so the restored records
+already exist for every later step. `--lane` mode skips the question — a
+worktree shares the project's records.
+
 Also pin the tree — `git rev-parse --short HEAD` and `git status --porcelain`.
 If the tree is dirty, say so and continue.
 
@@ -156,6 +165,14 @@ Everything answerable from the repo should already be answered by now.
   never needs this; do not raise it unprompted.
 - **`WSS.hazards.*`** — where the project's known traps are already written, as
   `file#anchor`. Do not write the traps themselves; the manifest holds pointers.
+- **`WSS.localCI`** — only where the user says integration-branch CI runs, or
+  should run, on a self-hosted runner; never raise it unprompted. The value is
+  the project's own prepare-never-perform runbook script — confirm the path
+  resolves before handing it over. The doctrine (what generalizes, what stays
+  the project's) is `references/WSS.LOCAL-CI.md`, tracked-private in the
+  suite's source tree and absent from a published copy; where that file is
+  absent, the key's row in `WSS.MANIFEST.md` is all there is, and that is
+  enough to record a runbook the project already has.
 
 **Do not ask about `audit.*`.** Both keys exist to override defaults that are
 correct for a new adopter, and a question nobody can answer well on day one is a
@@ -229,8 +246,9 @@ installs — belongs to the project's own docs behind `WSS.hazards.*`, not here.
 
 ## 8b. An archive from another machine imports here — before any record is created
 
-Where the user hands over an archive made by `wss-export-records.sh` — the machine
-change is the scenario — run its import **before** step 9, so restored records
+Reached from step 1's y/N question, or whenever the user hands an archive over
+unprompted — the machine change is the scenario. Run the import the moment the
+archive is named, and in every case **before** step 9, so restored records
 count as existing and step 9 seeds only what is genuinely absent:
 
 ```bash
@@ -244,8 +262,8 @@ non-empty file, and a record step 9 has already seeded carries its heading —
 so the other order refuses the very files the archive exists to restore. A
 refusal therefore means this machine has real content the archive would
 replace: show both sides and let the user choose `--force`, never choose it
-for them. Do not ask for an archive when none was offered — most adoptions
-have no other machine.
+for them. Ask exactly once — step 1's question, default no — and never press
+after a no: most adoptions have no other machine.
 
 ## 10. Prove it, do not claim it
 
@@ -312,8 +330,10 @@ Say, briefly:
 the rest pay back over weeks.** An adopter handed a page of equal-looking flags
 uses none of them; handed three, they use three.
 
-Say plainly that nothing here nags: the SessionStart hook speaks only when a
-sweep checkpoint has fallen far behind, so the cadence is theirs to keep.
+Say plainly that nothing here nags on a schedule: the SessionStart hook
+speaks when something has genuinely fallen behind or broken — a failing
+health check, a record or sweep gone stale — and injects the handoff, so the
+cadence is theirs to keep.
 
 Then have `git-writer` commit it. `--wss-adopt` authorizes committing what it
 created and nothing more, and that grant is what the primitive inherits;

@@ -22,10 +22,10 @@ are not the same report.
 ## The `--wss-pr` shorthand
 
 **The token is spelled out and not `--pr`.** No flag may be a prefix of another,
-and `wss-doctor.sh` fails on a violation. Where a flag counts, and the authorization
-it confers, is in `wss-shorthand-flags.sh` and
+and `wss-doctor.sh` fails on a violation. Where a flag counts is
 [`README.md`](../../README.md), which is also where the reason for this
-particular name lives.
+particular name lives; what it authorizes is the block `wss-shorthand-flags.sh`
+injects and [`workflow/WSS.OWNERSHIP.md`](../../workflow/WSS.OWNERSHIP.md)'s matrix.
 
 Invoking without confirmation is safe because everything up to §5 is local or
 reversible.

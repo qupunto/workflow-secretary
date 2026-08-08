@@ -91,6 +91,11 @@ Three rules, because each is a way to be wrong that is easy to be:
 - **Stop before it stops being readable.** A graph nobody can follow is worse
   than the table above it, and the table is already there.
 
+These bullets are a working copy. **The authority on the three rules is the
+docs style guide** (`skills/wss-docs/references/WSS.STYLE-GUIDE.md`, its
+Diagrams section) — if the two ever disagree, that file wins and this one gets
+corrected.
+
 The diagram travels with the catalog when it goes to `--wss-docs`, which re-renders
 it for the site's own renderer under the rules above.
 
@@ -144,42 +149,16 @@ could not be borrowed by the next caller:
 Run deliberately — on the trigger phrases, or when `--wss-full-check` orders it —
 never as a side effect of a Job 1/2 edit.
 
-**The test: a line stays if removing it would change what Claude does.** Apply
-it literally, paragraph by paragraph. Three things pass: **behaviour** (a rule,
-threshold, ordering, boundary, path, command, or the name of a file or skill to
-hand something to); **defence of a counterintuitive rule** — kept as **one
-clause**, not a paragraph and not a story, because a rule that looks wrong gets
-reverted by the next session unless the why survives — and the clause is the
-**mechanism**, never the incident: "it has happened here" is history, not
-defence, however recent the scar; and **routing** — the
-frontmatter `description`, the most expensive text here and the one whose
-removal breaks the skill outright. Everything else is a candidate: the second
-illustration, the history of how a rule was arrived at, the reassurance, the
-restatement. **Nothing is destroyed, only relocated** — durable reasoning goes
-to `WSS.record.decisions` through `--wss-log`, or into the commit message.
+**The method is [`workflow/checks/WSS.PROSE-PRUNE.md`](../../workflow/checks/WSS.PROSE-PRUNE.md)**
+— the keep test, the three classes that pass it, the five never-cut hazards,
+and propose-first, measure-second. This skill is its standalone runner, exactly
+as Job 2 runs its own method file.
 
-**What is never cut** — five hazards, each failing silently:
+What the method leaves to the runner:
 
-- **A heading another skill cites by name** — the citation resolves to nothing
-  while reading as live. Run the suite's `wss-doctor.sh` before proposing and after
-  cutting.
-- **The last statement of a rule.** Confirm a restatement is genuinely stated
-  elsewhere and say where; zero copies is a behaviour change disguised as
-  tidying.
-- **A link to a `workflow/*.md` authority.**
-- **Text inside a fenced block** — executed or copied verbatim.
-- **An agent file's `tools:` list and frontmatter `description`** — narrowing a
-  description shows up as the agent never being chosen, never as an error. A
-  description you touch gets shorter or stays the same, never longer.
-
-**Propose first, cut second — the second look survives the merge.** Classify
-every paragraph and collect the candidates *before* touching anything, then
-re-check each against the hazards as a separate pass; a proposed cut is a
-hypothesis, and skipping the re-check turns this job into a generator of
-plausible deletions. **Measure** — bytes before, bytes proposed, share of the
-file; a cut worth less than a percent or two is not worth the churn. **A file
-already lean is a finding** — say so rather than proposing marginal cuts to
-justify the run.
+- **Where relocated reasoning goes** — durable reasoning to
+  `WSS.record.decisions` through `--wss-log`, or into the commit message.
+- **Say what you cut and why, in the commit**, as with Job 2's deletions.
 
 **Scope and stamping**: resolve through `sweep-tracker`, entry `prune`, one
 scope `prose` — separate from Job 2's `tooling` entry, because the two sweeps

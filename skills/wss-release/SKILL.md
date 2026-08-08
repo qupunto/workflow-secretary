@@ -29,9 +29,10 @@ resolution rule; the changelog and the release list never split.
 ## The `--wss-release` shorthand
 
 Invoking without confirmation is safe: everything up to the push is local and
-reversible, and the push has its own gate below. Where a flag counts, and the
-authorization it confers, is in `wss-shorthand-flags.sh` and
-[`README.md`](../../README.md).
+reversible, and the push has its own gate below. Where a flag counts is
+[`README.md`](../../README.md); what it authorizes is the block
+`wss-shorthand-flags.sh` injects and
+[`workflow/WSS.OWNERSHIP.md`](../../workflow/WSS.OWNERSHIP.md)'s matrix.
 
 ## 1. The precondition is a mark, not a word
 

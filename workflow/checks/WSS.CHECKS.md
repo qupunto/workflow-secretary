@@ -29,6 +29,9 @@ the next one.
 | [`WSS.RECORD-DRIFT.md`](WSS.RECORD-DRIFT.md) | the classes of drift in a record, and the things that look like drift and are not | `--wss-check`, `--wss-full-check`, `--wss-stocktake` |
 | [`WSS.DOCS-AUDIT.md`](WSS.DOCS-AUDIT.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page-level accuracy against source | `--wss-docs`, `--wss-full-check` |
 | [`WSS.TOOLING-CLAIMS.md`](WSS.TOOLING-CLAIMS.md) | mutable claims inside the tooling files, which are deleted rather than corrected | `--wss-tools`, `--wss-full-check` |
+| [`WSS.MECHANICAL-GAUNTLET.md`](WSS.MECHANICAL-GAUNTLET.md) | a non-green result from the project's own verifications — doctor, typecheck, suite, CI — and what each outcome means | `--wss-full-check`, `--wss-stocktake` |
+| [`WSS.PROSE-PRUNE.md`](WSS.PROSE-PRUNE.md) | prose in a skill, agent or tooling file whose removal changes nothing about what Claude does | `--wss-tools`, `--wss-full-check` |
+| [`WSS.AUDIT-PASS.md`](WSS.AUDIT-PASS.md) | what an independent audit pass must carry — the cumulative rubric, and how focuses rotate | the audit ritual, on the owner's ask; no flag |
 
 **Scope never comes from here.** Incremental narrowing is the runner's, out of
 [`WSS.SWEEP-CHECKPOINT.md`](../WSS.SWEEP-CHECKPOINT.md), and a full-scope run is a runner
