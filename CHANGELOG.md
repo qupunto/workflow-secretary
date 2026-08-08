@@ -8,6 +8,36 @@ reasoning behind each change, is `WSS.CHANGELOG.md`. This file is deliberately
 free of that: if an entry here only makes sense to someone editing the suite, it
 belongs in the other one.
 
+## 0.9.0 — 2026-08-08
+
+**Your handoff gets read even without a manifest.** If your project keeps a
+`WSS.HANDOFF.md` but never mapped it — or was never adopted at all — sessions
+now start with it injected, exactly as a declared mapping always did.
+Previously it was silently unread, and nothing told you.
+
+**`/wss-toggle` controls what each skill costs at session start.** It shows
+every skill's current load level, changes it safely — refusing a level that
+would break a skill other skills depend on, and warning when a change would
+silence one of the `--wss-*` flags — and can only be invoked by name, never by
+a phrase.
+
+**Adoption asks about your archive first.** Moving machines? `--wss-adopt` now
+asks up front whether there is an export to restore, before it creates
+anything, so restored records are never overwritten by empty ones.
+
+**Ask for a diagram inline.** `--wss-diagram` takes the diagram you just asked
+about and lands it in your documentation site's annex, correctly rendered for
+your site.
+
+**Publishing and resets got sturdier.** The publication gates scan binary
+files for private content the same as text, state how many tests the
+published copy runs compared to the source, and a records reset refuses a
+file it cannot write instead of stopping half-done.
+
+**Projects running their tests on a self-hosted runner can say so** — an
+optional `WSS.localCI` manifest key names your runbook, and the health check
+recognizes it.
+
 ## 0.8.0 — 2026-08-08
 
 **Every file the suite writes now announces itself.** Suite files carry a

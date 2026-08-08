@@ -10,7 +10,9 @@ Renders as a docsify site by default — plain markdown that also reads correctl
 ## Invocation
 
 `/wss-docs` invokes this skill by name, and `--wss-docs` fires it through the hook — both are the same
-request. Bare, either means *document what we just worked on*: infer the target from
+request. (`--wss-diagram` also lands here: a single inline diagram routed into the
+site's annex, with the whole procedure carried by that flag's hook block rather
+than by a section of this file.) Bare, either means *document what we just worked on*: infer the target from
 the conversation — the files touched this session, the feature just built — and say what you
 picked before writing. With an argument (`--wss-docs auth`, `--wss-docs the map module`) that's the
 target.

@@ -14,9 +14,10 @@ threshold below: build the list even for work you would otherwise have judged to
 small. It authorizes nothing else — this skill writes no file and touches no
 record, so there is nothing for a grant to confer.
 
-Where a flag counts, and the authorization it confers, live in
-`wss-shorthand-flags.sh` and [`README.md`](../../README.md) — one copy,
-not restated per skill.
+Where a flag counts is [`README.md`](../../README.md); what it authorizes is
+the block `wss-shorthand-flags.sh` injects and
+[`workflow/WSS.OWNERSHIP.md`](../../workflow/WSS.OWNERSHIP.md)'s matrix — the two
+copies `wss-doctor.sh` compares, never restated per skill.
 
 ## The threshold
 

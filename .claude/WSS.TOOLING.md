@@ -50,33 +50,34 @@ it stops being readable.
                           │  its own, and an invoked skill inherits
                           │  its CALLER's grant, never its own flag's.
                           ▼
-   ┌──────────────────────────────────────────────────────────────┐
-   │  ORCHESTRATORS — own the session, write no record            │
-   │                                                              │
-   │    --wss-start    --wss-check    --wss-full-check   --wss-release│
-   │    --wss-wrap     --wss-pr       --wss-stocktake    --wss-report │
-   │    --wss-docs     --wss-adopt    --wss-overview                 │
-   │                                                              │
-   │    flagless:     wss-lane-record-sync   wss-retire          │
-   │                  (both slash only)                           │
-   └───────────────────────────┬──────────────────────────────────┘
+   ┌────────────────────────────────────────────────────────────────┐
+   │  ORCHESTRATORS — own the session, write no record              │
+   │                                                                │
+   │    --wss-start      --wss-check      --wss-full-check          │
+   │    --wss-release    --wss-wrap       --wss-pr                  │
+   │    --wss-stocktake  --wss-report     --wss-docs                │
+   │    --wss-adopt      --wss-overview   --wss-diagram             │
+   │                                                                │
+   │    flagless:     wss-lane-record-sync   wss-retire             │
+   │                  wss-toggle             (all slash only)       │
+   └───────────────────────────┬────────────────────────────────────┘
                                │
                                │  invokes, passing its grant down
                                ▼
-   ┌──────────────────────────────────────────────────────────────┐
-   │  PRIMITIVES — a record, the history, or a rule               │
-   │                                                              │
-   │    with a flag:  --wss-track    --wss-todo / --wss-log          │
-   │                  --wss-plan     --wss-tools     --wss-scout     │
+   ┌────────────────────────────────────────────────────────────────┐
+   │  PRIMITIVES — a record, the history, or a rule                 │
+   │                                                                │
+   │    with a flag:  --wss-track    --wss-todo / --wss-log         │
+   │                  --wss-plan     --wss-tools    --wss-scout     │
    │                  --wss-describe --wss-reference                │
-   │                                                              │
-   │    flagless:     wss-contracts  (a skill)                     │
-   │                                                              │
-   │    procedures    sweep-tracker     handoff-writer            │
-   │    under         changelog-writer  git-writer                │
-   │    workflow/     manifest-writer   behaviour-writer          │
-   │    writers/:     reference-writer  audit-writer              │
-   └───────────────────────────┬──────────────────────────────────┘
+   │                                                                │
+   │    flagless:     wss-contracts  (a skill)                      │
+   │                                                                │
+   │    procedures    sweep-tracker     handoff-writer              │
+   │    under         changelog-writer  git-writer                  │
+   │    workflow/     manifest-writer   behaviour-writer            │
+   │    writers/:     reference-writer  audit-writer                │
+   └───────────────────────────┬────────────────────────────────────┘
                                │  the ones that write
                                ▼
               the record files, and the git history
@@ -107,17 +108,18 @@ inherit from, so a caller can never acquire authorization the user did not give
 it. Arrows also run the other way — the primitive `--wss-tools` invokes `--wss-docs` —
 because the tier says what a skill owns, not who may call it.
 
-**Two orchestrators are flagless for a second reason on top of that.**
+**Three orchestrators are flagless for a second reason on top of that.**
 `wss-lane-record-sync` is expensive and writes into every lane's inbox;
-`wss-retire` deletes a project's workflow files. Slash-only invocation is what
-stops either from happening because a sentence contained the right words. They
-confer no grant and inherit none, since nothing may call them.
+`wss-retire` deletes a project's workflow files; `wss-toggle` edits the user's
+`settings.json`. Slash-only invocation is what stops any of them from
+happening because a sentence contained the right words. They confer no grant
+and inherit none, since nothing may call them.
 
 ### Who invokes whom
 
 | Caller | Invokes | For |
 |---|---|---|
-| `--wss-adopt` | `manifest-writer`, `--wss-docs`, `git-writer` | writing the manifest it decided on; scaffolding a project that has no documentation; committing. Amendment mode — one key in an existing manifest — reaches `manifest-writer` without the detection phase |
+| `--wss-adopt` | `manifest-writer`, `--wss-docs`, `git-writer`, `wss-export-records.sh --import` | writing the manifest it decided on; scaffolding a project that has no documentation; committing; restoring an archive when its first question — asked up front, default no — gets a yes, before any record is seeded. Amendment mode — one key in an existing manifest — reaches `manifest-writer` without the detection phase |
 | `--wss-start` | `--wss-track`, `--wss-todo` / `--wss-log`, `--wss-plan`, `--wss-tools`, `--wss-docs`, `behaviour-writer`, `reference-writer`, `handoff-writer`, `git-writer`, `sweep-tracker` | building the task list before the batch; recording what the batch produced, committing it, and stamping the suite run so the next audit need not repeat it. `--wss-docs` only where a change also earns a page. Its Phase 6 handoffs run **serialized**, never concurrently — every record writer re-verifies against the other records, so each one's read set is all of them |
 | `--wss-check` | the owner of each finding, and `sweep-tracker` | it writes nothing itself — dispatch is the whole design. Every row in its table is a primitive, so a one-line staleness fix never has to run a whole orchestrator procedure to get written |
 | `--wss-full-check` | the same owners at full scope, plus `--wss-tools` (claims and prune), `sweep-tracker`, `wss-doctor.sh` and the project's own test command | ignoring every checkpoint. It resolves the suite carry-forward at the start and deliberately never stamps it at the end, because its later steps always run against a tree it has already edited |
@@ -144,7 +146,7 @@ after this one.
 | Skill | Flag | What it does |
 |---|---|---|
 | `wss-adopt` | `--wss-adopt` | Brings a project under this workflow — detects its shape, maps files it already has, decides what its `.claude/WSS.WORKFLOW.json` should say and hands that to `manifest-writer`, proposes `permissions.ask` gating for the destructive commands it finds, and hands a project with no documentation to `--wss-docs`. The detection and the asking are what stay here: a primitive has no channel to reach the user |
-| `wss-docs` | `--wss-docs` | Writes and maintains a project's long-form documentation site, every claim anchored to a real source path — including per-workflow flow pages, a Mermaid diagram plus stages citing the behaviour record and the code |
+| `wss-docs` | `--wss-docs` `--wss-diagram` | Writes and maintains a project's long-form documentation site, every claim anchored to a real source path — including per-workflow flow pages, a Mermaid diagram plus stages citing the behaviour record and the code. `--wss-diagram` is the ad-hoc entry: one diagram, drawn under the style guide's three rules, landed as an annex page |
 | `wss-full-check` | `--wss-full-check` | Asks whether a project is in order end to end — runs its mechanical checks, re-verifies its records, docs and tooling files at full scope ignoring every checkpoint, triages the defect inbox filed from other projects, orders the prune, has this catalog refreshed, then leaves fresh checkpoints. `--wss-release` runs it before a tag |
 | `wss-pr` | `--wss-pr` | Moves work from the integration branch onto the publish branch through a pull request — drafts the body from the branch range rather than from memory, opens it, watches its CI, and merges behind a fresh confirmation. The only thing in the suite that moves work between the two branches |
 | `wss-stocktake` | `--wss-stocktake`, `--wss-full-stocktake` | Where is this project — record, conventions, public surface, safety nets — then rebuilds the backlog around the answer. Invokes the project's own code-analysis skill where one exists |
@@ -163,6 +165,7 @@ after this one.
 | `wss-retire` | — | Retires the workflow from a project — the reverse of `--wss-adopt`. Shows what would go, then one checkbox dialog: a full snapshot (`WSS.RETIREMENT-PLAN.tar.gz`, restorable at re-adoption) asked first, then the actions to run — delete the machinery, delete the records, wipe the records, uninstall the plugin — executed in dependency order, a wipe skipped as redundant beside a records delete. Slash-invoked only, and its frontmatter blocks model invocation — a deletion never fires from a phrase |
 | `wss-lane-record-sync` | — | Reconciles every lane's records at once, from the main checkout: conflicts between lanes are mediated with the user, work one lane's plans imply for another is presented for an explicit ruling — accept, accept as critical, defer or decline, the last two differing in whether the next run asks again, and what is approved is appended to the addressed lane's **transfer queue** — never to its records. Expensive, and slash-invoked only so it can never fire from a phrase or a batch. The mechanism is `docs/annex/lane-synching.md` |
 | `wss-contracts` | — | States how the suite is wired — that the skills are global, that project facts come from `.claude/WSS.WORKFLOW.json`, what a project without a manifest falls back to, and where the three contracts resolve in a checkout versus a plugin install. It exists because a plugin root's `CLAUDE.md` is never loaded, so an adopter who installs rather than clones would otherwise see none of it |
+| `wss-toggle` | — | Toggles what each skill costs at session start: shows every skill's current `skillOverrides` level, then sets `on`, `name-only`, `user-invocable-only` or `off` in the user's `settings.json` — refusing a level that would break a skill another skill dispatches to, and warning when a change silences a flag. Slash-invoked only, its frontmatter blocks model invocation, and it is the checkout form's lever: the harness ignores overrides for plugin skills |
 | `wss-wrap` | `--wss-wrap` | Closes out a session — task list, the handoff through `handoff-writer`, the commits and push through `git-writer`, asks `--wss-plan` whether a milestone just finished, and from a lane worktree lands that lane on `WSS.branch.integration` by fast-forward — refused rather than forced, and withheld entirely when the wrap fired on an unfinished session. Reports where the project stands in the reply (backlog left, decisions nobody has made, the next goal and milestone), and says when it is safe to clear |
 
 ---
@@ -207,6 +210,9 @@ the citations that remain.
 | [`WSS.RECORD-DRIFT.md`](../workflow/checks/WSS.RECORD-DRIFT.md) | the classes of drift in a record, and the things that look like drift and are not | `--wss-check`, `--wss-full-check`, `--wss-stocktake` |
 | [`WSS.DOCS-AUDIT.md`](../workflow/checks/WSS.DOCS-AUDIT.md) | a docs site's internal correctness — paths, links, anchors, enumerations, page-level accuracy against source | `--wss-docs`, `--wss-full-check` |
 | [`WSS.TOOLING-CLAIMS.md`](../workflow/checks/WSS.TOOLING-CLAIMS.md) | mutable claims inside the tooling files, which are deleted rather than corrected | `--wss-tools`, `--wss-full-check` |
+| [`WSS.MECHANICAL-GAUNTLET.md`](../workflow/checks/WSS.MECHANICAL-GAUNTLET.md) | a non-green result from the project's own verifications — doctor, typecheck, suite, CI — and what each outcome means | `--wss-full-check`, `--wss-stocktake` |
+| [`WSS.PROSE-PRUNE.md`](../workflow/checks/WSS.PROSE-PRUNE.md) | prose in a skill, agent or tooling file whose removal changes nothing about what Claude does | `--wss-tools`, `--wss-full-check` |
+| [`WSS.AUDIT-PASS.md`](../workflow/checks/WSS.AUDIT-PASS.md) | what an independent audit pass must carry — the cumulative rubric, and how focuses rotate | the audit ritual, on the owner's ask; no flag |
 
 **A method says what counts as a finding; a runner decides scope, disposition
 and owner.** `workflow/checks/WSS.CHECKS.md` holds that line and why it matters —

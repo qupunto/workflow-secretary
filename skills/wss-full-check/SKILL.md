@@ -74,39 +74,15 @@ user should be able to stop it before it starts.
 
 ### 2. The mechanical half, first
 
-Cheap, already written, and never run in part. It goes first because the tree is
-still clean at this moment — the one point in this skill where a carry-forward can
-fire, and the last point before anything here causes an edit.
+**The method is
+[`workflow/checks/WSS.MECHANICAL-GAUNTLET.md`](../../workflow/checks/WSS.MECHANICAL-GAUNTLET.md)**
+— the doctor-first sequence, the full-suite rule, the consent budget, the
+`test-run` carry-forward and CI's four outcomes. It goes first because the tree
+is still clean at this moment — the one point in this skill where a
+carry-forward can fire, and the last point before anything here causes an edit.
 
-```bash
-S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-[ -x "$S/wss-doctor.sh" ] || S=$(ls -d "$S"/plugins/cache/*/workflow-secretary-suite/*/ 2>/dev/null | tail -1)
-"$S"/wss-doctor.sh          # always; it validates this project's manifest too
-<WSS.commands.typecheck>
-<WSS.commands.test>
-```
-
-**The doctor is not optional and is not covered by any checkpoint.** It inspects
-both the configuration and the project in `$PWD`, and it catches the failures that
-read exactly like working config — dangling skill references, section citations
-that resolve to nothing, a flag mapped to no skill, a manifest key no skill reads,
-a record path that no longer exists, a checkpoint claiming a baseline that is not
-a commit.
-
-**Before the suite, ask `sweep-tracker` for the `test-run` entry.** When it
-licenses one, skip the run and report the previous result and count, saying
-plainly that it was carried forward rather than re-run. The conditions, and the
-two things that void them, are
-[`WSS.SWEEP-CHECKPOINT.md`](../../workflow/WSS.SWEEP-CHECKPOINT.md)'s. Ask the tracker
-rather than reading the checkpoint file: it has exactly one reader and writer.
-
-Where `WSS.commands.testConsentEnv` gates the suite behind a token only the user can
-supply, there is **one** attempt in a session. Ask for it here, and say what the
-run would cost if refused. A refusal is not a blocker — it makes the suite
-`not-covered` and everything below still runs.
-
-Fix anything either one reports before going further. A later phase editing files
-while the hook or the doctor is broken compounds a failure nobody can see.
+Fix anything it reports before going further. A later phase editing files while
+the hook or the doctor is broken compounds a failure nobody can see.
 
 ### 3. Fan out — one reader per area, concurrently
 
@@ -145,8 +121,8 @@ indirection along. Say in one line that it was skipped and why.
 
 For every `[open]` entry below the append marker:
 
-1. **Check whether it is stale.** Compare its `Config commit` against the cited
-   file now. If the file moved since, the defect may already be fixed — and
+1. **Check whether it is stale.** Compare the config commit on its `Found:`
+   line against the cited file now. If the file moved since, the defect may already be fixed — and
    re-reporting a closed finding is how a live instance of the same class one
    file away gets masked.
 2. **Re-verify it.** Read the cited lines
@@ -223,21 +199,17 @@ inventory is permitted only because something re-derives it on a schedule.
 ### 8. Re-verify mechanically
 
 Every step above may have edited the files that make this project work, so run
-step 2's commands again. All must pass. A health check that leaves the hook or
-the doctor broken has done more damage than the drift it went looking for.
+the gauntlet again — same method. All must pass. A health check that leaves the
+hook or the doctor broken has done more damage than the drift it went looking
+for.
 
-**Run the suite here unconditionally, including when step 2 carried it forward.**
-That carry-forward was licensed by the tree as it stood *before* the edits; it
-says nothing about the tree they left. A final verification inherited from before
-the edits it exists to verify certifies nothing. Where consent was refused or
-already spent, say plainly that the suite did not re-run and that the tree is
-therefore unverified by it.
-
-**Do not stamp the test run from here, ever — not even when the tree happens to
-be clean.** The steps above edit files and this skill does not commit, so any run
-that changed anything reaches this point dirty; `sweep-tracker` would record the
-baseline as `<sha>+dirty`, which can never satisfy a carry-forward. The rule is
-unconditional so nobody has to judge tree state mid-run.
+Two of the method's rules bind hardest at this end of the run: **the suite
+re-runs unconditionally, including when step 2 carried it forward** — that
+carry-forward was licensed by the tree as it stood *before* the edits and
+certifies nothing about the tree they left (where consent was refused or spent,
+say plainly that the tree is unverified by it) — and **the test run is never
+stamped from here**, because this skill does not commit and a dirty baseline
+can never satisfy a later carry-forward.
 
 ### 9. Stamp the checkpoints — this is the payoff
 

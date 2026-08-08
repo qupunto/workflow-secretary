@@ -63,7 +63,7 @@ prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null)
 # below does not matter. `--wss-stocktake` and `--wss-full-stocktake` look like they collide and
 # do not — the latter has its own leading dashes. wss-doctor.sh checks the invariant
 # rather than trusting this comment; add a flag that violates it and it fails.
-FLAGS=(--wss-full-stocktake --wss-pr --wss-full-check --wss-release --wss-stocktake --wss-report --wss-adopt --wss-flags --wss-start --wss-track --wss-docs --wss-check --wss-tools --wss-todo --wss-wrap --wss-plan --wss-help --wss-log --wss-alerts --wss-overview --wss-scout --wss-describe --wss-reference)
+FLAGS=(--wss-full-stocktake --wss-pr --wss-full-check --wss-release --wss-stocktake --wss-report --wss-adopt --wss-flags --wss-start --wss-track --wss-docs --wss-check --wss-tools --wss-todo --wss-wrap --wss-plan --wss-help --wss-log --wss-alerts --wss-overview --wss-scout --wss-describe --wss-reference --wss-diagram)
 
 # Split into whitespace-separated tokens. `set -f` because an unquoted
 # expansion would otherwise glob `*` in the prompt against the filesystem.
@@ -220,7 +220,7 @@ skill_for() {
     --wss-pr) echo wss-pr ;;
     --wss-stocktake | --wss-full-stocktake) echo wss-stocktake ;;
     --wss-adopt) echo wss-adopt ;;
-    --wss-docs) echo wss-docs ;;
+    --wss-docs | --wss-diagram) echo wss-docs ;;
     --wss-tools) echo wss-tools ;;
     --wss-check) echo wss-check ;;
     --wss-report) echo wss-report ;;
@@ -791,6 +791,29 @@ Irreversible, in force before the skill loads:
   why something is the way it is, write "reason unclear" rather than inventing
   a rationale. A plausible-but-wrong doc is worse than no doc, because nobody
   knows which of its claims to distrust.
+EOF
+    ;;
+  --wss-diagram)
+    cat <<'EOF'
+The user included the `--wss-diagram` flag. That is an explicit, unconditional
+instruction to draw ONE diagram of what the message names — or, bare, of what
+was just worked on — and land it in the docs site: invoke the `wss-docs` skill
+now, and write the result as a page under the site's annex directory
+(`docs/annex/` by the site's own convention). The rest of the message is the
+subject, not a question to answer first.
+
+Authorization: none. Committing and pushing stay ordinary decisions.
+
+In force before the skill loads:
+- The three diagram rules are the style guide's
+  (`skills/wss-docs/references/WSS.STYLE-GUIDE.md`) and apply in full: check
+  what will render it — docsify needs a plugin the default `index.html` does
+  not load, so ASCII in a plain fence is the default; every box and arrow is a
+  claim drawn from source you read; and stop before the graph stops being
+  readable — a table is often the better answer, and saying so is a valid
+  outcome of this flag.
+- The catalog's interaction diagram is not this flag's to touch: `--wss-tools`
+  draws that one.
 EOF
     ;;
   --wss-stocktake)

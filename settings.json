@@ -32,9 +32,13 @@
     "defaultMode": "auto"
   },
   "skillOverrides": {
+    "wss-adopt": "user-invocable-only",
     "wss-contracts": "name-only",
+    "wss-full-check": "name-only",
     "wss-lane-record-sync": "name-only",
-    "wss-retire": "name-only"
+    "wss-retire": "name-only",
+    "wss-stocktake": "user-invocable-only",
+    "wss-toggle": "user-invocable-only"
   },
   "hooks": {
     "UserPromptSubmit": [

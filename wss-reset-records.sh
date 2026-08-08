@@ -95,10 +95,20 @@ contained() { # relative-path, label -> prints the absolute path, or returns 1
   }
   abs="$tdir/$(basename "$target")"
   case "$abs/" in
-    "$DIR_ABS"/*) printf '%s' "$abs" ;;
+    "$DIR_ABS"/*) ;;
     *) printf '  REFUSE %-14s %s resolves outside the project (%s)\n' "$2" "$rel" "$abs" >&2
        return 1 ;;
   esac
+  # An unwritable record is refused HERE rather than discovered at the `>`
+  # redirect — audit pass 6's M3: under `set -euo pipefail` that redirect kills
+  # the run mid-loop, records already blanked, nothing reporting why. Refusing
+  # at resolution keeps the established shape: skip the file, keep going,
+  # exit 1 at the end — and the dry run predicts the same refusal.
+  if [ -e "$abs" ] && [ ! -w "$abs" ]; then
+    printf '  REFUSE %-14s %s is not writable\n' "$2" "$rel" >&2
+    return 1
+  fi
+  printf '%s' "$abs"
 }
 
 changed=0 skipped=0

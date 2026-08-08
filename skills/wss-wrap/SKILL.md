@@ -28,9 +28,10 @@ whether the work looks finished. It overrides every judgment call below: don't
 ask "is this really done?", don't wait for approval of the last deliverable,
 just run the closing ritual.
 
-Where a flag counts, and the authorization it confers, live in
-`wss-shorthand-flags.sh` and [`README.md`](../../README.md) — one copy,
-not restated per skill.
+Where a flag counts is [`README.md`](../../README.md); what it authorizes is
+the block `wss-shorthand-flags.sh` injects and
+[`workflow/WSS.OWNERSHIP.md`](../../workflow/WSS.OWNERSHIP.md)'s matrix — the two
+copies `wss-doctor.sh` compares, never restated per skill.
 
 ## When it triggers
 

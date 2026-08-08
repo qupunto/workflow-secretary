@@ -17,11 +17,12 @@
 # ONE DELIBERATE EXCEPTION, below: the project handoff. That is not a warning
 # and it is not conditional on anything being wrong — it is the file a fresh
 # session is supposed to start from. The harness only auto-loads the working
-# directory's CLAUDE.md, so a project that maps WSS.record.handoff anywhere ELSE has
-# a handoff nothing reads. This injects it, and ONLY in that case: where the
-# handoff is CLAUDE.md, or undeclared, or absent, this stays silent, because
-# then either the harness already loaded it or there is nothing to load.
-# It is therefore free in every project that has not deliberately moved it.
+# directory's CLAUDE.md, so every other resolved handoff — mapped elsewhere,
+# or the WSS.HANDOFF.md fallback where the key or the manifest is absent — is
+# a handoff nothing reads. This injects it. It stays silent only where the
+# handoff is CLAUDE.md (the harness already loaded it) or the resolved file
+# does not exist (nothing to load), so a project that never wrote a handoff
+# pays nothing.
 #
 # It never fails a session. A hook that can block startup on its own bug is
 # worse than the drift it detects, so every path exits 0.
@@ -324,13 +325,24 @@ user; it will not be shown again."
 fi
 
 # --------------------------------------------------------------- handoff
-# See the exception in the header. Injected only where the project mapped its
-# handoff away from the CLAUDE.md the harness already loads — otherwise this
-# would double the cost of a file that is in context twice.
-# $manifest is resolved once, in the record-age section above.
-if [ -f "$manifest" ] && command -v jq >/dev/null 2>&1; then
-  hp=$(record_path handoff)  # lane-aware — a lane worktree gets ITS handoff
-  case "$hp" in
+# See the exception in the header. The harness auto-loads only CLAUDE.md, so
+# every other resolved handoff — declared, or the WSS.HANDOFF.md fallback when
+# the key or the whole manifest is absent — is a record nothing reads unless
+# this injects it. Silent only for CLAUDE.md (in context twice otherwise) and
+# for a manifest jq cannot read: the mapping might name CLAUDE.md, and a
+# wrong injection doubles it. Until 2026-08-08 the fallback cases were silent
+# too — correct when the fallback WAS CLAUDE.md, a dead handoff after
+# 2026-08-07 moved it. $manifest is resolved once, in the record-age section.
+hp=""
+if [ -f "$manifest" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    hp=$(record_path handoff)  # lane-aware — a lane worktree gets ITS handoff
+    [ -n "$hp" ] || hp=WSS.HANDOFF.md  # key undeclared — documented fallback
+  fi
+else
+  hp=WSS.HANDOFF.md                    # no manifest — the same fallback
+fi
+case "$hp" in
     ""|CLAUDE.md|./CLAUDE.md) ;;
     *)
       if [ -f "$PWD/$hp" ]; then
@@ -354,16 +366,15 @@ whenever this card does not answer the question."
         else
           card=$(cat "$PWD/$hp" || true)
         fi
-        out="This project's handoff ($hp). It is mapped away from CLAUDE.md, so
-nothing else loads it — this is the file a fresh session starts from.
+        out="This project's handoff ($hp). The harness does not load it on its
+own, so this is the file a fresh session starts from.
 
 ${card}${out:+
 
 }${out}"
       fi
       ;;
-  esac
-fi
+esac
 
 [ -z "$out" ] && exit 0
 

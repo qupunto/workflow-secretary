@@ -392,6 +392,35 @@ else
                  *) bad "an unmarked handoff lost content — back-compat broken" ;;
   esac
 
+  # The fallback half. Since 2026-08-07 the handoff fallback is WSS.HANDOFF.md,
+  # which the harness does NOT auto-load — so an undeclared key, or no manifest
+  # at all, resolves to a file only this hook can put in front of a session. A
+  # hook that stays silent there hands the project a handoff nothing reads,
+  # which is exactly the fault the injection exists to fix. The stale
+  # .claude/WSS.HANDOFF.md left by the cases above must NOT be found — the
+  # fallback is the project root's file, not a remembered declared path.
+  printf '{"WSS":{"manifest":"workflow/v2"}}\n' > "$hoproj/.claude/WSS.WORKFLOW.json"
+  printf 'SENTINEL-FALLBACK-HANDOFF\n' > "$hoproj/WSS.HANDOFF.md"
+  out=$(cd "$hoproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *SENTINEL-FALLBACK-HANDOFF*)
+        ok "an undeclared handoff key falls back to WSS.HANDOFF.md and injects it" ;;
+                 *) bad "manifest without a handoff key left WSS.HANDOFF.md unread" ;;
+  esac
+
+  rm -f "$hoproj/.claude/WSS.WORKFLOW.json"
+  out=$(cd "$hoproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null \
+        | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  case "$out" in *SENTINEL-FALLBACK-HANDOFF*)
+        ok "a project with no manifest still gets its WSS.HANDOFF.md injected" ;;
+                 *) bad "no manifest left WSS.HANDOFF.md unread — the fallback is dead" ;;
+  esac
+
+  rm -f "$hoproj/WSS.HANDOFF.md"
+  out=$(cd "$hoproj" && CLAUDE_CONFIG_DIR="$TMP/bare" bash "$CHECK" </dev/null 2>/dev/null)
+  [ -z "$out" ] && ok "silent where no manifest and no WSS.HANDOFF.md exist" \
+                || bad "spoke in a project with nothing to inject: $out"
+
   # The lane selector. A worktree of a lane-split project carries .claude/WSS.LANE,
   # and WSS.lanes.named.<lane>.records.handoff then overrides WSS.record.handoff —
   # WSS.MANIFEST.md's resolution rule. Both directions matter: the selected lane
@@ -1204,6 +1233,62 @@ OWNFIX
   docommit "$mtblind"
   says "$mtblind" "no check-method table found in workflow/checks/WSS.CHECKS.md" \
     "a method table the parser cannot find is a FAILURE, not a silent agreement"
+
+  # The two lane-table pairs, one comparison each. The four-rulings pair must
+  # agree in every cell except a trailing "— see below" pointer, so the clean
+  # fixture carries the pointer on one side only: an agreeing verdict proves
+  # the normalisation, as the method fixture's differing hrefs do. The
+  # record-vs-queue pair compares labels one way — the fixture's contract
+  # holds a row the annex skips, and must still agree.
+  lanefix() { # dir, skill-decline-cell, annex-decline-cell, annex-extra-row
+    docfix "$1"
+    mkdir -p "$1/skills/wss-lane-record-sync" "$1/docs/annex"
+    { printf '# wss-lane-record-sync\n\n### The four rulings\n\n'
+      printf '| Ruling | Files to the queue | Next run |\n|---|---|---|\n'
+      printf '| **Accept** | yes, unmarked | — |\n'
+      printf '| **Decline** | no | %s |\n' "$2"
+    } > "$1/skills/wss-lane-record-sync/SKILL.md"
+    { printf '# The record contract\n\n'
+      printf '| | A record | A transfer queue |\n|---|---|---|\n'
+      printf '| Writers | exactly one | **any lane** |\n'
+      printf '| Write mode | append-only or rewritten in place | append-only, always |\n'
+    } > "$1/workflow/WSS.RECORD-CONTRACT.md"
+    { printf '# Lane synching\n\n'
+      printf '| | A record | A transfer queue |\n|---|---|---|\n'
+      printf '| Writers | exactly one | any lane |\n'
+      [ -n "$4" ] && printf '| %s | something | something |\n' "$4"
+      printf '\n### The four rulings\n\n'
+      printf '| Ruling | Files to the queue | Next run |\n|---|---|---|\n'
+      printf '| **Accept** | yes, unmarked | — |\n'
+      printf '| **Decline** | no | %s |\n' "$3"
+    } > "$1/docs/annex/lane-synching.md"
+    docommit "$1"
+  }
+  lnok="$TMP/doc-lanes-agree"
+  lanefix "$lnok" "**does not ask** — see below" "**does not ask**" ""
+  printf '%s' "$(doc "$lnok")" | grep -q "both four-rulings tables carry the same rows (2 checked)" \
+    && ok "the rulings comparison agrees across the '— see below' pointer" \
+    || bad "rulings comparison reached no verdict, or the pointer broke it"
+  printf '%s' "$(doc "$lnok")" | grep -q "record-vs-queue rows all exist in the contract (1 checked)" \
+    && ok "a contract-only row stays free in the record-vs-queue comparison" \
+    || bad "record-vs-queue comparison reached no verdict, or flagged the contract's extra row"
+  lndrift="$TMP/doc-lanes-drift"
+  lanefix "$lndrift" "**does not ask**" "**asks again**" ""
+  says "$lndrift" "the two four-rulings tables disagree" \
+    "a ruling cell worded differently on the two sides is a FAILURE"
+  printf '%s' "$(doc "$lndrift")" | grep -q "Differing rows in skills/wss-lane-record-sync/SKILL.md: \*\*Decline\*\*" \
+    && ok "the rulings failure names the row that drifted, not just that one did" \
+    || bad "rulings failure did not name **Decline** as the drifting row"
+  lnextra="$TMP/doc-lanes-annex-extra"
+  lanefix "$lnextra" "**does not ask**" "**does not ask**" "Steady state"
+  says "$lnextra" "carries rows" \
+    "an annex-only record-vs-queue row is a FAILURE"
+  lnblind="$TMP/doc-lanes-unreadable"
+  lanefix "$lnblind" "**does not ask**" "**does not ask**" ""
+  edit_ "$lnblind/docs/annex/lane-synching.md" 's/^| Ruling | Files to the queue | Next run |$/| Ruling | Queue | Next run |/'
+  docommit "$lnblind"
+  says "$lnblind" "no four-rulings table found in docs/annex/lane-synching.md" \
+    "a rulings table the parser cannot find is a FAILURE, not a silent agreement"
 
   # --strict's entire job is an exit code, so nothing but an exit code tests it.
   # Both directions: a clean run must stay 0 under it, or it is just `exit 1`.
@@ -2270,6 +2355,26 @@ else
   [ "$(cat "$rr/ok/WSS.RELEASES.md")" = "# Release list" ] \
     && ok "WSS.record.releases is blanked — it is in the enumerated list" \
     || bad "wss-reset-records.sh left WSS.RELEASES.md carrying content: a new record missing from RECORDS"
+
+  # An UNWRITABLE record used to kill the run at the `>` redirect under
+  # `set -euo pipefail` — mid-loop, records already blanked, no refusal
+  # reported (audit pass 6, M3). It must be an ordinary refusal instead:
+  # skipped, loud, fatal at the end, with the other records still blanked.
+  ro=$(mktemp -d); mkdir -p "$ro/proj/.claude"
+  printf '{"WSS":{"record":{"todo":"WSS.TODO.md","roadmap":"WSS.ROADMAP.md"}}}\n' \
+    > "$ro/proj/.claude/WSS.WORKFLOW.json"
+  printf '# Backlog\n\nlocked content\n' > "$ro/proj/WSS.TODO.md"
+  printf '# Roadmap\n\nblankable content\n' > "$ro/proj/WSS.ROADMAP.md"
+  chmod a-w "$ro/proj/WSS.TODO.md"
+  bash "$RR" --write --dir "$ro/proj" >/dev/null 2>&1; rc=$?
+  chmod u+w "$ro/proj/WSS.TODO.md"
+  [ "$rc" -ne 0 ] \
+    && ok "an unwritable record is refused, not a mid-run crash" \
+    || bad "wss-reset-records.sh exited 0 with an unwritable record in the set"
+  [ "$(cat "$ro/proj/WSS.ROADMAP.md")" = "# Roadmap" ] \
+    && ok "and the records after it are still blanked" \
+    || bad "an unwritable record aborted the run before later records were blanked"
+  rm -rf "$ro"
 
   # Dry run is the default, and a default that writes is a footgun.
   printf '# Backlog\n\nstill here\n' > "$rr/ok/WSS.TODO.md"

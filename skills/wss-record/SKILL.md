@@ -1,6 +1,6 @@
 ---
 name: wss-record
-description: "The project's record of work and why. `--wss-todo` parks what is not being built now: task to the backlog, reasoning to the decision log. `--wss-log` records a decision already made. Also on \"park this\", \"leave this for later\", \"log that we decided X\", pasted standup notes, or when you judge something premature. Not on a decision mentioned in passing."
+description: "The project's record of work and why. `--wss-todo` parks what is not being built now: task to the backlog, reasoning to the decision log. `--wss-log` records a decision already made. Also on \"park this\", a decision announced as settled (\"we're going with X\"), pasted standup notes, or when you judge something premature. Not on a decision mentioned in passing."
 ---
 
 # The project record

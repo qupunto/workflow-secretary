@@ -111,6 +111,7 @@ while it stays easy to state.
 | catalog | `--wss-tools` | `wss-tools` | primitive | `WSS.record.tooling.catalog`, plus stale claims and the prose prune inside `WSS.record.tooling.sources` | commit, **not** push |
 | build | `--wss-start` | `wss-start` | orchestrator | source code | commit, **not** push |
 | document | `--wss-docs` | `wss-docs` | orchestrator | the docs site | — |
+| draw | `--wss-diagram` | `wss-docs` *(same skill as `--wss-docs`)* | orchestrator | the docs site — one ad-hoc diagram, landed as a page in the site's annex directory | — |
 | state the wiring | — | `wss-contracts` | primitive | **nothing** — it says where the contracts resolve and which file settles a disagreement | — |
 | stamp | — | [`writers/WSS.SWEEP-TRACKER.md`](writers/WSS.SWEEP-TRACKER.md) | primitive | `WSS.sweeps` — the checkpoint cache | — |
 | hand over | — | [`writers/WSS.HANDOFF-WRITER.md`](writers/WSS.HANDOFF-WRITER.md) | primitive | `WSS.record.handoff` | — |

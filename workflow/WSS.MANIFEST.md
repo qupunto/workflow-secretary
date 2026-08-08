@@ -180,20 +180,23 @@ and `WSS.record.openDecisions` are prose read months later by someone reconstruc
 why a choice was made; an issue thread is a conversation. The task may move; the
 reasoning stays in a file.
 
-**`WSS.record.handoff`'s fallback is the one with a running cost.** The harness
-auto-loads the working directory's `CLAUDE.md`, so under the fallback the handoff
-is read without any wiring — and every line of it is then paid for in every
-session of that project, including the ones its subject is irrelevant to. That is
-why [`WSS.RECORD-CONTRACT.md`](WSS.RECORD-CONTRACT.md#the-mutable-claim-rule) makes
-compression, and deleting a resolved warning the moment it is fixed, a rule for
-this record and no other. The fallback also merges a rewritten-in-place record
-into the file holding the project's standing agent instructions, which have no
-owner in the matrix, leaving `handoff-writer` sole writer of a file the user also
-edits. **Nothing warns about either**, by design: `wss-session-check.sh` injects a
-handoff only where a manifest has mapped it *away* from `CLAUDE.md`, and is
-deliberately silent when it is `CLAUDE.md` or undeclared, because in that case
-the harness has already loaded it. Declaring a path of its own separates the two
-records, at the cost of loading both files.
+**`WSS.record.handoff` is the record with a session-start cost, whatever it
+resolves to.** The harness auto-loads only the working directory's `CLAUDE.md`;
+every other resolved handoff — a declared path, or the `WSS.HANDOFF.md`
+fallback when the key or the whole manifest is absent — is injected by
+`wss-session-check.sh` instead: the card above the `handoff:card-ends` marker
+where one exists, the whole file where none does, and nothing where the
+resolved file does not exist. Either way its lines are paid for in every
+session of that project, including the ones its subject is irrelevant to,
+which is why [`WSS.RECORD-CONTRACT.md`](WSS.RECORD-CONTRACT.md#the-mutable-claim-rule)
+makes compression, and deleting a resolved warning the moment it is fixed, a
+rule for this record and no other. Mapping the handoff **to** `CLAUDE.md` is
+still a project's explicit choice; the hook is then deliberately silent, since
+the harness has already loaded it — and that choice merges a
+rewritten-in-place record into the file holding the project's standing agent
+instructions, which have no owner in the matrix, leaving `handoff-writer` sole
+writer of a file the user also edits. Nothing warns about that: the mapping is
+the consent.
 
 **`WSS.record.reference` is an array, not a sub-object.** Skills describing "the
 reference doc (overview)" or "(data model)" are naming *which file in that array*
@@ -369,6 +372,7 @@ not about which key resolves.
 | `WSS.commitTrailer` | trailer key | e.g. `Claude-Session` |
 | `WSS.sweeps` | path (generated, **gitignored**) | The sweep checkpoint cache. Fallback `.claude/WSS.SWEEPS.json`; its shape and rules are [`WSS.SWEEP-CHECKPOINT.md`](WSS.SWEEP-CHECKPOINT.md) |
 | `onSchemaChange` | **skill name** | The project's mandatory post-schema-edit sequence, and the guard rails around it. A skill rather than a command, because the order matters and because the dangerous operations need prose next to them |
+| `WSS.localCI` | path | The project's local-CI runbook script — prepare-never-perform. Presence says integration-branch pushes run the suite on a self-hosted runner; `wss-adopt` reads it, raising the key only when the user asks and confirming the path resolves |
 | `WSS.hazards.*` | `file#anchor` | Map of phase name → where that phase's known traps are written. Conventional names: `testing`, `lanes`, `migrations`, `generated` |
 
 **`WSS.sweeps` is deliberately not under `WSS.record.*`.** Every `WSS.record.*` path is
